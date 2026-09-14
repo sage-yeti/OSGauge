@@ -17,12 +17,21 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: OS-Readiness-Checker-windows.exe
+            artifact_name: OS-Readiness-Checker-Windows-x64.exe
             executable: OS-Readiness-Checker.exe
+            spec: os_readiness_checker.spec
+          - os: windows-latest
+            artifact_name: OS-Readiness-Checker-CLI-Windows-x64.exe
+            executable: OS-Readiness-Checker-CLI.exe
+            spec: os_readiness_checker_cli.spec
           - os: ubuntu-latest
-            artifact_name: OS-Readiness-Checker-linux
+            artifact_name: OS-Readiness-Checker-Linux-x64
             executable: OS-Readiness-Checker
-
+            spec: os_readiness_checker.spec
+          - os: ubuntu-latest
+            artifact_name: OS-Readiness-Checker-CLI-Linux-x64
+            executable: OS-Readiness-Checker-CLI
+            spec: os_readiness_checker_cli.spec
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,7 +40,7 @@ jobs:
       - name: Install build tool
         run: python -m pip install pyinstaller
       - name: Build binary
-        run: python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
+        run: python -m PyInstaller --noconfirm --clean ${{ matrix.spec }}
       - name: Rename binary
         shell: bash
         run: mv "dist/${{ matrix.executable }}" "dist/${{ matrix.artifact_name }}"
@@ -39,7 +48,6 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/${{ matrix.artifact_name }}
-
   release:
     name: Publish GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
@@ -52,3 +60,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: release-assets/**
+      - name: Generate SHA-256 checksums
+        run: find release-assets -type f -exec sha256sum {} + | sed -E 's#release-assets/[^/]*/##' > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: SHA256SUMS.txt
+  
