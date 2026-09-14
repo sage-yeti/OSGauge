@@ -1,0 +1,54 @@
+name: Build distributable binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: OS-Readiness-Checker-windows.exe
+            executable: OS-Readiness-Checker.exe
+          - os: ubuntu-latest
+            artifact_name: OS-Readiness-Checker-linux
+            executable: OS-Readiness-Checker
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tool
+        run: python -m pip install pyinstaller
+      - name: Build binary
+        run: python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
+      - name: Rename binary
+        shell: bash
+        run: mv "dist/${{ matrix.executable }}" "dist/${{ matrix.artifact_name }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
