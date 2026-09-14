@@ -11,15 +11,33 @@ A small desktop application that scans the current computer and compares it with
 - Keeps OS definitions in an editable JSON file
 - Uses only Python's standard library
 
-## Run from source
+## Download and run
 
-Install Python 3.10 or newer, then double-click **Launch OS Readiness Checker.bat**, or run:
+Download the latest release for your platform:
+
+- Windows: `OS-Readiness-Checker-windows.exe` (double-click to run; no console window opens)
+- Linux: `OS-Readiness-Checker-linux` (make it executable with `chmod +x OS-Readiness-Checker-linux`, then run it)
+
+The packaged versions include the requirements database and do not require Python to be installed.
+
+## Run from source or build
+
+Developers who want to run or build from source need Python 3.10 or newer. To run from source, double-click **Launch OS Readiness Checker.bat** on Windows, or run:
 
 ```text
 python app.py
 ```
 
 Choose an operating system from the menu. The app scans the computer automatically and labels every item as Pass, Fail, or Unknown. A JSON report can be saved with **Save report**.
+
+To build the native package for the current platform:
+
+```text
+python -m pip install pyinstaller
+python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
+```
+
+GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
 
 ## Important limits
 
