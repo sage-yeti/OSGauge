@@ -1,0 +1,47 @@
+{
+  "Windows 11": {
+    "version": "Windows 11",
+    "cpu_cores": 2,
+    "cpu_ghz": 1.0,
+    "ram_gb": 4,
+    "storage_gb": 64,
+    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "uefi": true,
+    "secure_boot": true,
+    "tpm_version": 2.0,
+    "display_width": 1280,
+    "display_height": 720,
+    "notes": [
+      "Microsoft also requires a CPU model on its approved processor list.",
+      "DirectX 12 graphics with a WDDM 2.0 driver is required.",
+      "Internet access and a Microsoft account may be required during setup."
+    ],
+    "source": "https://support.microsoft.com/en-us/windows/experience/compatibility/windows-11-system-requirements"
+  },
+  "Ubuntu Desktop 26.04 LTS": {
+    "version": "Ubuntu Desktop 26.04 LTS",
+    "cpu_cores": 2,
+    "cpu_ghz": 2.0,
+    "ram_gb": 6,
+    "storage_gb": 25,
+    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "notes": [
+      "A USB port or DVD drive is needed for typical installer media.",
+      "Trying the live USB first is the best way to confirm device and driver compatibility."
+    ],
+    "source": "https://ubuntu.com/download/desktop"
+  },
+  "Fedora Workstation 44": {
+    "version": "Fedora Workstation 44",
+    "cpu_cores": 2,
+    "cpu_ghz": 2.0,
+    "ram_gb": 4,
+    "storage_gb": 40,
+    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "notes": [
+      "Fedora publishes 4 GB RAM and 40 GB storage as recommendations; double these may provide a better experience.",
+      "Trying the live USB first is the best way to confirm device and driver compatibility."
+    ],
+    "source": "https://fedoraproject.org/workstation/download/"
+  }
+}
