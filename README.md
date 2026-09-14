@@ -4,8 +4,9 @@ A small desktop application that scans the current computer and compares it with
 
 ## Features
 
-- Automatically detects processor, memory, storage, architecture and display information
+- Automatically detects processor, GPU, memory, storage, boot-disk layout, filesystem and display information when available
 - Checks Windows-specific UEFI, Secure Boot and TPM information when available
+- Reports virtualization capability when the operating system exposes it
 - Explains each pass, failure and item that needs manual review
 - Exports a portable JSON readiness report
 - Keeps OS definitions in an editable JSON file

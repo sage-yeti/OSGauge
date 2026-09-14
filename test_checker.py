@@ -2,7 +2,7 @@ import unittest
 
 from pathlib import Path
 
-from checker import CheckResult, MachineInfo, compatibility_score, evaluate, evaluate_all, load_requirements, overall_status, rank_compatibility
+from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, load_requirements, overall_status, rank_compatibility
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -62,6 +62,14 @@ class CheckerTests(unittest.TestCase):
         ]
         self.assertEqual(compatibility_score(checks), 50)
         self.assertEqual(overall_status(checks), "fail")
+
+    def test_extended_machine_details_are_exported_without_affecting_checks(self):
+        machine = self.machine(gpu_name="Test GPU", storage_partition_style="GPT", storage_filesystem="ext4", virtualization="available")
+        report = as_report(machine, REQ)
+        self.assertEqual(report["machine"]["gpu_name"], "Test GPU")
+        self.assertEqual(report["machine"]["storage_partition_style"], "GPT")
+        self.assertEqual(report["machine"]["virtualization"], "available")
+        self.assertEqual(report["overall"], "pass")
 
 
 if __name__ == "__main__":

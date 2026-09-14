@@ -28,6 +28,13 @@ class MachineInfo:
     tpm_version: float | None = None
     display_width: int | None = None
     display_height: int | None = None
+    cpu_vendor: str | None = None
+    gpu_name: str | None = None
+    gpu_vram_mb: int | None = None
+    system_disk: str | None = None
+    storage_partition_style: str | None = None
+    storage_filesystem: str | None = None
+    virtualization: str | None = None
 
 
 @dataclass
@@ -60,11 +67,18 @@ $os=Get-CimInstance Win32_OperatingSystem
 $fw=(Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control' -Name PEFirmwareType).PEFirmwareType
 $sb=$null; try {$sb=Confirm-SecureBootUEFI} catch {}
 $t=Get-Tpm
+$gpu=Get-CimInstance Win32_VideoController | Select-Object -First 1
+$bootDisk=Get-Disk | Where-Object IsBoot -eq $true | Select-Object -First 1
+$systemVolume=Get-Volume -DriveLetter ($env:SystemDrive).TrimEnd(':') | Select-Object -First 1
 [pscustomobject]@{
  CpuName=$cpu.Name; Cores=$cpu.NumberOfCores; MaxMHz=$cpu.MaxClockSpeed
  RamBytes=[double]$cs.TotalPhysicalMemory
  Uefi=($fw -eq 2); SecureBoot=$sb
  TpmPresent=$t.TpmPresent; TpmSpec=$t.SpecVersion
+ CpuVendor=$cpu.Manufacturer
+ GpuName=$gpu.Name; GpuVramBytes=[double]$gpu.AdapterRAM
+ PartitionStyle=$bootDisk.PartitionStyle; FileSystem=$systemVolume.FileSystem
+ Virtualization=if ($cpu.VirtualizationFirmwareEnabled -or $cpu.VMMonitorModeExtensions) {'available'} else {'unknown'}
 } | ConvertTo-Json -Compress
 """
     raw = _powershell(script)
@@ -137,6 +151,49 @@ def _linux_cpu() -> tuple[str, float | None]:
     return name, ghz
 
 
+def _linux_details() -> dict[str, Any]:
+    details: dict[str, Any] = {}
+    try:
+        text = Path("/proc/cpuinfo").read_text(errors="ignore")
+        vendor = re.search(r"vendor_id\s*:\s*(.+)", text)
+        flags = re.search(r"(?:flags|Features)\s*:\s*(.+)", text)
+        if vendor:
+            details["CpuVendor"] = vendor.group(1).strip()
+        if flags:
+            values = set(flags.group(1).split())
+            details["Virtualization"] = "available" if {"vmx", "svm"} & values else "unknown"
+    except OSError:
+        pass
+    try:
+        gpu = subprocess.run(["lspci", "-mm"], capture_output=True, text=True, timeout=4)
+        if gpu.returncode == 0:
+            for line in gpu.stdout.splitlines():
+                if any(kind in line for kind in ('"VGA compatible controller"', '"3D controller"', '"Display controller"')):
+                    parts = re.findall(r'"([^"]*)"', line)
+                    if parts:
+                        details["GpuName"] = parts[-1]
+                        break
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        mount = subprocess.run(["findmnt", "-no", "SOURCE,FSTYPE", "/"], capture_output=True, text=True, timeout=4)
+        if mount.returncode == 0:
+            values = mount.stdout.strip().split()
+            if values:
+                details["SystemDisk"] = values[0]
+            if len(values) > 1:
+                details["FileSystem"] = values[1]
+            if values and values[0].startswith("/"):
+                parent = subprocess.run(["lsblk", "-no", "PKNAME", values[0]], capture_output=True, text=True, timeout=4)
+                device = "/dev/" + (parent.stdout.strip() or values[0].split("/")[-1])
+                style = subprocess.run(["lsblk", "-no", "PTTYPE", device], capture_output=True, text=True, timeout=4)
+                if style.returncode == 0 and style.stdout.strip():
+                    details["PartitionStyle"] = style.stdout.strip().upper()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return details
+
+
 def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
     root = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
     disk = shutil.disk_usage(root)
@@ -144,6 +201,8 @@ def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
     if sys.platform == "win32":
         details.update(_windows_native_fallback())
         details.update({key: value for key, value in _windows_details().items() if value is not None})
+    else:
+        details.update(_linux_details())
 
     if sys.platform == "win32":
         cpu_name = details.get("CpuName") or platform.processor() or "Unknown CPU"
@@ -176,6 +235,13 @@ def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
         tpm_version=tpm_version,
         display_width=screen[0] if screen else None,
         display_height=screen[1] if screen else None,
+        cpu_vendor=details.get("CpuVendor"),
+        gpu_name=details.get("GpuName"),
+        gpu_vram_mb=round(float(details["GpuVramBytes"]) / 1024**2) if details.get("GpuVramBytes") else None,
+        system_disk=details.get("SystemDisk"),
+        storage_partition_style=details.get("PartitionStyle"),
+        storage_filesystem=details.get("FileSystem"),
+        virtualization=details.get("Virtualization"),
     )
 
 

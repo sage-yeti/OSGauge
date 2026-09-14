@@ -182,7 +182,16 @@ class ReadinessApp(tk.Tk):
         self.summary.config(text=f"{messages[status]} • Compatibility score {score}/100", fg=UI["text"])
         self.status_badge.config(text=f"  {status.upper()}  ", bg=COLORS[status], fg="white")
         notes = self.requirements[name].get("notes", [])
-        self.details.config(text="\n".join("• " + note for note in notes))
+        gpu = self.machine.gpu_name or "Unknown"
+        if self.machine.gpu_vram_mb:
+            gpu += f" ({self.machine.gpu_vram_mb} MB VRAM)"
+        machine_details = [
+            f"CPU: {self.machine.cpu_name}",
+            f"GPU: {gpu}",
+            f"System disk: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
+            f"Virtualization: {self.machine.virtualization or 'Unknown'}",
+        ]
+        self.details.config(text="\n".join(machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
