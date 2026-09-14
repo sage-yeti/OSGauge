@@ -12,8 +12,11 @@ from checker import (
     as_report,
     collect_machine_info,
     evaluate_all,
+    explain_check,
+    html_report,
     load_requirements,
     overall_status,
+    plain_text_report,
     rank_compatibility,
 )
 
@@ -101,6 +104,7 @@ class ReadinessApp(tk.Tk):
         self.table.tag_configure("pass", foreground=COLORS["pass"])
         self.table.tag_configure("fail", foreground=COLORS["fail"])
         self.table.tag_configure("unknown", foreground=COLORS["unknown"])
+        self.table.bind("<<TreeviewSelect>>", self.show_selected_check)
 
         footer = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         footer.pack(fill="x")
@@ -108,6 +112,8 @@ class ReadinessApp(tk.Tk):
         self.details.pack(side="left", fill="x", expand=True)
         ttk.Button(footer, text="Official requirements", command=self.open_source, style="Secondary.TButton").pack(side="right", padx=(8, 0))
         ttk.Button(footer, text="Save report", command=self.save_report, style="Secondary.TButton").pack(side="right")
+        ttk.Button(footer, text="Save HTML", command=self.save_html_report, style="Secondary.TButton").pack(side="right", padx=(8, 0))
+        ttk.Button(footer, text="Copy results", command=self.copy_results, style="Secondary.TButton").pack(side="right", padx=(8, 0))
         self.compare_button = ttk.Button(footer, text="Compare OSes", command=self.show_compare, style="Secondary.TButton", state="disabled")
         self.compare_button.pack(side="right", padx=(8, 0))
 
@@ -131,6 +137,20 @@ class ReadinessApp(tk.Tk):
         self._clear_table()
         for item in results:
             self.table.insert("", "end", text=item.name, values=(ICONS[item.status] + " " + item.status.title(), item.detected, item.required), tags=(item.status,))
+
+    def show_selected_check(self, _event=None) -> None:
+        if not self.machine or not self.choice.get() or not self.table.selection():
+            return
+        item_id = self.table.selection()[0]
+        name = self.table.item(item_id, "text")
+        check = next((item for item in self.all_results.get(self.choice.get(), []) if item.name == name), None)
+        if not check:
+            return
+        info = explain_check(self.machine, self.requirements[self.choice.get()], check)
+        text = f"{check.name}: {info['explanation']}"
+        if info["remediation"]:
+            text += f"\nNext step: {info['remediation']}"
+        self.details.config(text=text)
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
@@ -249,6 +269,24 @@ class ReadinessApp(tk.Tk):
             report["target_os"] = self.choice.get()
             Path(target).write_text(json.dumps(report, indent=2), encoding="utf-8")
             messagebox.showinfo("Report saved", "The readiness report was saved successfully.")
+
+    def save_html_report(self) -> None:
+        if not self.machine:
+            return
+        target = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="os-readiness-report.html")
+        if target:
+            name = self.choice.get()
+            Path(target).write_text(html_report(self.machine, name, self.requirements[name]), encoding="utf-8")
+            messagebox.showinfo("Report saved", "The HTML report was saved successfully.")
+
+    def copy_results(self) -> None:
+        if not self.machine:
+            return
+        name = self.choice.get()
+        self.clipboard_clear()
+        self.clipboard_append(plain_text_report(self.machine, name, self.requirements[name]))
+        self.update()
+        messagebox.showinfo("Results copied", "A compact compatibility summary was copied to the clipboard.")
 
 
 if __name__ == "__main__":

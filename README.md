@@ -8,7 +8,8 @@ A small desktop application that scans the current computer and compares it with
 - Checks Windows-specific UEFI, Secure Boot and TPM information when available
 - Reports virtualization capability when the operating system exposes it
 - Explains each pass, failure and item that needs manual review
-- Exports a portable JSON readiness report
+- Exports portable JSON and self-contained offline HTML readiness reports
+- Copies a compact compatibility summary for support chats and forums
 - Keeps OS definitions in an editable JSON file
 - Scans hardware once, then ranks every supported OS by compatibility score
 - Shows pass, review, or fail status and supports side-by-side OS comparison
@@ -40,7 +41,7 @@ python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
 
 GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
 
-The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. A JSON report can be saved with **Save report**.
+The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. Select an individual check to see a concise explanation and safe next steps. Use **Save report**, **Save HTML**, or **Copy results** to share the results.
 
 ## Important limits
 

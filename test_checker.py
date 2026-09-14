@@ -2,7 +2,7 @@ import unittest
 
 from pathlib import Path
 
-from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, load_requirements, overall_status, rank_compatibility
+from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, explain_check, html_report, load_requirements, overall_status, plain_text_report, rank_compatibility
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -70,6 +70,24 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(report["machine"]["storage_partition_style"], "GPT")
         self.assertEqual(report["machine"]["virtualization"], "available")
         self.assertEqual(report["overall"], "pass")
+
+    def test_explanations_and_remediation_match_status(self):
+        failed = next(item for item in evaluate(self.machine(ram_gb=2), REQ) if item.name == "Memory")
+        info = explain_check(self.machine(ram_gb=2), REQ, failed)
+        self.assertIn("below", info["explanation"])
+        self.assertTrue(info["remediation"])
+        unknown = next(item for item in evaluate(self.machine(cpu_ghz=None), REQ) if item.name == "CPU speed")
+        self.assertIn("could not be verified", explain_check(self.machine(cpu_ghz=None), REQ, unknown)["explanation"])
+
+    def test_html_and_plain_text_reports_are_self_contained(self):
+        machine = self.machine(ram_gb=2)
+        html = html_report(machine, "Test OS", REQ)
+        text = plain_text_report(machine, "Test OS", REQ)
+        self.assertIn("<!doctype html>", html)
+        self.assertIn("Test OS", html)
+        self.assertIn("Next step", html)
+        self.assertIn("OS Readiness Checker - Test OS", text)
+        self.assertIn("Memory: FAIL", text)
 
 
 if __name__ == "__main__":

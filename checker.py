@@ -324,4 +324,74 @@ def load_requirements(path: Path | None = None) -> dict[str, Any]:
 
 def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, Any]:
     checks = evaluate(machine, requirements)
-    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": [asdict(c) for c in checks]}
+    enriched = []
+    for check in checks:
+        item = asdict(check)
+        item.update(explain_check(machine, requirements, check))
+        enriched.append(item)
+    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched}
+
+
+def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: CheckResult) -> dict[str, str]:
+    """Return concise, deterministic explanation and remediation text for a check."""
+    name = check.name.lower()
+    if check.status == "pass":
+        explanation = f"Detected {check.detected}; this meets the requirement of {check.required}."
+        remediation = ""
+    elif check.status == "unknown":
+        explanation = f"This requirement is {check.required}, but the value could not be verified on this system."
+        remediation = "Check the hardware or firmware information manually if this requirement is important."
+    else:
+        explanation = f"Detected {check.detected}, below the requirement of {check.required}."
+        remediation = "No reliable software-only fix is available for this requirement."
+
+    if "tpm" in name:
+        explanation = ("TPM 2.0 provides hardware-backed security required by this profile. "
+                       + (f"Detected {check.detected}; required {check.required}." if check.status != "unknown" else "It could not be verified.") )
+        remediation = "Check UEFI/BIOS for TPM, Intel PTT, or AMD fTPM and enable it if supported." if check.status != "pass" else ""
+    elif "secure boot" in name:
+        remediation = "Check UEFI firmware settings for Secure Boot; do not change it automatically." if check.status != "pass" else ""
+    elif "uefi" in name:
+        remediation = "Check whether the system is booted in UEFI mode rather than legacy/CSM mode." if check.status != "pass" else ""
+    elif "virtualization" in name:
+        remediation = "Check UEFI/BIOS for Intel VT-x, AMD-V, or SVM if this capability is needed." if check.status != "pass" else ""
+    elif "memory" in name and check.status == "fail":
+        remediation = "More physical memory is needed to meet this requirement."
+    elif "storage" in name and check.status == "fail":
+        remediation = "Free additional space on the system disk; no files are changed automatically."
+    elif "architecture" in name and check.status == "fail":
+        remediation = "The processor architecture is not supported by this profile; a software setting cannot change it."
+    elif "cpu" in name and check.status == "fail":
+        remediation = "The detected processor does not meet this measurable requirement; replacing hardware may be necessary."
+    return {"explanation": explanation, "remediation": remediation}
+
+
+def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any]) -> str:
+    report = as_report(machine, requirements)
+    score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
+    lines = [f"OS Readiness Checker - {target_os}", f"Overall: {report['overall'].upper()} (score {score}/100)", "",
+             f"OS: {machine.operating_system}", f"CPU: {machine.cpu_name}",
+             f"GPU: {machine.gpu_name or 'Unknown'}", f"RAM: {machine.ram_gb or 'Unknown'} GB",
+             f"Free storage: {machine.storage_free_gb or 'Unknown'} GB", "", "Checks:"]
+    for item in report["checks"]:
+        lines.append(f"- {item['name']}: {item['status'].upper()} ({item['detected']} / {item['required']})")
+        if item["status"] != "pass":
+            lines.append(f"  {item['explanation']}")
+            if item["remediation"]:
+                lines.append(f"  Next step: {item['remediation']}")
+    return "\n".join(lines)
+
+
+def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any]) -> str:
+    """Create a self-contained, offline-readable HTML report."""
+    from html import escape
+    report = as_report(machine, requirements)
+    score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
+    rows = []
+    for item in report["checks"]:
+        extra = f"<p>{escape(item['explanation'])}</p>"
+        if item["remediation"]:
+            extra += f"<p><strong>Next step:</strong> {escape(item['remediation'])}</p>"
+        rows.append(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(item['status'].title())}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td><td>{extra}</td></tr>")
+    machine_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Operating system", machine.operating_system), ("CPU", machine.cpu_name), ("GPU", machine.gpu_name), ("RAM (GB)", machine.ram_gb), ("Free storage (GB)", machine.storage_free_gb), ("System disk", machine.system_disk), ("Partition style", machine.storage_partition_style), ("Filesystem", machine.storage_filesystem), ("Virtualization", machine.virtualization)))
+    return f"""<!doctype html><html><head><meta charset='utf-8'><title>OS Readiness Report</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>OS Readiness Report</h1><p><strong>{escape(target_os)}</strong> — <strong>{escape(report['overall'].title())}</strong> — score <strong>{score}/100</strong></p><section><h2>Detected machine</h2><table>{machine_rows}</table></section><section><h2>Compatibility checks</h2><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th><th>Explanation</th></tr>{''.join(rows)}</table></section></body></html>"""
