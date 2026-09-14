@@ -223,6 +223,34 @@ def overall_status(results: list[CheckResult]) -> str:
     return "pass"
 
 
+def compatibility_score(results: list[CheckResult]) -> int:
+    """Return a simple supplementary score from the existing check results."""
+    if not results:
+        return 0
+    weights = {"pass": 1.0, "unknown": 0.5, "fail": 0.0}
+    return round(100 * sum(weights.get(item.status, 0.0) for item in results) / len(results))
+
+
+def evaluate_all(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, list[CheckResult]]:
+    """Evaluate every profile against one already-collected machine snapshot."""
+    return {name: evaluate(machine, profile) for name, profile in requirements.items()}
+
+
+def rank_compatibility(results_by_os: dict[str, list[CheckResult]]) -> list[dict[str, Any]]:
+    """Summarize and deterministically rank hardware compatibility results."""
+    status_order = {"pass": 0, "review": 1, "fail": 2}
+    ranked = [
+        {
+            "name": name,
+            "checks": checks,
+            "status": overall_status(checks),
+            "score": compatibility_score(checks),
+        }
+        for name, checks in results_by_os.items()
+    ]
+    return sorted(ranked, key=lambda item: (-item["score"], status_order[item["status"]], item["name"]))
+
+
 def load_requirements(path: Path | None = None) -> dict[str, Any]:
     path = path or Path(__file__).with_name("requirements.json")
     return json.loads(path.read_text(encoding="utf-8"))

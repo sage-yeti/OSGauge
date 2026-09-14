@@ -2,7 +2,7 @@ import unittest
 
 from pathlib import Path
 
-from checker import MachineInfo, evaluate, load_requirements, overall_status
+from checker import CheckResult, MachineInfo, compatibility_score, evaluate, evaluate_all, load_requirements, overall_status, rank_compatibility
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -44,6 +44,24 @@ class CheckerTests(unittest.TestCase):
                 self.assertEqual(definition["storage_gb"], minimum_storage)
                 self.assertTrue(definition["source"].startswith("https://"))
                 self.assertEqual(overall_status(evaluate(machine, definition)), "pass")
+
+    def test_all_profiles_evaluate_from_one_machine_snapshot(self):
+        requirements = load_requirements(Path(__file__).with_name("requirements.json"))
+        results = evaluate_all(self.machine(architecture="X86_64", ram_gb=16, storage_free_gb=200), requirements)
+        self.assertEqual(len(results), 12)
+        self.assertEqual(set(results), set(requirements))
+        ranked = rank_compatibility(results)
+        self.assertEqual(len(ranked), 12)
+        self.assertTrue(all(0 <= item["score"] <= 100 for item in ranked))
+
+    def test_score_penalizes_failures_more_than_unknowns(self):
+        checks = [
+            CheckResult("pass", "pass", "", ""),
+            CheckResult("unknown", "unknown", "", ""),
+            CheckResult("fail", "fail", "", ""),
+        ]
+        self.assertEqual(compatibility_score(checks), 50)
+        self.assertEqual(overall_status(checks), "fail")
 
 
 if __name__ == "__main__":

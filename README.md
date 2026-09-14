@@ -1,6 +1,6 @@
 # OS Readiness Checker
 
-A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, and Pop!_OS.
+A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, and Manjaro.
 
 ## Features
 
@@ -9,6 +9,8 @@ A small desktop application that scans the current computer and compares it with
 - Explains each pass, failure and item that needs manual review
 - Exports a portable JSON readiness report
 - Keeps OS definitions in an editable JSON file
+- Scans hardware once, then ranks every supported OS by compatibility score
+- Shows pass, review, or fail status and supports side-by-side OS comparison
 - Uses only Python's standard library
 
 ## Download and run
@@ -28,8 +30,6 @@ Developers who want to run or build from source need Python 3.10 or newer. To ru
 python app.py
 ```
 
-Choose an operating system from the menu. The app scans the computer automatically and labels every item as Pass, Fail, or Unknown. A JSON report can be saved with **Save report**.
-
 To build the native package for the current platform:
 
 ```text
@@ -38,6 +38,8 @@ python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
 ```
 
 GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
+
+The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. A JSON report can be saved with **Save report**.
 
 ## Important limits
 
@@ -64,6 +66,11 @@ python -m unittest -v
 - [Linux Mint system requirements](https://www.linuxmint.com/faq.php)
 - [openSUSE Leap 15.6 minimum system requirements](https://doc.opensuse.org/documentation/leap/startup/html/book-startup/art-opensuse-installquick.html)
 - [Pop!_OS installation requirements](https://support.system76.com/support/install-pop)
+- [Debian 13 system requirements](https://www.debian.org/releases/stable/amd64/ch03s04.en.html)
+- [ChromeOS Flex minimum device requirements](https://support.google.com/chromeosflex/answer/11552529?hl=en)
+- [Zorin OS system requirements](https://help.zorin.com/docs/getting-started/system-requirements/)
+- [elementary OS installation requirements](https://elementary.io/docs/installation)
+- [Manjaro recommended system requirements](https://wiki.manjaro.org/index.php?title=About_Manjaro/en)
 
 ## License
 

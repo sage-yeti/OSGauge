@@ -103,5 +103,77 @@
       "Installation media requires a USB flash drive."
     ],
     "source": "https://support.system76.com/support/install-pop"
+  },
+  "Debian 13 (trixie)": {
+    "version": "Debian 13 (trixie)",
+    "cpu_cores": 1,
+    "cpu_ghz": 1.0,
+    "ram_gb": 1,
+    "storage_gb": 10,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "Debian lists these as minimum recommended values for a desktop installation on amd64: a 1 GHz Pentium 4-class processor, 1 GB RAM, and 10 GB disk space.",
+      "The official guide also lists lower values for installations without a desktop environment; this profile uses the desktop values.",
+      "The amd64 installation guide does not specify a display or firmware requirement."
+    ],
+    "source": "https://www.debian.org/releases/stable/amd64/ch03s04.en.html"
+  },
+  "ChromeOS Flex": {
+    "version": "ChromeOS Flex",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 4,
+    "storage_gb": 16,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "Google requires an Intel or AMD x86-64 compatible device, at least 4 GB RAM, and at least 16 GB internal storage.",
+      "The device must be bootable from USB and provide full administrator access in its BIOS; the current hardware schema does not check those conditions.",
+      "Google does not specify a CPU speed or core-count minimum."
+    ],
+    "source": "https://support.google.com/chromeosflex/answer/11552529?hl=en"
+  },
+  "Zorin OS 18.1": {
+    "version": "Zorin OS 18.1",
+    "cpu_cores": 2,
+    "cpu_ghz": 1.0,
+    "ram_gb": 2,
+    "storage_gb": 15,
+    "architecture": ["AMD64", "X86_64"],
+    "display_width": 800,
+    "display_height": 600,
+    "notes": [
+      "Zorin lists a 1 GHz dual-core 64-bit processor, 2 GB RAM, 15 GB storage for Core, and an 800 × 600 display as minimum requirements.",
+      "Zorin OS Education and Pro require more storage (35 GB and 45 GB respectively); this profile uses the Core minimum."
+    ],
+    "source": "https://help.zorin.com/docs/getting-started/system-requirements/"
+  },
+  "elementary OS 8.1": {
+    "version": "elementary OS 8.1",
+    "cpu_cores": 2,
+    "cpu_ghz": 0.0,
+    "ram_gb": 4,
+    "storage_gb": 32,
+    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "display_width": 1024,
+    "display_height": 768,
+    "notes": [
+      "elementary describes these as recommendations rather than strict minimums: a recent dual-core 64-bit processor, 4 GB RAM, 32 GB free SSD space, and a 1024 × 768 display.",
+      "The official installation guide does not specify a CPU speed threshold."
+    ],
+    "source": "https://elementary.io/docs/installation"
+  },
+  "Manjaro": {
+    "version": "Manjaro",
+    "cpu_cores": 2,
+    "cpu_ghz": 0.0,
+    "ram_gb": 4,
+    "storage_gb": 30,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "Manjaro lists these as recommended system requirements: a dual-core processor, 4 GB memory, and 30 GB disk space.",
+      "The page also recommends HD graphics and a monitor plus broadband internet; the current schema does not turn those descriptions into extra hardware checks.",
+      "The desktop profile targets Manjaro's x86 workstation images."
+    ],
+    "source": "https://wiki.manjaro.org/index.php?title=About_Manjaro/en"
   }
 }
