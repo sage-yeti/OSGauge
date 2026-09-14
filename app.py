@@ -64,7 +64,7 @@ class ReadinessApp(tk.Tk):
         tk.Label(header, text="OS Readiness Checker", bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
         tk.Label(header, text="Check this computer against published operating-system requirements.", bg=UI["background"], fg=UI["muted"], font=(font, 10)).pack(anchor="w", pady=(5, 0))
 
-        body = tk.Frame(self, bg=UI["background"], padx=28, pady=(0, 24))
+        body = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
         body.pack(fill="both", expand=True)
         controls = tk.Frame(body, bg=UI["surface"], padx=18, pady=16, highlightbackground=UI["border"], highlightthickness=1)
         controls.pack(fill="x", pady=(0, 14))
