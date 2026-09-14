@@ -11,6 +11,8 @@ A small desktop application that scans the current computer and compares it with
 - Exports portable JSON and self-contained offline HTML readiness reports
 - Copies a compact compatibility summary for support chats and forums
 - Checks for newer validated requirements data from this repository without updating the application
+- Includes a cross-platform CLI for single-target or all-target scans
+- Supports System, Light, and Dark GUI themes
 - Keeps OS definitions in an editable JSON file
 - Scans hardware once, then ranks every supported OS by compatibility score
 - Shows pass, review, or fail status and supports side-by-side OS comparison
@@ -20,8 +22,10 @@ A small desktop application that scans the current computer and compares it with
 
 Download the latest release for your platform:
 
-- Windows: `OS-Readiness-Checker-windows.exe` (double-click to run; no console window opens)
-- Linux: `OS-Readiness-Checker-linux` (make it executable with `chmod +x OS-Readiness-Checker-linux`, then run it)
+- Windows GUI: `OS-Readiness-Checker-Windows-x64.exe` (double-click to run; no console window opens)
+- Linux GUI: `OS-Readiness-Checker-Linux-x64` (make it executable with `chmod +x`, then run it)
+- Windows CLI: `OS-Readiness-Checker-CLI-Windows-x64.exe`
+- Linux CLI: `OS-Readiness-Checker-CLI-Linux-x64`
 
 The packaged versions include the requirements database and do not require Python to be installed.
 
@@ -32,6 +36,16 @@ Developers who want to run or build from source need Python 3.10 or newer. To ru
 ```text
 python app.py
 ```
+
+The CLI uses the same hardware scan and compatibility engine:
+
+```text
+os-readiness-checker --list
+os-readiness-checker --check "Windows 11" --verbose
+os-readiness-checker --all --json --output readiness.json
+```
+
+Exit code `0` means no requested target failed, `1` means at least one mandatory check failed, and `2` means invalid arguments or an operational error. Review/unknown results are reported normally and are not operational errors.
 
 To build the native package for the current platform:
 
@@ -44,7 +58,9 @@ GitHub Actions builds separate native Windows and Linux binaries and publishes t
 
 The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. Select an individual check to see a concise explanation and safe next steps. Use **Save report**, **Save HTML**, or **Copy results** to share the results.
 
-The requirements database has its own schema/data version. Use **Check requirements updates** to fetch a newer validated copy from this repository; failures are non-fatal and the bundled database always remains available. Validated data is cached per user in `%LOCALAPPDATA%\\OS Readiness Checker` on Windows or `~/.cache/OS Readiness Checker` on Linux.
+The requirements database has its own schema/data version. Use **Check requirements updates** to fetch a newer validated copy from this repository; failures are non-fatal and the bundled database always remains available. Validated data is cached per user in `%LOCALAPPDATA%\\OS Readiness Checker` on Windows or `~/.cache/OS Readiness Checker` on Linux. The GUI offers **System**, **Light**, and **Dark** themes; System follows the Windows preference or a detectable Linux desktop preference and otherwise falls back to light.
+
+Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 
 ## Important limits
 

@@ -19,6 +19,8 @@ from checker import (
     rank_compatibility,
 )
 from requirements_update import RequirementsInfo, fetch_latest, load_requirements_info
+from theme import colors_for, load_theme_mode, save_theme_mode
+from version import APP_VERSION
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -37,10 +39,12 @@ UI = {
 class ReadinessApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("OS Readiness Checker")
+        self.title(f"OS Readiness Checker {APP_VERSION}")
         self.geometry("820x620")
         self.minsize(700, 500)
         self.configure(bg="#f4f6f8")
+        self.theme_mode = load_theme_mode()
+        UI.update(colors_for(self.theme_mode))
         self.requirements_info = load_requirements_info()
         self.requirements = self.requirements_info.profiles
         self.machine = None
@@ -53,6 +57,8 @@ class ReadinessApp(tk.Tk):
     def _build(self) -> None:
         font = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
         style = ttk.Style(self)
+        self.style = style
+        self.font = font
         style.theme_use("clam")
         style.configure("Fluent.TCombobox", padding=8, fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], font=(font, 10))
         style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=UI["accent"])
@@ -67,6 +73,13 @@ class ReadinessApp(tk.Tk):
         header.pack(fill="x")
         tk.Label(header, text="OS Readiness Checker", bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
         tk.Label(header, text="Check this computer against published operating-system requirements.", bg=UI["background"], fg=UI["muted"], font=(font, 10)).pack(anchor="w", pady=(5, 0))
+        theme_box = tk.Frame(header, bg=UI["background"])
+        theme_box.pack(anchor="e", pady=(0, 2))
+        tk.Label(theme_box, text="Theme", bg=UI["background"], fg=UI["muted"], font=(font, 9)).pack(side="left", padx=(0, 6))
+        self.theme_choice = ttk.Combobox(theme_box, state="readonly", width=9, values=("System", "Light", "Dark"), style="Fluent.TCombobox")
+        self.theme_choice.set(self.theme_mode)
+        self.theme_choice.pack(side="left")
+        self.theme_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_theme())
 
         body = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
         body.pack(fill="both", expand=True)
@@ -125,6 +138,32 @@ class ReadinessApp(tk.Tk):
         self.summary.config(text="Scanning this computer…", fg="#374151")
         screen = (self.winfo_screenwidth(), self.winfo_screenheight())
         threading.Thread(target=self._scan, args=(screen,), daemon=True).start()
+
+    def change_theme(self) -> None:
+        self.theme_mode = self.theme_choice.get()
+        save_theme_mode(self.theme_mode)
+        UI.update(colors_for(self.theme_mode))
+        self._apply_theme(self)
+
+    def _apply_theme(self, widget) -> None:
+        try:
+            if isinstance(widget, tk.Toplevel):
+                widget.configure(bg=UI["background"])
+            elif isinstance(widget, tk.Frame):
+                widget.configure(bg=UI["background"] if widget is self else UI["surface"])
+            elif isinstance(widget, tk.Label):
+                widget.configure(bg=UI["surface"] if widget.master is not self else UI["background"], fg=UI["text"])
+        except tk.TclError:
+            pass
+        for child in widget.winfo_children():
+            self._apply_theme(child)
+        self.style.configure("Fluent.TCombobox", fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"])
+        self.style.configure("Secondary.TButton", foreground=UI["text"], background=UI["surface"])
+        self.style.configure("Fluent.Treeview", background=UI["surface"], fieldbackground=UI["surface"], foreground=UI["text"])
+        self.style.configure("Fluent.Treeview.Heading", background=UI["heading"], foreground=UI["muted"])
+        self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
+        self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
+        self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
 
     def _scan(self, screen: tuple[int, int]) -> None:
         machine = collect_machine_info(screen)

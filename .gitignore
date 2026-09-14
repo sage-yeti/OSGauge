@@ -7,6 +7,7 @@ dist/
 release/
 *.spec
 !os_readiness_checker.spec
+!os_readiness_checker_cli.spec
 *.json.report
 .idea/
 .vscode/
