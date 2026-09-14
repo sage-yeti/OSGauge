@@ -9,6 +9,7 @@ from pathlib import Path
 from checker import collect_machine_info, evaluate_all, explain_check, rank_compatibility
 from requirements_update import load_requirements_info
 from version import APP_VERSION
+from suitability import assess_suitability, suitability_dict
 
 
 def _key(value: str) -> str:
@@ -25,10 +26,11 @@ def _find_target(value: str, requirements: dict) -> str | None:
 
 def _payload(machine, requirements, names, verbose: bool, data_version: int) -> dict:
     results = evaluate_all(machine, requirements)
-    ranked = rank_compatibility({name: results[name] for name in names})
+    suitability = {name: suitability_dict(assess_suitability(machine, requirements[name], results[name])) for name in names}
+    ranked = rank_compatibility({name: results[name] for name in names}, suitability)
     output = []
     for item in ranked:
-        entry = {"name": item["name"], "status": item["status"], "score": item["score"]}
+        entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"]}
         if verbose:
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
@@ -68,8 +70,9 @@ def main(argv=None) -> int:
         else:
             lines = []
             for item in payload["results"]:
-                lines.append(f"{item['name']:<24} {item['status'].upper():<7} {item['score']:>3}/100")
+                lines.append(f"{item['name']:<24} {item['status'].upper():<7} {item['suitability']['category']}")
                 if args.verbose:
+                    lines.append(f"  Suitability: {item['suitability']['explanation']}")
                     for check in item["checks"]:
                         lines.append(f"  {check['name']}: {check['status']} ({check['detected']} / {check['required']})")
             text = "\n".join(lines)

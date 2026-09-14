@@ -21,6 +21,7 @@ from checker import (
 from requirements_update import RequirementsInfo, fetch_latest, load_requirements_info
 from theme import colors_for, load_theme_mode, save_theme_mode
 from version import APP_VERSION
+from suitability import assess_suitability, suitability_dict
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -51,6 +52,7 @@ class ReadinessApp(tk.Tk):
         self.results = []
         self.all_results = {}
         self.ranked_results = []
+        self.suitability_by_os = {}
         self._build()
         self.after(100, self.run_check)
 
@@ -176,7 +178,8 @@ class ReadinessApp(tk.Tk):
     def _scan(self, screen: tuple[int, int]) -> None:
         machine = collect_machine_info(screen)
         all_results = evaluate_all(machine, self.requirements)
-        ranked = rank_compatibility(all_results)
+        suitability = {name: suitability_dict(assess_suitability(machine, profile, all_results[name])) for name, profile in self.requirements.items()}
+        ranked = rank_compatibility(all_results, suitability)
         self.after(0, lambda: self._show_overview(machine, all_results, ranked))
 
     def _clear_table(self) -> None:
@@ -208,18 +211,18 @@ class ReadinessApp(tk.Tk):
         self._clear_table()
         self.table.heading("#0", text="Operating system")
         self.table.heading("result", text="Status")
-        self.table.heading("detected", text="Score")
-        self.table.heading("required", text="Checks")
+        self.table.heading("detected", text="Compatibility")
+        self.table.heading("required", text="Suitability")
         self.table.column("#0", width=270)
         self.table.column("result", width=110, anchor="center")
         self.table.column("detected", width=120, anchor="center")
         self.table.column("required", width=110, anchor="center")
         for item in ranked:
             status = item["status"]
-            self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status.title(), f'{item["score"]}/100', len(item["checks"])), tags=(status,))
+            self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status.title(), f'{item["score"]}/100', item["suitability"]["category"]), tags=(status,))
         self.summary.config(text=f"Compared {len(ranked)} operating systems from one hardware scan", fg=UI["text"])
         self.status_badge.config(text="  OVERVIEW  ", bg=UI["accent"], fg="white")
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Ranked by hardware compatibility score. Pass, review, and fail remain authoritative status results; scores are supplementary.")
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Compatibility is based on published requirements; suitability is application-defined headroom guidance.")
         self.check_button.config(state="normal")
         self.compare_button.config(state="normal")
 
@@ -243,13 +246,14 @@ class ReadinessApp(tk.Tk):
         self.table.column("detected", width=190)
         self.table.column("required", width=190)
         status = overall_status(results)
+        suitability = suitability_dict(assess_suitability(self.machine, self.requirements[name], results))
         messages = {
             "pass": "This computer meets every requirement checked",
             "fail": "This computer does not meet all checked requirements",
             "review": "The basic requirements pass, but some items need review",
         }
         score = next((item["score"] for item in self.ranked_results if item["name"] == name), 0)
-        self.summary.config(text=f"{messages[status]} • Compatibility score {score}/100", fg=UI["text"])
+        self.summary.config(text=f"{messages[status]} • Compatibility score {score}/100 • {suitability['category']}", fg=UI["text"])
         self.status_badge.config(text=f"  {status.upper()}  ", bg=COLORS[status], fg="white")
         notes = self.requirements[name].get("notes", [])
         gpu = self.machine.gpu_name or "Unknown"
@@ -261,7 +265,7 @@ class ReadinessApp(tk.Tk):
             f"System disk: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
             f"Virtualization: {self.machine.virtualization or 'Unknown'}",
         ]
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n" + "\n".join(machine_details + ["• " + note for note in notes]))
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\nSuitability: {suitability['category']} — {suitability['explanation']}\n" + "\n".join(machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
@@ -356,7 +360,8 @@ class ReadinessApp(tk.Tk):
         self.choice.config(values=list(self.requirements))
         if self.machine:
             self.all_results = evaluate_all(self.machine, self.requirements)
-            self.ranked_results = rank_compatibility(self.all_results)
+            suitability = {name: suitability_dict(assess_suitability(self.machine, profile, self.all_results[name])) for name, profile in self.requirements.items()}
+            self.ranked_results = rank_compatibility(self.all_results, suitability)
             self.results = self.all_results.get(self.choice.get(), [])
             self._show_overview(self.machine, self.all_results, self.ranked_results)
         messagebox.showinfo("Requirements updated", f"Loaded requirements database v{info.data_version}.")

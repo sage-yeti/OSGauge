@@ -7,6 +7,7 @@ from pathlib import Path
 
 from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, explain_check, html_report, load_requirements, overall_status, plain_text_report, rank_compatibility
 from requirements_update import fetch_latest, load_requirements_info, validate_database
+from suitability import assess_suitability
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -90,6 +91,8 @@ class CheckerTests(unittest.TestCase):
         self.assertIn("<!doctype html>", html)
         self.assertIn("Test OS", html)
         self.assertIn("Next step", html)
+        self.assertIn("Suitability", html)
+        self.assertIn("suitability", json.dumps(as_report(machine, REQ)))
         self.assertIn("OS Readiness Checker - Test OS", text)
         self.assertIn("Memory: FAIL", text)
 
@@ -99,6 +102,24 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(cpu["status"], "unknown")
         self.assertIn("could not be verified", cpu["explanation"])
         self.assertTrue(cpu["remediation"])
+
+    def test_suitability_separates_headroom_from_compatibility(self):
+        low = self.machine(cpu_cores=3, cpu_ghz=3.5, ram_gb=5, storage_free_gb=80)
+        high = self.machine(cpu_cores=8, cpu_ghz=3.0, ram_gb=16, storage_free_gb=200)
+        low_result = assess_suitability(low, REQ, evaluate(low, REQ))
+        high_result = assess_suitability(high, REQ, evaluate(high, REQ))
+        self.assertEqual(low_result.category, "Meets minimum")
+        self.assertEqual(high_result.category, "Excellent fit")
+
+    def test_failed_compatibility_is_never_suitable(self):
+        machine = self.machine(ram_gb=2)
+        result = assess_suitability(machine, REQ, evaluate(machine, REQ))
+        self.assertEqual(result.category, "Not compatible")
+
+    def test_suitability_unknown_is_conservative(self):
+        machine = self.machine(ram_gb=None)
+        result = assess_suitability(machine, REQ, evaluate(machine, REQ))
+        self.assertEqual(result.category, "Marginal")
 
     def test_requirements_database_validation_and_cache_fallback(self):
         valid = {"_database": {"schema_version": 1, "data_version": 2}, "Test OS": {"cpu_cores": 1, "cpu_ghz": 0, "ram_gb": 1, "storage_gb": 1, "architecture": ["AMD64"], "source": "https://example.com"}}
