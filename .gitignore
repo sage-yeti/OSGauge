@@ -6,6 +6,7 @@ build/
 dist/
 release/
 *.spec
+!os_readiness_checker.spec
 *.json.report
 .idea/
 .vscode/
