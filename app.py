@@ -60,13 +60,16 @@ class ReadinessApp(tk.Tk):
         self.style = style
         self.font = font
         style.theme_use("clam")
-        style.configure("Fluent.TCombobox", padding=8, fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], font=(font, 10))
+        style.configure("Fluent.TCombobox", padding=8, fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], font=(font, 10), selectbackground=UI["accent"], selectforeground="white")
+        style.map("Fluent.TCombobox", fieldbackground=[("readonly", UI["surface"]), ("focus", UI["surface"]), ("active", UI["surface"])], foreground=[("readonly", UI["text"]), ("focus", UI["text"]), ("active", UI["text"])])
         style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=UI["accent"])
         style.map("Accent.TButton", background=[("active", UI["accent_dark"]), ("pressed", UI["accent_dark"])])
         style.configure("Secondary.TButton", padding=(12, 8), font=(font, 9), foreground=UI["text"], background=UI["surface"])
-        style.map("Secondary.TButton", background=[("active", "#eef2ff")])
+        style.map("Secondary.TButton", background=[("active", UI["heading"]), ("pressed", UI["heading"])])
         style.configure("Fluent.Treeview", rowheight=36, font=(font, 10), background=UI["surface"], fieldbackground=UI["surface"], foreground=UI["text"], borderwidth=0)
-        style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background="#f8fafc", foreground=UI["muted"], relief="flat", padding=(8, 9))
+        style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background=UI["heading"], foreground=UI["muted"], relief="flat", padding=(8, 9))
+        style.map("Fluent.Treeview", background=[("selected", UI["accent"])], foreground=[("selected", "white")])
+        style.map("Fluent.Treeview.Heading", background=[("active", UI["heading"]), ("pressed", UI["heading"])], foreground=[("active", UI["text"]), ("pressed", UI["text"])])
 
         self.configure(bg=UI["background"])
         header = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
@@ -132,6 +135,7 @@ class ReadinessApp(tk.Tk):
         ttk.Button(footer, text="Copy results", command=self.copy_results, style="Secondary.TButton").pack(side="right", padx=(8, 0))
         self.compare_button = ttk.Button(footer, text="Compare OSes", command=self.show_compare, style="Secondary.TButton", state="disabled")
         self.compare_button.pack(side="right", padx=(8, 0))
+        self._apply_theme(self)
 
     def run_check(self) -> None:
         self.check_button.config(state="disabled")
@@ -157,10 +161,14 @@ class ReadinessApp(tk.Tk):
             pass
         for child in widget.winfo_children():
             self._apply_theme(child)
-        self.style.configure("Fluent.TCombobox", fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"])
+        self.style.configure("Fluent.TCombobox", fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], selectbackground=UI["accent"], selectforeground="white")
+        self.style.map("Fluent.TCombobox", fieldbackground=[("readonly", UI["surface"]), ("focus", UI["surface"]), ("active", UI["surface"])], foreground=[("readonly", UI["text"]), ("focus", UI["text"]), ("active", UI["text"])])
         self.style.configure("Secondary.TButton", foreground=UI["text"], background=UI["surface"])
+        self.style.map("Secondary.TButton", background=[("active", UI["heading"]), ("pressed", UI["heading"])])
         self.style.configure("Fluent.Treeview", background=UI["surface"], fieldbackground=UI["surface"], foreground=UI["text"])
+        self.style.map("Fluent.Treeview", background=[("selected", UI["accent"])], foreground=[("selected", "white")])
         self.style.configure("Fluent.Treeview.Heading", background=UI["heading"], foreground=UI["muted"])
+        self.style.map("Fluent.Treeview.Heading", background=[("active", UI["heading"]), ("pressed", UI["heading"])], foreground=[("active", UI["text"]), ("pressed", UI["text"])])
         self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
         self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
         self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
