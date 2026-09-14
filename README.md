@@ -13,6 +13,8 @@ A small desktop application that scans the current computer and compares it with
 - Checks for newer validated requirements data from this repository without updating the application
 - Includes a cross-platform CLI for single-target or all-target scans
 - Supports System, Light, and Dark GUI themes
+- Remembers theme, selected OS, and safe window placement per user
+- Includes an About panel and keyboard shortcuts (F5/Ctrl+R scan, Ctrl+S JSON report)
 - Keeps OS definitions in an editable JSON file
 - Scans hardware once, then ranks every supported OS by compatibility score
 - Shows pass, review, or fail status and supports side-by-side OS comparison

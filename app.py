@@ -19,7 +19,7 @@ from checker import (
     rank_compatibility,
 )
 from requirements_update import RequirementsInfo, fetch_latest, load_requirements_info
-from theme import colors_for, load_theme_mode, save_theme_mode
+from theme import colors_for, load_settings, load_theme_mode, save_settings, save_theme_mode
 from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
 
@@ -44,6 +44,7 @@ class ReadinessApp(tk.Tk):
         self.geometry("820x620")
         self.minsize(700, 500)
         self.configure(bg="#f4f6f8")
+        self.settings = load_settings()
         self.theme_mode = load_theme_mode()
         UI.update(colors_for(self.theme_mode))
         self.requirements_info = load_requirements_info()
@@ -53,7 +54,12 @@ class ReadinessApp(tk.Tk):
         self.all_results = {}
         self.ranked_results = []
         self.suitability_by_os = {}
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._build()
+        self.bind("<F5>", lambda _event: self.run_check())
+        self.bind("<Control-r>", lambda _event: self.run_check())
+        self.bind("<Control-s>", lambda _event: self.save_report())
+        self.after_idle(self._restore_window)
         self.after(100, self.run_check)
 
     def _build(self) -> None:
@@ -85,6 +91,7 @@ class ReadinessApp(tk.Tk):
         self.theme_choice.set(self.theme_mode)
         self.theme_choice.pack(side="left")
         self.theme_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_theme())
+        ttk.Button(theme_box, text="About", command=self.show_about, style="Secondary.TButton").pack(side="left", padx=(8, 0))
 
         body = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
         body.pack(fill="both", expand=True)
@@ -92,7 +99,8 @@ class ReadinessApp(tk.Tk):
         controls.pack(fill="x", pady=(0, 14))
         tk.Label(controls, text="Operating system", bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(side="left")
         self.choice = ttk.Combobox(controls, state="readonly", width=31, values=list(self.requirements), style="Fluent.TCombobox")
-        self.choice.current(0)
+        last_os = self.settings.get("last_os")
+        self.choice.current(list(self.requirements).index(last_os) if last_os in self.requirements else 0)
         self.choice.pack(side="left", padx=(14, 12))
         self.choice.bind("<<ComboboxSelected>>", lambda _event: self.show_detail())
         self.check_button = ttk.Button(controls, text="Scan this computer", command=self.run_check, style="Accent.TButton")
@@ -101,6 +109,8 @@ class ReadinessApp(tk.Tk):
         self.overview_button.pack(side="right", padx=(0, 8))
         self.update_button = ttk.Button(controls, text="Check requirements updates", command=self.check_requirements_updates, style="Secondary.TButton")
         self.update_button.pack(side="right", padx=(0, 8))
+        self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
+        self.update_status.pack(side="right", padx=(0, 10))
 
         summary_card = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         summary_card.pack(fill="x", pady=(0, 14))
@@ -139,6 +149,29 @@ class ReadinessApp(tk.Tk):
         self.compare_button.pack(side="right", padx=(8, 0))
         self._apply_theme(self)
 
+    def _restore_window(self) -> None:
+        try:
+            width = max(700, min(2400, int(self.settings.get("width", 820))))
+            height = max(500, min(1600, int(self.settings.get("height", 620))))
+        except (TypeError, ValueError):
+            width, height = 820, 620
+        self.geometry(f"{width}x{height}")
+        try:
+            x, y = int(self.settings.get("x")), int(self.settings.get("y"))
+            self.update_idletasks()
+            sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+            if -width + 120 <= x <= sw - 120 and -height + 100 <= y <= sh - 100:
+                self.geometry(f"{width}x{height}+{x}+{y}")
+        except (TypeError, ValueError, tk.TclError):
+            pass
+
+    def _on_close(self) -> None:
+        self.update_idletasks()
+        settings = dict(self.settings)
+        settings.update({"theme": self.theme_mode, "last_os": self.choice.get(), "width": self.winfo_width(), "height": self.winfo_height(), "x": self.winfo_x(), "y": self.winfo_y()})
+        save_settings(settings)
+        self.destroy()
+
     def run_check(self) -> None:
         self.check_button.config(state="disabled")
         self.summary.config(text="Scanning this computer…", fg="#374151")
@@ -150,6 +183,24 @@ class ReadinessApp(tk.Tk):
         save_theme_mode(self.theme_mode)
         UI.update(colors_for(self.theme_mode))
         self._apply_theme(self)
+
+    def show_about(self) -> None:
+        window = tk.Toplevel(self)
+        window.title("About OS Readiness Checker")
+        window.geometry("430x330")
+        window.resizable(False, False)
+        window.configure(bg=UI["background"])
+        card = tk.Frame(window, bg=UI["surface"], padx=24, pady=22, highlightbackground=UI["border"], highlightthickness=1)
+        card.pack(fill="both", expand=True, padx=18, pady=18)
+        tk.Label(card, text="OS Readiness Checker", bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
+        tk.Label(card, text=f"Version {APP_VERSION}\nCross-platform hardware compatibility and suitability checks.\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
+        actions = tk.Frame(card, bg=UI["surface"])
+        actions.pack(fill="x")
+        ttk.Button(actions, text="Open GitHub", command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
+        ttk.Button(actions, text="Check updates", command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        ttk.Button(actions, text="Close", command=window.destroy, style="Secondary.TButton").pack(side="right")
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
 
     def _apply_theme(self, widget) -> None:
         try:
@@ -234,6 +285,8 @@ class ReadinessApp(tk.Tk):
         if not self.machine or self.choice.get() not in self.all_results:
             return
         name = self.choice.get()
+        self.settings["last_os"] = name
+        save_settings(self.settings)
         results = self.all_results[name]
         self.results = results
         self._show_detail(results)
@@ -353,7 +406,7 @@ class ReadinessApp(tk.Tk):
     def _finish_requirements_update(self, info: RequirementsInfo | None) -> None:
         self.update_button.config(state="normal")
         if info is None:
-            messagebox.showinfo("Requirements updates", "No newer compatible requirements database was found. The current data remains available offline.")
+            self.update_status.config(text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source}); no newer data")
             return
         self.requirements_info = info
         self.requirements = info.profiles
@@ -364,7 +417,7 @@ class ReadinessApp(tk.Tk):
             self.ranked_results = rank_compatibility(self.all_results, suitability)
             self.results = self.all_results.get(self.choice.get(), [])
             self._show_overview(self.machine, self.all_results, self.ranked_results)
-        messagebox.showinfo("Requirements updated", f"Loaded requirements database v{info.data_version}.")
+        self.update_status.config(text=f"DB v{info.data_version} ({info.source}); updated")
 
 
 if __name__ == "__main__":

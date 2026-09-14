@@ -22,22 +22,33 @@ def settings_path() -> Path:
 
 
 def load_theme_mode() -> str:
+    value = load_settings().get("theme")
+    return value if value in {"System", "Light", "Dark"} else "System"
+
+
+def load_settings() -> dict:
     try:
-        value = json.loads(settings_path().read_text(encoding="utf-8")).get("theme")
-        return value if value in {"System", "Light", "Dark"} else "System"
-    except (OSError, json.JSONDecodeError, AttributeError):
-        return "System"
+        value = json.loads(settings_path().read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, json.JSONDecodeError, TypeError):
+        return {}
+
+
+def save_settings(settings: dict) -> None:
+    try:
+        path = settings_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(settings), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def save_theme_mode(mode: str) -> None:
     if mode not in {"System", "Light", "Dark"}:
         return
-    path = settings_path()
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"theme": mode}), encoding="utf-8")
-    except OSError:
-        pass
+    settings = load_settings()
+    settings["theme"] = mode
+    save_settings(settings)
 
 
 def system_prefers_dark() -> bool:
