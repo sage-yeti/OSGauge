@@ -318,8 +318,8 @@ def rank_compatibility(results_by_os: dict[str, list[CheckResult]]) -> list[dict
 
 
 def load_requirements(path: Path | None = None) -> dict[str, Any]:
-    path = path or Path(__file__).with_name("requirements.json")
-    return json.loads(path.read_text(encoding="utf-8"))
+    from requirements_update import load_requirements_info
+    return load_requirements_info(path).profiles
 
 
 def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, Any]:

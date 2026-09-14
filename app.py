@@ -14,11 +14,11 @@ from checker import (
     evaluate_all,
     explain_check,
     html_report,
-    load_requirements,
     overall_status,
     plain_text_report,
     rank_compatibility,
 )
+from requirements_update import RequirementsInfo, fetch_latest, load_requirements_info
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -41,7 +41,8 @@ class ReadinessApp(tk.Tk):
         self.geometry("820x620")
         self.minsize(700, 500)
         self.configure(bg="#f4f6f8")
-        self.requirements = load_requirements()
+        self.requirements_info = load_requirements_info()
+        self.requirements = self.requirements_info.profiles
         self.machine = None
         self.results = []
         self.all_results = {}
@@ -80,6 +81,8 @@ class ReadinessApp(tk.Tk):
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text="Compatibility overview", command=self.show_overview, style="Secondary.TButton")
         self.overview_button.pack(side="right", padx=(0, 8))
+        self.update_button = ttk.Button(controls, text="Check requirements updates", command=self.check_requirements_updates, style="Secondary.TButton")
+        self.update_button.pack(side="right", padx=(0, 8))
 
         summary_card = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         summary_card.pack(fill="x", pady=(0, 14))
@@ -169,7 +172,7 @@ class ReadinessApp(tk.Tk):
             self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status.title(), f'{item["score"]}/100', len(item["checks"])), tags=(status,))
         self.summary.config(text=f"Compared {len(ranked)} operating systems from one hardware scan", fg=UI["text"])
         self.status_badge.config(text="  OVERVIEW  ", bg=UI["accent"], fg="white")
-        self.details.config(text="Ranked by hardware compatibility score. Pass, review, and fail remain authoritative status results; scores are supplementary.")
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Ranked by hardware compatibility score. Pass, review, and fail remain authoritative status results; scores are supplementary.")
         self.check_button.config(state="normal")
         self.compare_button.config(state="normal")
 
@@ -211,7 +214,7 @@ class ReadinessApp(tk.Tk):
             f"System disk: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
             f"Virtualization: {self.machine.virtualization or 'Unknown'}",
         ]
-        self.details.config(text="\n".join(machine_details + ["• " + note for note in notes]))
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n" + "\n".join(machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
@@ -287,6 +290,29 @@ class ReadinessApp(tk.Tk):
         self.clipboard_append(plain_text_report(self.machine, name, self.requirements[name]))
         self.update()
         messagebox.showinfo("Results copied", "A compact compatibility summary was copied to the clipboard.")
+
+    def check_requirements_updates(self) -> None:
+        self.update_button.config(state="disabled")
+        threading.Thread(target=self._check_requirements_updates, daemon=True).start()
+
+    def _check_requirements_updates(self) -> None:
+        info = fetch_latest()
+        self.after(0, lambda: self._finish_requirements_update(info))
+
+    def _finish_requirements_update(self, info: RequirementsInfo | None) -> None:
+        self.update_button.config(state="normal")
+        if info is None:
+            messagebox.showinfo("Requirements updates", "No newer compatible requirements database was found. The current data remains available offline.")
+            return
+        self.requirements_info = info
+        self.requirements = info.profiles
+        self.choice.config(values=list(self.requirements))
+        if self.machine:
+            self.all_results = evaluate_all(self.machine, self.requirements)
+            self.ranked_results = rank_compatibility(self.all_results)
+            self.results = self.all_results.get(self.choice.get(), [])
+            self._show_overview(self.machine, self.all_results, self.ranked_results)
+        messagebox.showinfo("Requirements updated", f"Loaded requirements database v{info.data_version}.")
 
 
 if __name__ == "__main__":

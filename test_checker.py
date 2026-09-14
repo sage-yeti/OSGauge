@@ -1,8 +1,12 @@
 import unittest
+import json
+import tempfile
+from unittest.mock import patch
 
 from pathlib import Path
 
 from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, explain_check, html_report, load_requirements, overall_status, plain_text_report, rank_compatibility
+from requirements_update import fetch_latest, load_requirements_info, validate_database
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -95,6 +99,35 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(cpu["status"], "unknown")
         self.assertIn("could not be verified", cpu["explanation"])
         self.assertTrue(cpu["remediation"])
+
+    def test_requirements_database_validation_and_cache_fallback(self):
+        valid = {"_database": {"schema_version": 1, "data_version": 2}, "Test OS": {"cpu_cores": 1, "cpu_ghz": 0, "ram_gb": 1, "storage_gb": 1, "architecture": ["AMD64"], "source": "https://example.com"}}
+        self.assertIsNotNone(validate_database(valid))
+        self.assertIsNone(validate_database({"_database": {"schema_version": 99, "data_version": 2}}))
+        with tempfile.TemporaryDirectory() as directory:
+            bundled = Path(directory) / "bundled.json"
+            cache = Path(directory) / "cache.json"
+            bundled.write_text(json.dumps({**valid, "_database": {"schema_version": 1, "data_version": 1}}), encoding="utf-8")
+            cache.write_text("not json", encoding="utf-8")
+            with patch("requirements_update.cache_path", return_value=cache):
+                loaded = load_requirements_info(bundled)
+            self.assertEqual(loaded.data_version, 1)
+
+    def test_newer_requirements_are_cached_only_after_validation(self):
+        valid = {"_database": {"schema_version": 1, "data_version": 2}, "Test OS": {"cpu_cores": 1, "cpu_ghz": 0, "ram_gb": 1, "storage_gb": 1, "architecture": ["AMD64"], "source": "https://example.com"}}
+        with tempfile.TemporaryDirectory() as directory:
+            bundled = Path(directory) / "bundled.json"
+            cache = Path(directory) / "cache.json"
+            bundled.write_text(json.dumps({**valid, "_database": {"schema_version": 1, "data_version": 1}}), encoding="utf-8")
+            class Response:
+                def __enter__(self): return self
+                def __exit__(self, *_args): pass
+                def read(self): return json.dumps(valid).encode("utf-8")
+            with patch("requirements_update.cache_path", return_value=cache), patch("requirements_update.urllib.request.urlopen", return_value=Response()):
+                updated = fetch_latest(bundled)
+            self.assertEqual(updated.data_version, 2)
+            with patch("requirements_update.cache_path", return_value=cache):
+                self.assertEqual(load_requirements_info(bundled).source, "cached")
 
 
 if __name__ == "__main__":

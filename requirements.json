@@ -1,4 +1,8 @@
 {
+  "_database": {
+    "schema_version": 1,
+    "data_version": 1
+  },
   "Windows 11": {
     "version": "Windows 11",
     "cpu_cores": 2,

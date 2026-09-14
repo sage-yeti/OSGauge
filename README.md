@@ -10,6 +10,7 @@ A small desktop application that scans the current computer and compares it with
 - Explains each pass, failure and item that needs manual review
 - Exports portable JSON and self-contained offline HTML readiness reports
 - Copies a compact compatibility summary for support chats and forums
+- Checks for newer validated requirements data from this repository without updating the application
 - Keeps OS definitions in an editable JSON file
 - Scans hardware once, then ranks every supported OS by compatibility score
 - Shows pass, review, or fail status and supports side-by-side OS comparison
@@ -42,6 +43,8 @@ python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
 GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
 
 The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. Select an individual check to see a concise explanation and safe next steps. Use **Save report**, **Save HTML**, or **Copy results** to share the results.
+
+The requirements database has its own schema/data version. Use **Check requirements updates** to fetch a newer validated copy from this repository; failures are non-fatal and the bundled database always remains available. Validated data is cached per user in `%LOCALAPPDATA%\\OS Readiness Checker` on Windows or `~/.cache/OS Readiness Checker` on Linux.
 
 ## Important limits
 
