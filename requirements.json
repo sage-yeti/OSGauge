@@ -43,5 +43,65 @@
       "Trying the live USB first is the best way to confirm device and driver compatibility."
     ],
     "source": "https://fedoraproject.org/workstation/download/"
+  },
+  "Arch Linux": {
+    "version": "Arch Linux",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 0.5,
+    "storage_gb": 2,
+    "architecture": ["X86_64"],
+    "notes": [
+      "Arch's installation guide states a minimum of 512 MiB RAM and says a basic installation should take less than 2 GiB of disk space.",
+      "The guide does not specify a CPU speed or core-count minimum; those checks are represented as no threshold.",
+      "More memory is needed to boot the live installation environment, and internet access is assumed during installation."
+    ],
+    "source": "https://wiki.archlinux.org/title/Installation_guide"
+  },
+  "Linux Mint": {
+    "version": "Linux Mint",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 2,
+    "storage_gb": 20,
+    "architecture": ["AMD64", "X86_64"],
+    "display_width": 1024,
+    "display_height": 768,
+    "notes": [
+      "Linux Mint lists 2 GB RAM and 20 GB disk space as minimums; 4 GB RAM and 100 GB disk are recommended for comfortable use.",
+      "The FAQ does not specify a CPU speed or core-count minimum; those checks are represented as no threshold.",
+      "The current Linux Mint download page provides 64-bit images."
+    ],
+    "source": "https://www.linuxmint.com/faq.php"
+  },
+  "openSUSE Leap 15.6": {
+    "version": "openSUSE Leap 15.6",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 1,
+    "storage_gb": 16,
+    "architecture": ["AMD64", "X86_64"],
+    "display_width": 1024,
+    "display_height": 768,
+    "notes": [
+      "openSUSE lists 1 GB RAM, 10 GB for a minimal install, and 16 GB for a graphical desktop; 4 GB RAM is strongly recommended.",
+      "The guide does not specify a CPU speed or core-count minimum; those checks are represented as no threshold.",
+      "At least 40 GB is recommended for the root partition when using Btrfs snapshots."
+    ],
+    "source": "https://doc.opensuse.org/documentation/leap/startup/html/book-startup/art-opensuse-installquick.html"
+  },
+  "Pop!_OS": {
+    "version": "Pop!_OS",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 4,
+    "storage_gb": 20,
+    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "notes": [
+      "System76 lists 4 GB RAM and 20 GB storage as requirements, with 8 GB RAM recommended.",
+      "The supported CPU families are 64-bit x86 and ARM; no CPU speed or core-count minimum is stated.",
+      "Installation media requires a USB flash drive."
+    ],
+    "source": "https://support.system76.com/support/install-pop"
   }
 }
