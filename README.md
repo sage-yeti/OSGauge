@@ -1,6 +1,6 @@
 # OS Readiness Checker
 
-A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, and Fedora Workstation.
+A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, and Pop!_OS.
 
 ## Features
 
@@ -29,6 +29,8 @@ Windows 11 additionally requires a processor model from Microsoft's approved lis
 
 Requirements are kept in `requirements.json`, so another operating system can be added without changing the program code.
 
+When an official requirement page does not publish a CPU speed or core-count minimum, that check is represented as no threshold and the vendor note is retained in the definition. Other published minimums, such as architecture, memory, storage, and display resolution, are checked by the same generic evaluator.
+
 ## Tests
 
 ```text
@@ -40,6 +42,10 @@ python -m unittest -v
 - [Windows 11 system requirements](https://support.microsoft.com/en-us/windows/experience/compatibility/windows-11-system-requirements)
 - [Ubuntu Desktop requirements](https://ubuntu.com/download/desktop)
 - [Fedora Workstation download and requirements](https://fedoraproject.org/workstation/download/)
+- [Arch Linux installation requirements](https://wiki.archlinux.org/title/Installation_guide)
+- [Linux Mint system requirements](https://www.linuxmint.com/faq.php)
+- [openSUSE Leap 15.6 minimum system requirements](https://doc.opensuse.org/documentation/leap/startup/html/book-startup/art-opensuse-installquick.html)
+- [Pop!_OS installation requirements](https://support.system76.com/support/install-pop)
 
 ## License
 
