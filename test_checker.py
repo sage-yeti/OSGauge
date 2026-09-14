@@ -89,6 +89,13 @@ class CheckerTests(unittest.TestCase):
         self.assertIn("OS Readiness Checker - Test OS", text)
         self.assertIn("Memory: FAIL", text)
 
+    def test_reports_explain_unknown_values_without_failing(self):
+        report = as_report(self.machine(cpu_ghz=None), REQ)
+        cpu = next(item for item in report["checks"] if item["name"] == "CPU speed")
+        self.assertEqual(cpu["status"], "unknown")
+        self.assertIn("could not be verified", cpu["explanation"])
+        self.assertTrue(cpu["remediation"])
+
 
 if __name__ == "__main__":
     unittest.main()
