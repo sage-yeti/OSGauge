@@ -121,6 +121,30 @@ class CheckerTests(unittest.TestCase):
         result = assess_suitability(machine, REQ, evaluate(machine, REQ))
         self.assertEqual(result.category, "Marginal")
 
+    def test_synthetic_failure_and_unknown_matrix(self):
+        cases = [
+            (self.machine(storage_free_gb=1), "Free storage", "fail"),
+            (self.machine(architecture="ARM64"), "Architecture", "fail"),
+            (self.machine(cpu_ghz=None, gpu_name=None, storage_filesystem=None, virtualization=None), "CPU speed", "unknown"),
+        ]
+        for machine, name, expected in cases:
+            with self.subTest(name=name):
+                self.assertEqual(next(item for item in evaluate(machine, REQ) if item.name == name).status, expected)
+
+    def test_ranking_prioritizes_compatibility_before_suitability(self):
+        compatible = self.machine(cpu_cores=8, cpu_ghz=3, ram_gb=16, storage_free_gb=200)
+        failing = self.machine(cpu_cores=4, cpu_ghz=3, ram_gb=2, storage_free_gb=100)
+        results = {"Compatible": evaluate(compatible, REQ), "Failing": evaluate(failing, REQ)}
+        suitability = {name: {"category": assess_suitability(machine, REQ, checks).category} for name, machine, checks in (("Compatible", compatible, results["Compatible"]), ("Failing", failing, results["Failing"]))}
+        ranked = rank_compatibility(results, suitability)
+        self.assertEqual(ranked[0]["name"], "Compatible")
+        self.assertEqual(ranked[1]["suitability"]["category"], "Not compatible")
+
+    def test_html_escapes_detected_values(self):
+        html = html_report(self.machine(cpu_name="CPU <unsafe>"), "Test <OS>", REQ)
+        self.assertIn("CPU &lt;unsafe&gt;", html)
+        self.assertNotIn("<unsafe>", html)
+
     def test_requirements_database_validation_and_cache_fallback(self):
         valid = {"_database": {"schema_version": 1, "data_version": 2}, "Test OS": {"cpu_cores": 1, "cpu_ghz": 0, "ram_gb": 1, "storage_gb": 1, "architecture": ["AMD64"], "source": "https://example.com"}}
         self.assertIsNotNone(validate_database(valid))
@@ -149,6 +173,12 @@ class CheckerTests(unittest.TestCase):
             self.assertEqual(updated.data_version, 2)
             with patch("requirements_update.cache_path", return_value=cache):
                 self.assertEqual(load_requirements_info(bundled).source, "cached")
+
+    def test_requirements_network_failure_keeps_bundled_data(self):
+        bundled = Path(__file__).with_name("requirements.json")
+        with patch("requirements_update.urllib.request.urlopen", side_effect=TimeoutError):
+            self.assertIsNone(fetch_latest(bundled))
+        self.assertTrue(load_requirements_info(bundled).profiles)
 
 
 if __name__ == "__main__":

@@ -54,6 +54,7 @@ class ReadinessApp(tk.Tk):
         self.all_results = {}
         self.ranked_results = []
         self.suitability_by_os = {}
+        self.scan_in_progress = False
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._build()
         self.bind("<F5>", lambda _event: self.run_check())
@@ -173,6 +174,9 @@ class ReadinessApp(tk.Tk):
         self.destroy()
 
     def run_check(self) -> None:
+        if self.scan_in_progress:
+            return
+        self.scan_in_progress = True
         self.check_button.config(state="disabled")
         self.summary.config(text="Scanning this computer…", fg="#374151")
         screen = (self.winfo_screenwidth(), self.winfo_screenheight())
@@ -227,11 +231,21 @@ class ReadinessApp(tk.Tk):
         self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
 
     def _scan(self, screen: tuple[int, int]) -> None:
-        machine = collect_machine_info(screen)
-        all_results = evaluate_all(machine, self.requirements)
-        suitability = {name: suitability_dict(assess_suitability(machine, profile, all_results[name])) for name, profile in self.requirements.items()}
-        ranked = rank_compatibility(all_results, suitability)
-        self.after(0, lambda: self._show_overview(machine, all_results, ranked))
+        try:
+            machine = collect_machine_info(screen)
+            all_results = evaluate_all(machine, self.requirements)
+            suitability = {name: suitability_dict(assess_suitability(machine, profile, all_results[name])) for name, profile in self.requirements.items()}
+            ranked = rank_compatibility(all_results, suitability)
+            self.after(0, lambda: self._show_overview(machine, all_results, ranked))
+        except Exception as exc:
+            self.after(0, lambda error=exc: self._scan_failed(error))
+
+    def _scan_failed(self, error: Exception) -> None:
+        self.scan_in_progress = False
+        self.check_button.config(state="normal")
+        self.summary.config(text="Scan could not be completed; try again.", fg=UI["text"])
+        self.status_badge.config(text="  REVIEW  ", bg=COLORS["review"], fg="white")
+        self.details.config(text=f"Hardware information was unavailable: {error}")
 
     def _clear_table(self) -> None:
         for item in self.table.get_children():
@@ -258,7 +272,9 @@ class ReadinessApp(tk.Tk):
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
-        self.results = all_results[self.choice.get()]
+        if self.choice.get() not in all_results and all_results:
+            self.choice.current(0)
+        self.results = all_results.get(self.choice.get(), [])
         self._clear_table()
         self.table.heading("#0", text="Operating system")
         self.table.heading("result", text="Status")
@@ -275,6 +291,7 @@ class ReadinessApp(tk.Tk):
         self.status_badge.config(text="  OVERVIEW  ", bg=UI["accent"], fg="white")
         self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Compatibility is based on published requirements; suitability is application-defined headroom guidance.")
         self.check_button.config(state="normal")
+        self.scan_in_progress = False
         self.compare_button.config(state="normal")
 
     def show_overview(self) -> None:
@@ -400,7 +417,10 @@ class ReadinessApp(tk.Tk):
         threading.Thread(target=self._check_requirements_updates, daemon=True).start()
 
     def _check_requirements_updates(self) -> None:
-        info = fetch_latest()
+        try:
+            info = fetch_latest()
+        except Exception:
+            info = None
         self.after(0, lambda: self._finish_requirements_update(info))
 
     def _finish_requirements_update(self, info: RequirementsInfo | None) -> None:
