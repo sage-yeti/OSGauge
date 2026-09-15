@@ -231,7 +231,6 @@ class ReadinessApp(tk.Tk):
         self.title(f"{t('app.title', self.language)} {APP_VERSION}")
         self.theme_choice.config(values=tuple(t(f"theme.{value.lower()}", self.language) for value in ("System", "Light", "Dark")))
         self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
-        self.theme_choice.event_generate("<<ComboboxSelected>>") if False else None
         self.about_button.config(text=t("action.about", self.language))
         self.check_button.config(text=t("action.scan", self.language))
         self.overview_button.config(text=t("action.overview", self.language))
