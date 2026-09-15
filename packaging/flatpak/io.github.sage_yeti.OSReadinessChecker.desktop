@@ -2,7 +2,7 @@
 Name=OS Readiness Checker
 Comment=Check whether this computer meets operating-system requirements
 Exec=os-readiness-checker
-Icon=io.github.sage-yeti.OSReadinessChecker
+Icon=io.github.sageyeti.OSReadinessChecker
 Terminal=false
 Type=Application
 Categories=System;Utility;

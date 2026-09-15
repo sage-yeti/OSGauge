@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.sage-yeti.OSReadinessChecker</id>
+  <id>io.github.sageyeti.OSReadinessChecker</id>
   <name>OS Readiness Checker</name>
   <summary>Check whether a computer meets operating-system requirements</summary>
   <description>
@@ -11,6 +11,6 @@
   <project_license>MIT</project_license>
   <url type="homepage">https://github.com/sage-yeti/os-readiness-checker</url>
   <developer id="io.github.sage_yeti"><name>sage-yeti</name></developer>
-  <icon type="scalable">io.github.sage-yeti.OSReadinessChecker</icon>
+  <icon type="scalable">io.github.sageyeti.OSReadinessChecker</icon>
   <content_rating type="oars-1.1"/>
 </component>
