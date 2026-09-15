@@ -13,7 +13,7 @@ A small desktop application that scans the current computer and compares it with
 - Checks for newer validated requirements data from this repository without updating the application
 - Includes a cross-platform CLI for single-target or all-target scans
 - Supports System, Light, and Dark GUI themes
-- Supports English and Italian GUI/report text; System follows the detected locale and falls back to English
+- Supports English, Italian, Spanish, German, and French GUI/report text; System follows the detected locale and falls back to English
 - Remembers theme, selected OS, and safe window placement per user
 - Includes an About panel and keyboard shortcuts (F5/Ctrl+R scan, Ctrl+S JSON report)
 - Keeps OS definitions in an editable JSON file
@@ -72,7 +72,7 @@ python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
 ```
 
 GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
-The Linux workflow also builds and validates the x86-64 AppImage as a downloadable workflow artifact. It includes the packaged requirements database and English/Italian localization resources; settings and requirements caches remain in the normal per-user Linux locations outside the AppImage.
+The Linux workflow also builds and validates the x86-64 AppImage as a downloadable workflow artifact. It includes the packaged requirements database and all supported localization resources; settings and requirements caches remain in the normal per-user Linux locations outside the AppImage.
 
 The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. Select an individual check to see a concise explanation and safe next steps. Use **Save report**, **Save HTML**, or **Copy results** to share the results.
 
@@ -88,7 +88,7 @@ Results keep four concepts separate: Compatibility checks official hardware requ
 
 Machine profiles are human-readable JSON files with the `.osrprofile` extension. They contain only detected hardware/configuration fields needed for analysis (never usernames, hostnames, serial numbers, network data, keys, or personal files). Imported profiles are re-evaluated with the current requirements database and application logic; installation readiness describes the configuration captured when the profile was created.
 
-The GUI language can be set to **System**, **English**, or **Italiano** and is remembered in the existing settings. CLI flags and JSON/profile formats remain language-neutral; use `--lang it` only for human-readable CLI output.
+The GUI language can be set to **System**, **English**, **Italiano**, **Español**, **Deutsch**, or **Français** and is remembered in the existing settings. System recognizes common `es-*`, `de-*`, and `fr-*` locales and otherwise falls back to English. CLI flags and JSON/profile formats remain language-neutral; use `--lang en`, `it`, `es`, `de`, or `fr` only for human-readable CLI output.
 
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 

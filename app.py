@@ -25,7 +25,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
-from upgrade_planner import build_upgrade_plan
+from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, resolve_language, status_label, t
 
@@ -105,7 +105,7 @@ class ReadinessApp(tk.Tk):
         self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
         self.theme_choice.pack(side="left")
         self.theme_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_theme())
-        self.language_choice = ttk.Combobox(theme_box, state="readonly", width=10, values=("System", "English", "Italiano"), style="Fluent.TCombobox")
+        self.language_choice = ttk.Combobox(theme_box, state="readonly", width=11, values=("System", "English", "Italiano", "Español", "Deutsch", "Français"), style="Fluent.TCombobox")
         self.language_label = tk.Label(theme_box, text=t("label.language", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.language_label.pack(side="left", padx=(8, 4))
         self.language_choice.pack_forget()
@@ -477,7 +477,7 @@ class ReadinessApp(tk.Tk):
         readiness = evaluate_installation_readiness(self.machine, self.requirements[name], results)
         lifecycle = profile_metadata(name, self.requirements[name])
         lifecycle["support_status"] = lifecycle_status(self.requirements[name])
-        plan = build_upgrade_plan(self.machine, self.requirements[name], results, suitability, readiness, lifecycle)
+        plan = localized_plan(build_upgrade_plan(self.machine, self.requirements[name], results, suitability, readiness, lifecycle), self.language)
         window = tk.Toplevel(self)
         window.title(t("action.upgrade_plan", self.language))
         window.geometry("720x560")

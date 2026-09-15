@@ -61,3 +61,32 @@ def build_upgrade_plan(machine: MachineInfo, requirements: dict[str, Any], check
     else:
         plan["overall_summary"] = "No mandatory hardware or configuration changes are required."
     return plan
+
+
+def localized_plan(plan: dict[str, Any], language: str = "en") -> dict[str, Any]:
+    """Return a presentation copy with planner prose translated; identifiers stay stable."""
+    from localization import t
+    result = {key: (list(value) if isinstance(value, list) else value) for key, value in plan.items()}
+    if plan["required_hardware_changes"] or plan["required_configuration_changes"] or plan["storage_actions"]:
+        result["overall_summary"] = t("planner.summary.required", language, count=sum(len(plan[key]) for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions")))
+    elif plan["unresolved_items"]:
+        result["overall_summary"] = t("planner.summary.review", language, count=len(plan["unresolved_items"]))
+    else:
+        result["overall_summary"] = t("planner.summary.none", language)
+    if plan.get("lifecycle_warning"):
+        result["lifecycle_warning"] = t("planner.lifecycle_warning", language, warning=plan["lifecycle_warning"])
+    for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items", "optional_improvements"):
+        localized = []
+        for item in plan[key]:
+            copy = dict(item)
+            if item.get("optional"):
+                copy["explanation"] = t("planner.explanation.optional", language, current=item["current"], target=item["target"])
+            elif item.get("category") == "unknown":
+                copy["explanation"] = t("planner.explanation.unknown", language, check=item["check"], current=item["current"], target=item["target"])
+            elif item.get("category") in {"configuration", "storage"}:
+                copy["explanation"] = t("planner.explanation.configuration", language, check=item["check"])
+            else:
+                copy["explanation"] = t("planner.explanation.hardware", language, check=item["check"])
+            localized.append(copy)
+        result[key] = localized
+    return result

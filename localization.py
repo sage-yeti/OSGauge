@@ -6,8 +6,8 @@ import locale
 from pathlib import Path
 from typing import Any
 
-LANGUAGES = {"System", "English", "Italiano"}
-LANG_CODES = {"System": None, "English": "en", "Italiano": "it", "en": "en", "it": "it"}
+LANGUAGES = {"System", "English", "Italiano", "Español", "Deutsch", "Français"}
+LANG_CODES = {"System": None, "English": "en", "Italiano": "it", "Español": "es", "Deutsch": "de", "Français": "fr", "en": "en", "it": "it", "es": "es", "de": "de", "fr": "fr"}
 _CACHE: dict[str, dict[str, str]] = {}
 
 
@@ -26,7 +26,11 @@ def detect_system_language() -> str:
         value = locale.getlocale()[0] or locale.getdefaultlocale()[0] or ""
     except (ValueError, AttributeError):
         value = ""
-    return "it" if value.lower().replace("-", "_").startswith("it_") or value.lower() == "it" else "en"
+    normalized = value.lower().replace("-", "_")
+    for code in ("it", "es", "de", "fr"):
+        if normalized == code or normalized.startswith(code + "_"):
+            return code
+    return "en"
 
 
 def resolve_language(selection: str | None) -> str:
@@ -37,7 +41,7 @@ def resolve_language(selection: str | None) -> str:
 
 
 def language_label(code: str) -> str:
-    return "Italiano" if code == "it" else "English"
+    return {"it": "Italiano", "es": "Español", "de": "Deutsch", "fr": "Français"}.get(code, "English")
 
 
 def t(key: str, language: str = "en", **params: Any) -> str:
