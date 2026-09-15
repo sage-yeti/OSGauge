@@ -31,7 +31,7 @@ def _find_target(value: str, requirements: dict) -> str | None:
     return next((name for name in requirements if _key(name).startswith(wanted)), None)
 
 
-def _payload(machine, requirements, names, verbose: bool, data_version: int, profile_metadata=None) -> dict:
+def _payload(machine, requirements, names, verbose: bool, data_version: int, profile_info=None) -> dict:
     results = evaluate_all(machine, requirements)
     suitability = {name: suitability_dict(assess_suitability(machine, requirements[name], results[name])) for name in names}
     ranked = rank_compatibility({name: results[name] for name in names}, suitability)
@@ -45,9 +45,9 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int, pro
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
     payload = {"requirements_database_version": data_version, "machine": asdict(machine), "results": output}
-    if profile_metadata:
+    if profile_info:
         payload["machine_source"] = "Imported profile"
-        payload["profile_metadata"] = profile_metadata
+        payload["profile_metadata"] = profile_info
     return payload
 
 
