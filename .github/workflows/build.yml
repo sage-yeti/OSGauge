@@ -48,10 +48,36 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/${{ matrix.artifact_name }}
+
+  appimage:
+    name: Build Linux AppImage
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: OS-Readiness-Checker-Linux-x64
+          path: dist
+      - name: Build AppImage
+        run: |
+          chmod +x dist/OS-Readiness-Checker-Linux-x64 packaging/linux/build_appimage.sh
+          packaging/linux/build_appimage.sh dist
+      - name: Validate AppImage artifact
+        run: |
+          test -x dist/OS-Readiness-Checker-Linux-x86_64.AppImage
+          ./dist/OS-Readiness-Checker-Linux-x86_64.AppImage --appimage-extract >/dev/null
+          test -f squashfs-root/OS-Readiness-Checker.desktop
+          test -f squashfs-root/OS-Readiness-Checker.svg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OS-Readiness-Checker-Linux-x86_64.AppImage
+          path: dist/OS-Readiness-Checker-Linux-x86_64.AppImage
+
   release:
     name: Publish GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, appimage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -65,4 +91,3 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: SHA256SUMS.txt
-  
