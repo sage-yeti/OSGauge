@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=OS Readiness Checker
+Comment=Check whether this computer meets operating-system requirements
+Exec=os-readiness-checker
+Icon=io.github.sage-yeti.OSReadinessChecker
+Terminal=false
+Type=Application
+Categories=System;Utility;
+StartupNotify=true

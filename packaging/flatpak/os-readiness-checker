@@ -1,0 +1,2 @@
+#!/bin/sh
+exec python3 /app/share/os-readiness-checker/app.py "$@"
