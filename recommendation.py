@@ -29,7 +29,12 @@ def _suitability_score(value: dict[str, Any] | None) -> float:
 
 
 def recommend(requirements: dict[str, dict[str, Any]], results_by_os: dict[str, list[Any]], suitability_by_os: dict[str, dict[str, Any]] | None = None, readiness_by_os: dict[str, dict[str, Any]] | None = None, preferences: dict[str, int] | None = None, metadata: dict[str, dict[str, int]] | None = None) -> list[dict[str, Any]]:
-    weights = {key: max(0, min(2, int((preferences or {}).get(key, 0)))) for key in PREFERENCES}
+    weights = {}
+    for key in PREFERENCES:
+        try:
+            weights[key] = max(0, min(2, int((preferences or {}).get(key, 0))))
+        except (TypeError, ValueError):
+            weights[key] = 0
     metadata = metadata or load_metadata()
     ranked: list[dict[str, Any]] = []
     for name, profile in requirements.items():
@@ -48,4 +53,6 @@ def recommend(requirements: dict[str, dict[str, Any]], results_by_os: dict[str, 
 
 
 def primary_recommendations(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [item for item in results if item["compatibility_status"] == "pass"]
+    primary = [item for item in results if item["compatibility_status"] == "pass"]
+    supported_families = {item["os_family"] for item in primary if item.get("lifecycle_status") not in {"eol", "nearing_eol"}}
+    return [item for item in primary if item.get("lifecycle_status") not in {"eol", "nearing_eol"} or item["os_family"] not in supported_families]
