@@ -364,22 +364,31 @@ class ReadinessApp(tk.Tk):
             return
         window = tk.Toplevel(self)
         window.title(t("recommend.title", self.language))
-        window.geometry("620x560")
+        window.geometry("700x680")
         window.configure(bg=UI["background"])
-        card = tk.Frame(window, bg=UI["surface"], padx=18, pady=16, highlightbackground=UI["border"], highlightthickness=1)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
         card.pack(fill="both", expand=True, padx=18, pady=18)
-        tk.Label(card, text=t("recommend.prompt", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold"), wraplength=550, justify="left").pack(anchor="w")
+        body = card.content()
+        tk.Label(body, text=t("recommend.step_preferences", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold")).pack(anchor="w")
+        tk.Label(body, text=t("recommend.prompt", self.language), bg=UI["surface"], fg=UI["muted"], font=(self.font, 9), wraplength=620, justify="left").pack(anchor="w", pady=(3, 0))
         vars_by_key = {key: tk.IntVar(value=int(self.settings.get("preferences", {}).get(key, 0))) for key in PREFERENCES}
-        choices = tk.Frame(card, bg=UI["surface"])
+        choices = FluentCard(body, tokens=self.ui_tokens, padding=(12, 10))
         choices.pack(fill="x", pady=(12, 8))
+        choices_body = choices.content()
         for key in PREFERENCES:
-            row = tk.Frame(choices, bg=UI["surface"])
+            row = tk.Frame(choices_body, bg=UI["surface"])
             row.pack(fill="x", pady=1)
             tk.Label(row, text=preference_label(key, self.language), bg=UI["surface"], fg=UI["text"], width=34, anchor="w", font=(self.font, 9)).pack(side="left")
             for value, label in ((0, "—"), (1, "Somewhat"), (2, "Important")):
                 tk.Radiobutton(row, text=label, value=value, variable=vars_by_key[key], bg=UI["surface"], fg=UI["text"], activebackground=UI["surface"], selectcolor=UI["background"], font=(self.font, 8)).pack(side="left")
-        output = tk.Label(card, text="", bg=UI["surface"], fg=UI["muted"], justify="left", anchor="nw", wraplength=550, font=(self.font, 9))
-        output.pack(fill="both", expand=True, pady=(8, 8))
+        results_card = FluentCard(body, tokens=self.ui_tokens, padding=(14, 12))
+        results_card.pack(fill="both", expand=True, pady=(8, 8))
+        results_body = results_card.content()
+        tk.Label(results_body, text=t("recommend.step_results", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold")).pack(anchor="w")
+        output = tk.Label(results_body, text=t("recommend.disclaimer", self.language), bg=UI["surface"], fg=UI["muted"], justify="left", anchor="nw", wraplength=620, font=(self.font, 9))
+        output.pack(fill="x", pady=(6, 4))
+        result_cards = tk.Frame(results_body, bg=UI["surface"])
+        result_cards.pack(fill="both", expand=True)
         def analyze() -> None:
             preferences = {key: var.get() for key, var in vars_by_key.items()}
             self.settings["preferences"] = preferences
@@ -388,17 +397,28 @@ class ReadinessApp(tk.Tk):
             readiness = {name: evaluate_installation_readiness(self.machine, self.requirements[name], self.all_results[name]) for name in self.requirements}
             ranked = recommend(self.requirements, self.all_results, suits, readiness, preferences)
             primary = primary_recommendations(ranked)[:5]
+            for child in result_cards.winfo_children():
+                child.destroy()
             lines = [t("recommend.disclaimer", self.language), ""]
             if not primary:
                 lines.append(t("recommend.none", self.language))
             for item in primary:
+                rank = primary.index(item) + 1
+                result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(10, 8))
+                result.pack(fill="x", pady=4)
+                result_body = result.content()
+                tk.Label(result_body, text=f"#{rank}  {item['name']}", bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
+                tk.Label(result_body, text=f"{t('recommend.preference_match', self.language)}: {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)", bg=UI["surface"], fg=UI["accent"], font=(self.font, 9, "bold")).pack(anchor="w")
+                strengths = ", ".join(item["strengths"]) or "—"
+                tradeoffs = ", ".join(item["tradeoffs"]) or "—"
+                tk.Label(result_body, text=f"{t('recommend.strengths', self.language)}: {strengths}\n{t('recommend.tradeoffs', self.language)}: {tradeoffs}", bg=UI["surface"], fg=UI["muted"], justify="left", anchor="w", wraplength=590, font=(self.font, 9)).pack(anchor="w", pady=(4, 0))
                 lines.append(f"{item['name']} — {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)")
                 if item["strengths"]:
                     lines.append("  " + t("recommend.strengths", self.language) + ": " + ", ".join(item["strengths"]))
                 if item["tradeoffs"]:
                     lines.append("  " + t("recommend.tradeoffs", self.language) + ": " + ", ".join(item["tradeoffs"]))
             output.config(text="\n".join(lines))
-        ttk.Button(card, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
+        ttk.Button(body, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
 
     def _apply_theme(self, widget) -> None:
@@ -621,7 +641,7 @@ class ReadinessApp(tk.Tk):
         right.current(1 if len(names) > 1 else 0)
         left.pack(side="left", padx=(12, 8))
         right.pack(side="left")
-        card = tk.Frame(window, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(1, 1))
         card.pack(fill="both", expand=True, padx=20, pady=(0, 20))
         table = ttk.Treeview(card, columns=("detected", "left", "right"), show="tree headings", style="Fluent.Treeview")
         table.heading("#0", text="Check")
@@ -659,30 +679,38 @@ class ReadinessApp(tk.Tk):
         plan = localized_plan(build_upgrade_plan(self.machine, self.requirements[name], results, suitability, readiness, lifecycle), self.language)
         window = tk.Toplevel(self)
         window.title(t("action.upgrade_plan", self.language))
-        window.geometry("720x560")
+        window.geometry("760x680")
         window.configure(bg=UI["background"])
-        card = tk.Frame(window, bg=UI["surface"], padx=20, pady=18, highlightbackground=UI["border"], highlightthickness=1)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 18))
         card.pack(fill="both", expand=True, padx=20, pady=20)
-        tk.Label(card, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
-        tk.Label(card, text=plan["overall_summary"], bg=UI["surface"], fg=UI["muted"], font=(self.font, 10), wraplength=650, justify="left").pack(anchor="w", pady=(6, 12))
-        text = tk.Text(card, height=20, wrap="word", relief="flat", bg=UI["surface"], fg=UI["text"], font=(self.font, 10), padx=4, pady=4)
-        text.pack(fill="both", expand=True)
+        body = card.content()
+        tk.Label(body, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
+        tk.Label(body, text=plan["overall_summary"], bg=UI["surface"], fg=UI["muted"], font=(self.font, 10), wraplength=680, justify="left").pack(anchor="w", pady=(6, 12))
+        sections = tk.Frame(body, bg=UI["surface"])
+        sections.pack(fill="both", expand=True)
         section_names = {"required_hardware_changes": "planner.hardware", "required_configuration_changes": "planner.configuration", "storage_actions": "planner.storage", "unresolved_items": "planner.unresolved", "optional_improvements": "planner.optional", "already_satisfied": "planner.satisfied"}
         for key, label_key in section_names.items():
             items = plan[key]
             if not items:
                 continue
-            text.insert("end", t(label_key, self.language) + "\n", "heading")
+            section_card = FluentCard(sections, tokens=self.ui_tokens, padding=(12, 10))
+            section_card.pack(fill="x", pady=4)
+            section_body = section_card.content()
+            tk.Label(section_body, text=t(label_key, self.language), bg=UI["surface"], fg=UI["accent"] if key.startswith("required") or key == "storage_actions" else UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
             for item in items:
                 if key == "already_satisfied":
-                    text.insert("end", f"• {item['check']}: {item['current']} / {item['target']}\n")
+                    line = f"{item['check']}\n  {item['current']} / {item['target']}"
                 else:
                     gap = f"; {t('planner.gap', self.language)} {item['gap']}" if item.get("gap") else ""
-                    text.insert("end", f"• {item['check']}: {item['current']} / {item['target']}{gap}\n  {item['explanation']}\n")
+                    line = f"{item['check']}\n  {item['current']} / {item['target']}{gap}\n  {item['explanation']}"
+                tk.Label(section_body, text="• " + line, bg=UI["surface"], fg=UI["muted"], justify="left", anchor="w", wraplength=650, font=(self.font, 9)).pack(anchor="w", pady=(5, 0))
         if plan["lifecycle_warning"]:
-            text.insert("end", f"\n{t('planner.lifecycle', self.language)}: {plan['lifecycle_warning']}\n")
-        text.configure(state="disabled")
-        ttk.Button(card, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(12, 0))
+            warning = FluentCard(sections, tokens=self.ui_tokens, padding=(12, 10))
+            warning.pack(fill="x", pady=4)
+            warning_body = warning.content()
+            tk.Label(warning_body, text=t("planner.lifecycle", self.language), bg=UI["surface"], fg=COLORS["review"], font=(self.font, 10, "bold")).pack(anchor="w")
+            tk.Label(warning_body, text=plan["lifecycle_warning"], bg=UI["surface"], fg=UI["muted"], wraplength=650, justify="left").pack(anchor="w", pady=(4, 0))
+        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(12, 0))
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
 
@@ -698,24 +726,39 @@ class ReadinessApp(tk.Tk):
         machine_names = (t("comparison.machine_a", self.language), t("comparison.machine_b", self.language))
         metadata = [{}, {}]
         font = self.font
-        controls = tk.Frame(window, bg=UI["surface"], padx=16, pady=12, highlightbackground=UI["border"], highlightthickness=1)
-        controls.pack(fill="x", padx=20, pady=20)
-        target = ttk.Combobox(controls, state="readonly", values=list(self.requirements), width=25, style="Fluent.TCombobox")
+        source_row = tk.Frame(window, bg=UI["background"])
+        source_row.pack(fill="x", padx=20, pady=(20, 10))
+        source_cards = []
+        for index, title in enumerate(machine_names):
+            source_card = FluentCard(source_row, tokens=self.ui_tokens, padding=(12, 10))
+            source_card.pack(side="left", fill="both", expand=True, padx=(0, 8) if index == 0 else (8, 0))
+            source_body = source_card.content()
+            tk.Label(source_body, text=title, bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(anchor="w")
+            source_label = tk.Label(source_body, text=labels[index], bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=360, font=(font, 9))
+            source_label.pack(anchor="w", pady=(4, 0))
+            source_cards.append(source_label)
+        controls = FluentCard(window, tokens=self.ui_tokens, padding=(12, 10))
+        controls.pack(fill="x", padx=20, pady=(0, 12))
+        controls_body = controls.content()
+        tk.Label(controls_body, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9)).pack(side="left")
+        target = ttk.Combobox(controls_body, state="readonly", values=list(self.requirements), width=25, style="Fluent.TCombobox")
         target.current(0)
         target.pack(side="left", padx=(8, 14))
         labels_vars = [tk.StringVar(value=labels[0]), tk.StringVar(value=labels[1])]
         for index in range(2):
-            tk.Label(controls, text=f"{t('comparison.machine', self.language)} {'A' if index == 0 else 'B'}", bg=UI["surface"], fg=UI["text"], font=(font, 9, "bold")).pack(side="left", padx=(0 if index == 0 else 12, 4))
-            tk.Label(controls, textvariable=labels_vars[index], bg=UI["surface"], fg=UI["muted"], width=20, anchor="w", font=(font, 9)).pack(side="left")
+            tk.Label(controls_body, text=f"{t('comparison.machine', self.language)} {'A' if index == 0 else 'B'}", bg=UI["surface"], fg=UI["text"], font=(font, 9, "bold")).pack(side="left", padx=(0 if index == 0 else 12, 4))
+            tk.Label(controls_body, textvariable=labels_vars[index], bg=UI["surface"], fg=UI["muted"], width=18, anchor="w", font=(font, 9)).pack(side="left")
 
-        card = tk.Frame(window, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(1, 1))
         card.pack(fill="both", expand=True, padx=20, pady=(0, 12))
         table = ttk.Treeview(card, columns=("a", "b", "difference"), show="tree headings", style="Fluent.Treeview")
         table.heading("#0", text=t("comparison.attribute", self.language)); table.heading("a", text=machine_names[0]); table.heading("b", text=machine_names[1]); table.heading("difference", text=t("comparison.difference", self.language))
         table.column("#0", width=190); table.column("a", width=210); table.column("b", width=210); table.column("difference", width=130)
         table.pack(fill="both", expand=True)
-        summary = tk.Label(window, text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["text"], padx=18, pady=10, wraplength=820)
-        summary.pack(fill="x", padx=20)
+        summary_card = FluentCard(window, tokens=self.ui_tokens, padding=(14, 10))
+        summary_card.pack(fill="x", padx=20, pady=(0, 10))
+        summary = tk.Label(summary_card.content(), text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["text"], wraplength=820, font=(font, 9))
+        summary.pack(fill="x")
         result_holder = {"value": None}
 
         def choose_profile(index: int) -> None:
@@ -731,17 +774,19 @@ class ReadinessApp(tk.Tk):
             captured = meta.get("created_at") or "unknown"
             labels[index] = f"{t('comparison.imported_profile', self.language)} ({Path(path).name}; {captured})"
             labels_vars[index].set(labels[index])
+            source_cards[index].config(text=labels[index])
             refresh()
 
         def use_current(index: int) -> None:
             sources[index], metadata[index] = self.machine, {}
             labels[index] = t("comparison.this_computer", self.language)
             labels_vars[index].set(labels[index])
+            source_cards[index].config(text=labels[index])
             refresh()
 
         for index in range(2):
-            ttk.Button(controls, text=t("comparison.import", self.language), command=lambda i=index: choose_profile(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
-            ttk.Button(controls, text=t("comparison.use_current", self.language), command=lambda i=index: use_current(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
+            ttk.Button(controls_body, text=t("comparison.import", self.language), command=lambda i=index: choose_profile(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
+            ttk.Button(controls_body, text=t("comparison.use_current", self.language), command=lambda i=index: use_current(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
 
         def refresh(*_args) -> None:
             if sources[0] is None or sources[1] is None:
