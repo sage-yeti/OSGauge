@@ -13,6 +13,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import profile_metadata, resolve_profile, lifecycle_status
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from machine_comparison import compare_machines, plain_text_comparison
 from localization import resolve_language, status_label, suitability_explanation, suitability_label, t
 
 
@@ -61,6 +62,7 @@ def main(argv=None) -> int:
     parser.add_argument("--verbose", action="store_true", help="include detected and required check details")
     parser.add_argument("--output", type=Path, help="write output to a file")
     parser.add_argument("--profile", type=Path, help="analyze an exported .osrprofile instead of scanning this computer")
+    parser.add_argument("--compare", nargs=2, metavar=("MACHINE_A", "MACHINE_B"), help="compare two profiles, or use 'local' for this computer")
     parser.add_argument("--export-profile", type=Path, help="scan this computer once and save a machine profile")
     parser.add_argument("--lang", choices=("en", "it"), default="en", help="language for human-readable output")
     args = parser.parse_args(argv)
@@ -68,6 +70,29 @@ def main(argv=None) -> int:
         info = load_requirements_info()
         requirements = info.profiles
         language = resolve_language(args.lang)
+        if args.compare:
+            machines = []
+            metadata = []
+            for source in args.compare:
+                if source.lower() == "local":
+                    machines.append(collect_machine_info())
+                    metadata.append({})
+                else:
+                    machine, meta = import_profile(Path(source))
+                    machines.append(machine)
+                    metadata.append(meta)
+            target = _find_target(args.check, requirements) if args.check else None
+            if args.check and not target:
+                print(f"Unknown operating system: {args.check}", file=sys.stderr)
+                return 2
+            comparison = compare_machines(machines[0], machines[1], requirements, target, metadata=tuple(metadata))
+            payload = {"comparison": comparison, "requirements_database_version": info.data_version}
+            text = json.dumps(payload, indent=2) if args.json else plain_text_comparison(comparison)
+            if args.output:
+                args.output.write_text(text + "\n", encoding="utf-8")
+            else:
+                print(text)
+            return 1 if comparison.get("target") and comparison["target"]["candidate"] in {"A", "B"} and comparison["target"]["a"]["compatibility"] == "fail" and comparison["target"]["b"]["compatibility"] == "fail" else 0
         if args.list:
             value = json.dumps(list(requirements)) if args.json else "\n".join(requirements)
             if args.output:

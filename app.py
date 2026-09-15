@@ -25,6 +25,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, resolve_language, status_label, t
 
 
@@ -138,6 +139,8 @@ class ReadinessApp(tk.Tk):
         self.import_button.pack(side="left")
         self.export_button = ttk.Button(profile_actions, text=t("action.export_profile", self.language), command=self.export_machine_profile, style="Secondary.TButton")
         self.export_button.pack(side="left", padx=(8, 0))
+        self.machine_compare_button = ttk.Button(profile_actions, text=t("action.compare_machines", self.language), command=self.show_machine_compare, style="Secondary.TButton", state="disabled")
+        self.machine_compare_button.pack(side="left", padx=(8, 0))
         self.source_status = tk.Label(profile_actions, text=f"{t('label.machine_source', self.language)}: {t('profile.source_local', self.language)}", bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.source_status.pack(side="right")
 
@@ -237,6 +240,7 @@ class ReadinessApp(tk.Tk):
         self.update_button.config(text=t("action.updates", self.language))
         self.import_button.config(text=t("action.import_profile", self.language))
         self.export_button.config(text=t("action.export_profile", self.language))
+        self.machine_compare_button.config(text=t("action.compare_machines", self.language))
         self.source_button.config(text=t("action.source", self.language))
         self.save_button.config(text=t("action.save_report", self.language))
         self.html_button.config(text=t("action.save_html", self.language))
@@ -363,6 +367,7 @@ class ReadinessApp(tk.Tk):
         self.check_button.config(state="normal")
         self.scan_in_progress = False
         self.compare_button.config(state="normal")
+        self.machine_compare_button.config(state="normal")
 
     def show_overview(self) -> None:
         if self.machine and self.ranked_results:
@@ -457,6 +462,91 @@ class ReadinessApp(tk.Tk):
         left.bind("<<ComboboxSelected>>", refresh)
         right.bind("<<ComboboxSelected>>", refresh)
         refresh()
+
+    def show_machine_compare(self) -> None:
+        if not self.machine:
+            return
+        window = tk.Toplevel(self)
+        window.title(t("comparison.title", self.language))
+        window.geometry("900x650")
+        window.configure(bg=UI["background"])
+        sources = [self.machine, None]
+        labels = [t("comparison.this_computer", self.language), t("comparison.choose_profile", self.language)]
+        machine_names = (t("comparison.machine_a", self.language), t("comparison.machine_b", self.language))
+        metadata = [{}, {}]
+        font = self.font
+        controls = tk.Frame(window, bg=UI["surface"], padx=16, pady=12, highlightbackground=UI["border"], highlightthickness=1)
+        controls.pack(fill="x", padx=20, pady=20)
+        target = ttk.Combobox(controls, state="readonly", values=list(self.requirements), width=25, style="Fluent.TCombobox")
+        target.current(0)
+        target.pack(side="left", padx=(8, 14))
+        labels_vars = [tk.StringVar(value=labels[0]), tk.StringVar(value=labels[1])]
+        for index in range(2):
+            tk.Label(controls, text=f"{t('comparison.machine', self.language)} {'A' if index == 0 else 'B'}", bg=UI["surface"], fg=UI["text"], font=(font, 9, "bold")).pack(side="left", padx=(0 if index == 0 else 12, 4))
+            tk.Label(controls, textvariable=labels_vars[index], bg=UI["surface"], fg=UI["muted"], width=20, anchor="w", font=(font, 9)).pack(side="left")
+
+        card = tk.Frame(window, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
+        card.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+        table = ttk.Treeview(card, columns=("a", "b", "difference"), show="tree headings", style="Fluent.Treeview")
+        table.heading("#0", text=t("comparison.attribute", self.language)); table.heading("a", text=machine_names[0]); table.heading("b", text=machine_names[1]); table.heading("difference", text=t("comparison.difference", self.language))
+        table.column("#0", width=190); table.column("a", width=210); table.column("b", width=210); table.column("difference", width=130)
+        table.pack(fill="both", expand=True)
+        summary = tk.Label(window, text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["text"], padx=18, pady=10, wraplength=820)
+        summary.pack(fill="x", padx=20)
+        result_holder = {"value": None}
+
+        def choose_profile(index: int) -> None:
+            path = filedialog.askopenfilename(filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")])
+            if not path:
+                return
+            try:
+                machine, meta = import_profile(Path(path))
+            except ValueError as exc:
+                messagebox.showerror(t("dialog.profile_import_error", self.language), str(exc), parent=window)
+                return
+            sources[index], metadata[index] = machine, meta
+            captured = meta.get("created_at") or "unknown"
+            labels[index] = f"{t('comparison.imported_profile', self.language)} ({Path(path).name}; {captured})"
+            labels_vars[index].set(labels[index])
+            refresh()
+
+        def use_current(index: int) -> None:
+            sources[index], metadata[index] = self.machine, {}
+            labels[index] = t("comparison.this_computer", self.language)
+            labels_vars[index].set(labels[index])
+            refresh()
+
+        for index in range(2):
+            ttk.Button(controls, text=t("comparison.import", self.language), command=lambda i=index: choose_profile(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
+            ttk.Button(controls, text=t("comparison.use_current", self.language), command=lambda i=index: use_current(i), style="Secondary.TButton").pack(side="left", padx=(4, 0))
+
+        def refresh(*_args) -> None:
+            if sources[0] is None or sources[1] is None:
+                return
+            result_holder["value"] = compare_machines(sources[0], sources[1], self.requirements, target.get(), labels=tuple(labels), metadata=tuple(metadata))
+            table.delete(*table.get_children())
+            for row in result_holder["value"]["hardware"]:
+                table.insert("", "end", text=row["name"], values=(row["a"], row["b"], row["difference"]))
+            selected = result_holder["value"].get("target")
+            summary.config(text=(f"{selected['name']} — {selected['lifecycle'].get('release', '')} ({selected['lifecycle'].get('support_status', '')})\n" f"{selected['summary']}\n" f"{machine_names[0]} — {selected['a']['compatibility'].upper()} ({selected['a']['compatibility_score']}/100), {selected['a']['suitability']['category']}, {selected['a']['readiness']}\n" f"{machine_names[1]} — {selected['b']['compatibility'].upper()} ({selected['b']['compatibility_score']}/100), {selected['b']['suitability']['category']}, {selected['b']['readiness']}") if selected else "")
+
+        target.bind("<<ComboboxSelected>>", refresh)
+        refresh()
+        actions = tk.Frame(window, bg=UI["background"])
+        actions.pack(fill="x", padx=20, pady=(0, 18))
+        def save_comparison_html() -> None:
+            if not result_holder["value"]: return
+            path = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="machine-comparison.html")
+            if path: Path(path).write_text(html_comparison_report(result_holder["value"]), encoding="utf-8")
+        def copy_comparison() -> None:
+            if not result_holder["value"]: return
+            self.clipboard_clear(); self.clipboard_append(plain_text_comparison(result_holder["value"])); self.update()
+            messagebox.showinfo(t("comparison.copy", self.language), t("dialog.results_copied", self.language), parent=window)
+        ttk.Button(actions, text=t("comparison.save_html", self.language), command=save_comparison_html, style="Secondary.TButton").pack(side="left")
+        ttk.Button(actions, text=t("comparison.copy", self.language), command=copy_comparison, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
 
     def open_source(self) -> None:
         webbrowser.open(self.requirements[self.choice.get()]["source"])
