@@ -341,18 +341,19 @@ def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, A
     return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched, "suitability": suitability, "lifecycle": metadata, "installation_readiness": readiness}
 
 
-def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: CheckResult) -> dict[str, str]:
+def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: CheckResult, language: str = "en") -> dict[str, str]:
     """Return concise, deterministic explanation and remediation text for a check."""
+    from localization import t
     name = check.name.lower()
     if check.status == "pass":
-        explanation = f"Detected {check.detected}; this meets the requirement of {check.required}."
+        explanation = t("explanation.pass", language, detected=check.detected, required=check.required)
         remediation = ""
     elif check.status == "unknown":
-        explanation = f"This requirement is {check.required}, but the value could not be verified on this system."
-        remediation = "Check the hardware or firmware information manually if this requirement is important."
+        explanation = t("explanation.unknown", language, required=check.required)
+        remediation = t("remediation.unknown", language)
     else:
-        explanation = f"Detected {check.detected}, below the requirement of {check.required}."
-        remediation = "No reliable software-only fix is available for this requirement."
+        explanation = t("explanation.fail", language, detected=check.detected, required=check.required)
+        remediation = t("remediation.fail", language)
 
     if "tpm" in name:
         explanation = ("TPM 2.0 provides hardware-backed security required by this profile. "
@@ -375,40 +376,44 @@ def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: Che
     return {"explanation": explanation, "remediation": remediation}
 
 
-def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any]) -> str:
+def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any], language: str = "en") -> str:
+    from localization import status_label, suitability_explanation, suitability_label, t
     report = as_report(machine, requirements)
     score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
     lifecycle = report["lifecycle"]
-    lines = [f"OS Readiness Checker - {target_os}", f"Compatibility: {report['overall'].upper()} (score {score}/100)", f"Suitability: {report['suitability']['category']} — {report['suitability']['explanation']}", f"Lifecycle: {lifecycle['release']} ({lifecycle['support_status']})", f"Installation readiness: {report['installation_readiness']['status'].upper()} — {report['installation_readiness']['explanation']}", "",
-             f"OS: {machine.operating_system}", f"CPU: {machine.cpu_name}",
-             f"GPU: {machine.gpu_name or 'Unknown'}", f"RAM: {machine.ram_gb or 'Unknown'} GB",
-             f"Free storage: {machine.storage_free_gb or 'Unknown'} GB", "", "Checks:"]
-    lines.append("Installation readiness:")
+    lines = [f"{t('app.title', language)} - {target_os}", f"{t('label.compatibility', language)}: {status_label(report['overall'], language).upper()} (score {score}/100)", f"{t('label.suitability', language)}: {suitability_label(report['suitability']['category'], language)} — {suitability_explanation(report['suitability']['category'], report['suitability']['explanation'], language)}", f"{t('label.lifecycle', language)}: {lifecycle['release']} ({status_label(lifecycle['support_status'], language)})", f"{t('label.installation_readiness', language)}: {status_label(report['installation_readiness']['status'], language).upper()} — {report['installation_readiness']['explanation']}", "",
+             f"OS: {machine.operating_system}", f"{t('machine.processor', language)}: {machine.cpu_name}",
+             f"{t('machine.graphics', language)}: {machine.gpu_name or 'Unknown'}", f"RAM: {machine.ram_gb or 'Unknown'} GB",
+             f"{t('check.free_storage', language)}: {machine.storage_free_gb or 'Unknown'} GB", "", f"{t('label.check', language)}:"]
+    lines.append(f"{t('label.installation_readiness', language)}:")
     for item in report["installation_readiness"]["checks"]:
-        lines.append(f"- {item['name']}: {item['status'].upper()} ({item['detected']} / {item['required']})")
+        lines.append(f"- {item['name']}: {status_label(item['status'], language).upper()} ({item['detected']} / {item['required']})")
     lines.append("")
     for item in report["checks"]:
-        lines.append(f"- {item['name']}: {item['status'].upper()} ({item['detected']} / {item['required']})")
+        localized = explain_check(machine, requirements, CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}), language)
+        lines.append(f"- {item['name']}: {status_label(item['status'], language).upper()} ({item['detected']} / {item['required']})")
         if item["status"] != "pass":
-            lines.append(f"  {item['explanation']}")
-            if item["remediation"]:
-                lines.append(f"  Next step: {item['remediation']}")
+            lines.append(f"  {localized['explanation']}")
+            if localized["remediation"]:
+                lines.append(f"  {t('label.next_step', language)}: {localized['remediation']}")
     return "\n".join(lines)
 
 
-def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any]) -> str:
+def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, Any], language: str = "en") -> str:
     """Create a self-contained, offline-readable HTML report."""
     from html import escape
+    from localization import status_label, suitability_explanation, suitability_label, t
     report = as_report(machine, requirements)
     score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
     rows = []
     for item in report["checks"]:
-        extra = f"<p>{escape(item['explanation'])}</p>"
-        if item["remediation"]:
-            extra += f"<p><strong>Next step:</strong> {escape(item['remediation'])}</p>"
-        rows.append(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(item['status'].title())}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td><td>{extra}</td></tr>")
+        localized = explain_check(machine, requirements, CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}), language)
+        extra = f"<p>{escape(localized['explanation'])}</p>"
+        if localized["remediation"]:
+            extra += f"<p><strong>{escape(t('label.next_step', language))}:</strong> {escape(localized['remediation'])}</p>"
+        rows.append(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(status_label(item['status'], language))}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td><td>{extra}</td></tr>")
     machine_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Operating system", machine.operating_system), ("CPU", machine.cpu_name), ("GPU", machine.gpu_name), ("RAM (GB)", machine.ram_gb), ("Free storage (GB)", machine.storage_free_gb), ("System disk", machine.system_disk), ("Partition style", machine.storage_partition_style), ("Filesystem", machine.storage_filesystem), ("Virtualization", machine.virtualization)))
     lifecycle = report["lifecycle"]
-    readiness_rows = "".join(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(item['status'].replace('_', ' ').title())}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td></tr>" for item in report["installation_readiness"]["checks"])
-    lifecycle_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Release", lifecycle["release"]), ("Lifecycle", lifecycle["lifecycle_type"]), ("Support status", lifecycle["support_status"]), ("Release date", lifecycle["release_date"]), ("EOL date", lifecycle["eol_date"])))
-    return f"""<!doctype html><html><head><meta charset='utf-8'><title>OS Readiness Report</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2),.not_ready td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>OS Readiness Report</h1><p><strong>{escape(target_os)}</strong> — compatibility <strong>{escape(report['overall'].title())}</strong> — score <strong>{score}/100</strong></p><section><h2>Release and lifecycle</h2><table>{lifecycle_rows}</table></section><section><h2>Suitability</h2><p><strong>{escape(report['suitability']['category'])}</strong> — {escape(report['suitability']['explanation'])}</p></section><section><h2>Installation readiness</h2><p><strong>{escape(report['installation_readiness']['status'].replace('_', ' ').title())}</strong> — {escape(report['installation_readiness']['explanation'])}</p><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th></tr>{readiness_rows}</table></section><section><h2>Detected machine</h2><table>{machine_rows}</table></section><section><h2>Compatibility checks</h2><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th><th>Explanation</th></tr>{''.join(rows)}</table></section></body></html>"""
+    readiness_rows = "".join(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(status_label(item['status'], language))}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td></tr>" for item in report["installation_readiness"]["checks"])
+    lifecycle_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Release", lifecycle["release"]), (t("label.lifecycle", language), lifecycle["lifecycle_type"]), ("Support status", status_label(lifecycle["support_status"], language)), ("Release date", lifecycle["release_date"]), ("EOL date", lifecycle["eol_date"])))
+    return f"""<!doctype html><html lang='{escape(language)}'><head><meta charset='utf-8'><title>{escape(t('report.title', language))}</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2),.not_ready td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>{escape(t('report.title', language))}</h1><p><strong>{escape(target_os)}</strong> — {escape(t('label.compatibility', language).lower())} <strong>{escape(status_label(report['overall'], language))}</strong> — score <strong>{score}/100</strong></p><section><h2>{escape(t('report.release', language))}</h2><table>{lifecycle_rows}</table></section><section><h2>{escape(t('label.suitability', language))}</h2><p><strong>{escape(suitability_label(report['suitability']['category'], language))}</strong> — {escape(suitability_explanation(report['suitability']['category'], report['suitability']['explanation'], language))}</p></section><section><h2>{escape(t('report.readiness', language))}</h2><p><strong>{escape(status_label(report['installation_readiness']['status'], language))}</strong> — {escape(report['installation_readiness']['explanation'])}</p><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th></tr>{readiness_rows}</table></section><section><h2>{escape(t('report.machine', language))}</h2><table>{machine_rows}</table></section><section><h2>{escape(t('report.checks', language))}</h2><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th><th>{escape(t('label.explanation', language))}</th></tr>{''.join(rows)}</table></section></body></html>"""

@@ -25,6 +25,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from localization import LANGUAGES, resolve_language, status_label, t
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -48,6 +49,9 @@ class ReadinessApp(tk.Tk):
         self.minsize(700, 500)
         self.configure(bg="#f4f6f8")
         self.settings = load_settings()
+        self.language_selection = self.settings.get("language") if self.settings.get("language") in LANGUAGES else "System"
+        self.language = resolve_language(self.language_selection)
+        self.title(f"{t('app.title', self.language)} {APP_VERSION}")
         self.theme_mode = load_theme_mode()
         UI.update(colors_for(self.theme_mode))
         self.requirements_info = load_requirements_info()
@@ -88,40 +92,53 @@ class ReadinessApp(tk.Tk):
         self.configure(bg=UI["background"])
         header = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
         header.pack(fill="x")
-        tk.Label(header, text="OS Readiness Checker", bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
-        tk.Label(header, text="Check this computer against published operating-system requirements.", bg=UI["background"], fg=UI["muted"], font=(font, 10)).pack(anchor="w", pady=(5, 0))
+        tk.Label(header, text=t("app.title", self.language), bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
+        self.subtitle_label = tk.Label(header, text=t("app.subtitle", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 10))
+        self.subtitle_label.pack(anchor="w", pady=(5, 0))
         theme_box = tk.Frame(header, bg=UI["background"])
         theme_box.pack(anchor="e", pady=(0, 2))
-        tk.Label(theme_box, text="Theme", bg=UI["background"], fg=UI["muted"], font=(font, 9)).pack(side="left", padx=(0, 6))
-        self.theme_choice = ttk.Combobox(theme_box, state="readonly", width=9, values=("System", "Light", "Dark"), style="Fluent.TCombobox")
-        self.theme_choice.set(self.theme_mode)
+        self.theme_label = tk.Label(theme_box, text=t("label.theme", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 9))
+        self.theme_label.pack(side="left", padx=(0, 6))
+        self.theme_choice = ttk.Combobox(theme_box, state="readonly", width=9, values=tuple(t(f"theme.{value.lower()}", self.language) for value in ("System", "Light", "Dark")), style="Fluent.TCombobox")
+        self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
         self.theme_choice.pack(side="left")
         self.theme_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_theme())
-        ttk.Button(theme_box, text="About", command=self.show_about, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        self.language_choice = ttk.Combobox(theme_box, state="readonly", width=10, values=("System", "English", "Italiano"), style="Fluent.TCombobox")
+        self.language_label = tk.Label(theme_box, text=t("label.language", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 9))
+        self.language_label.pack(side="left", padx=(8, 4))
+        self.language_choice.pack_forget()
+        self.language_choice.set(self.language_selection)
+        self.language_choice.pack(side="left", padx=(8, 0))
+        self.language_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_language())
+        self.about_button = ttk.Button(theme_box, text=t("action.about", self.language), command=self.show_about, style="Secondary.TButton")
+        self.about_button.pack(side="left", padx=(8, 0))
 
         body = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
         body.pack(fill="both", expand=True)
         controls = tk.Frame(body, bg=UI["surface"], padx=18, pady=16, highlightbackground=UI["border"], highlightthickness=1)
         controls.pack(fill="x", pady=(0, 14))
-        tk.Label(controls, text="Operating system", bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(side="left")
+        self.os_label = tk.Label(controls, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
+        self.os_label.pack(side="left")
         self.choice = ttk.Combobox(controls, state="readonly", width=31, values=list(self.requirements), style="Fluent.TCombobox")
         last_os = self.settings.get("last_os")
         self.choice.current(list(self.requirements).index(last_os) if last_os in self.requirements else 0)
         self.choice.pack(side="left", padx=(14, 12))
         self.choice.bind("<<ComboboxSelected>>", lambda _event: self.show_detail())
-        self.check_button = ttk.Button(controls, text="Scan this computer", command=self.run_check, style="Accent.TButton")
+        self.check_button = ttk.Button(controls, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton")
         self.check_button.pack(side="right")
-        self.overview_button = ttk.Button(controls, text="Compatibility overview", command=self.show_overview, style="Secondary.TButton")
+        self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
         self.overview_button.pack(side="right", padx=(0, 8))
-        self.update_button = ttk.Button(controls, text="Check requirements updates", command=self.check_requirements_updates, style="Secondary.TButton")
+        self.update_button = ttk.Button(controls, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton")
         self.update_button.pack(side="right", padx=(0, 8))
         self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
         self.update_status.pack(side="right", padx=(0, 10))
         profile_actions = tk.Frame(body, bg=UI["background"])
         profile_actions.pack(fill="x", pady=(0, 10))
-        ttk.Button(profile_actions, text="Import machine profile", command=self.import_machine_profile, style="Secondary.TButton").pack(side="left")
-        ttk.Button(profile_actions, text="Export machine profile", command=self.export_machine_profile, style="Secondary.TButton").pack(side="left", padx=(8, 0))
-        self.source_status = tk.Label(profile_actions, text="Machine source: This computer", bg=UI["background"], fg=UI["muted"], font=(font, 9))
+        self.import_button = ttk.Button(profile_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton")
+        self.import_button.pack(side="left")
+        self.export_button = ttk.Button(profile_actions, text=t("action.export_profile", self.language), command=self.export_machine_profile, style="Secondary.TButton")
+        self.export_button.pack(side="left", padx=(8, 0))
+        self.source_status = tk.Label(profile_actions, text=f"{t('label.machine_source', self.language)}: {t('profile.source_local', self.language)}", bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.source_status.pack(side="right")
 
         summary_card = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
@@ -135,10 +152,10 @@ class ReadinessApp(tk.Tk):
         table_card = tk.Frame(body, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
         table_card.pack(fill="both", expand=True)
         self.table = ttk.Treeview(table_card, columns=columns, show="tree headings", style="Fluent.Treeview")
-        self.table.heading("#0", text="Check")
-        self.table.heading("result", text="Result")
-        self.table.heading("detected", text="Detected")
-        self.table.heading("required", text="Required")
+        self.table.heading("#0", text=t("label.check", self.language))
+        self.table.heading("result", text=t("label.result", self.language))
+        self.table.heading("detected", text=t("label.detected", self.language))
+        self.table.heading("required", text=t("label.required", self.language))
         self.table.column("#0", width=190)
         self.table.column("result", width=90, anchor="center")
         self.table.column("detected", width=190)
@@ -153,11 +170,15 @@ class ReadinessApp(tk.Tk):
         footer.pack(fill="x")
         self.details = tk.Label(footer, text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], wraplength=570, font=(font, 9))
         self.details.pack(side="left", fill="x", expand=True)
-        ttk.Button(footer, text="Official requirements", command=self.open_source, style="Secondary.TButton").pack(side="right", padx=(8, 0))
-        ttk.Button(footer, text="Save report", command=self.save_report, style="Secondary.TButton").pack(side="right")
-        ttk.Button(footer, text="Save HTML", command=self.save_html_report, style="Secondary.TButton").pack(side="right", padx=(8, 0))
-        ttk.Button(footer, text="Copy results", command=self.copy_results, style="Secondary.TButton").pack(side="right", padx=(8, 0))
-        self.compare_button = ttk.Button(footer, text="Compare OSes", command=self.show_compare, style="Secondary.TButton", state="disabled")
+        self.source_button = ttk.Button(footer, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton")
+        self.source_button.pack(side="right", padx=(8, 0))
+        self.save_button = ttk.Button(footer, text=t("action.save_report", self.language), command=self.save_report, style="Secondary.TButton")
+        self.save_button.pack(side="right")
+        self.html_button = ttk.Button(footer, text=t("action.save_html", self.language), command=self.save_html_report, style="Secondary.TButton")
+        self.html_button.pack(side="right", padx=(8, 0))
+        self.copy_button = ttk.Button(footer, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton")
+        self.copy_button.pack(side="right", padx=(8, 0))
+        self.compare_button = ttk.Button(footer, text=t("action.compare", self.language), command=self.show_compare, style="Secondary.TButton", state="disabled")
         self.compare_button.pack(side="right", padx=(8, 0))
         self._apply_theme(self)
 
@@ -191,15 +212,46 @@ class ReadinessApp(tk.Tk):
         self.profile_metadata = {}
         self.scan_in_progress = True
         self.check_button.config(state="disabled")
-        self.summary.config(text="Scanning this computer…", fg="#374151")
+        self.summary.config(text=t("overview.scanning", self.language), fg="#374151")
         screen = (self.winfo_screenwidth(), self.winfo_screenheight())
         threading.Thread(target=self._scan, args=(screen,), daemon=True).start()
 
     def change_theme(self) -> None:
-        self.theme_mode = self.theme_choice.get()
+        selected = self.theme_choice.get()
+        self.theme_mode = next((value for value in ("System", "Light", "Dark") if selected == t(f"theme.{value.lower()}", self.language)), "System")
         save_theme_mode(self.theme_mode)
         UI.update(colors_for(self.theme_mode))
         self._apply_theme(self)
+
+    def change_language(self) -> None:
+        self.language_selection = self.language_choice.get() if self.language_choice.get() in LANGUAGES else "System"
+        self.language = resolve_language(self.language_selection)
+        self.settings["language"] = self.language_selection
+        save_settings(self.settings)
+        self.title(f"{t('app.title', self.language)} {APP_VERSION}")
+        self.theme_choice.config(values=tuple(t(f"theme.{value.lower()}", self.language) for value in ("System", "Light", "Dark")))
+        self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
+        self.theme_choice.event_generate("<<ComboboxSelected>>") if False else None
+        self.about_button.config(text=t("action.about", self.language))
+        self.check_button.config(text=t("action.scan", self.language))
+        self.overview_button.config(text=t("action.overview", self.language))
+        self.update_button.config(text=t("action.updates", self.language))
+        self.import_button.config(text=t("action.import_profile", self.language))
+        self.export_button.config(text=t("action.export_profile", self.language))
+        self.source_button.config(text=t("action.source", self.language))
+        self.save_button.config(text=t("action.save_report", self.language))
+        self.html_button.config(text=t("action.save_html", self.language))
+        self.copy_button.config(text=t("action.copy_results", self.language))
+        self.compare_button.config(text=t("action.compare", self.language))
+        self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t('profile.source_imported' if self.machine_source == 'Imported profile' else 'profile.source_local', self.language)}")
+        self.subtitle_label.config(text=t("app.subtitle", self.language))
+        self.theme_label.config(text=t("label.theme", self.language))
+        self.language_label.config(text=t("label.language", self.language))
+        self.os_label.config(text=t("label.operating_system", self.language))
+        for column, key in (("#0", "label.check"), ("result", "label.result"), ("detected", "label.detected"), ("required", "label.required")):
+            self.table.heading(column, text=t(key, self.language))
+        if self.machine and self.choice.get() in self.all_results:
+            self.show_detail()
 
     def show_about(self) -> None:
         window = tk.Toplevel(self)
@@ -209,13 +261,13 @@ class ReadinessApp(tk.Tk):
         window.configure(bg=UI["background"])
         card = tk.Frame(window, bg=UI["surface"], padx=24, pady=22, highlightbackground=UI["border"], highlightthickness=1)
         card.pack(fill="both", expand=True, padx=18, pady=18)
-        tk.Label(card, text="OS Readiness Checker", bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
-        tk.Label(card, text=f"Version {APP_VERSION}\nCross-platform hardware compatibility and suitability checks.\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
+        tk.Label(card, text=t("app.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
+        tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
         actions = tk.Frame(card, bg=UI["surface"])
         actions.pack(fill="x")
         ttk.Button(actions, text="Open GitHub", command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
         ttk.Button(actions, text="Check updates", command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
-        ttk.Button(actions, text="Close", command=window.destroy, style="Secondary.TButton").pack(side="right")
+        ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
 
@@ -267,7 +319,7 @@ class ReadinessApp(tk.Tk):
     def _show_detail(self, results) -> None:
         self._clear_table()
         for item in results:
-            self.table.insert("", "end", text=item.name, values=(ICONS[item.status] + " " + item.status.title(), item.detected, item.required), tags=(item.status,))
+            self.table.insert("", "end", text=item.name, values=(ICONS[item.status] + " " + status_label(item.status, self.language), item.detected, item.required), tags=(item.status,))
 
     def show_selected_check(self, _event=None) -> None:
         if not self.machine or not self.choice.get() or not self.table.selection():
@@ -277,7 +329,7 @@ class ReadinessApp(tk.Tk):
         check = next((item for item in self.all_results.get(self.choice.get(), []) if item.name == name), None)
         if not check:
             return
-        info = explain_check(self.machine, self.requirements[self.choice.get()], check)
+        info = explain_check(self.machine, self.requirements[self.choice.get()], check, self.language)
         text = f"{check.name}: {info['explanation']}"
         if info["remediation"]:
             text += f"\nNext step: {info['remediation']}"
@@ -285,7 +337,8 @@ class ReadinessApp(tk.Tk):
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
-        self.source_status.config(text=f"Machine source: {self.machine_source}")
+        source_key = "profile.source_imported" if self.machine_source == "Imported profile" else "profile.source_local"
+        self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t(source_key, self.language)}")
         if self.choice.get() not in all_results and all_results:
             self.choice.current(0)
         self.results = all_results.get(self.choice.get(), [])
@@ -300,9 +353,9 @@ class ReadinessApp(tk.Tk):
         self.table.column("required", width=110, anchor="center")
         for item in ranked:
             status = item["status"]
-            self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status.title(), f'{item["score"]}/100', item["suitability"]["category"]), tags=(status,))
-        self.summary.config(text=f"Compared {len(ranked)} operating systems from one hardware scan", fg=UI["text"])
-        self.status_badge.config(text="  OVERVIEW  ", bg=UI["accent"], fg="white")
+            self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status_label(status, self.language), f'{item["score"]}/100', t("status." + item["suitability"]["category"].lower().replace(" ", "_"), self.language)), tags=(status,))
+        self.summary.config(text=t("overview.compared", self.language, count=len(ranked)), fg=UI["text"])
+        self.status_badge.config(text=f"  {t('status.overview', self.language).upper()}  ", bg=UI["accent"], fg="white")
         source_note = ""
         if self.machine_source == "Imported profile":
             captured = self.profile_metadata.get("created_at", "")
@@ -325,10 +378,10 @@ class ReadinessApp(tk.Tk):
         results = self.all_results[name]
         self.results = results
         self._show_detail(results)
-        self.table.heading("#0", text="Check")
-        self.table.heading("result", text="Result")
-        self.table.heading("detected", text="Detected")
-        self.table.heading("required", text="Required")
+        self.table.heading("#0", text=t("label.check", self.language))
+        self.table.heading("result", text=t("label.result", self.language))
+        self.table.heading("detected", text=t("label.detected", self.language))
+        self.table.heading("required", text=t("label.required", self.language))
         self.table.column("#0", width=190)
         self.table.column("result", width=90, anchor="center")
         self.table.column("detected", width=190)
@@ -336,13 +389,13 @@ class ReadinessApp(tk.Tk):
         status = overall_status(results)
         suitability = suitability_dict(assess_suitability(self.machine, self.requirements[name], results))
         messages = {
-            "pass": "This computer meets every requirement checked",
-            "fail": "This computer does not meet all checked requirements",
-            "review": "The basic requirements pass, but some items need review",
+            "pass": t("overview.meets", self.language),
+            "fail": t("overview.fails", self.language),
+            "review": t("overview.review", self.language),
         }
         score = next((item["score"] for item in self.ranked_results if item["name"] == name), 0)
         self.summary.config(text=f"{messages[status]} • Compatibility score {score}/100 • {suitability['category']}", fg=UI["text"])
-        self.status_badge.config(text=f"  {status.upper()}  ", bg=COLORS[status], fg="white")
+        self.status_badge.config(text=f"  {status_label(status, self.language).upper()}  ", bg=COLORS[status], fg="white")
         notes = self.requirements[name].get("notes", [])
         lifecycle = profile_metadata(name, self.requirements[name])
         lifecycle["support_status"] = lifecycle_status(self.requirements[name])
@@ -356,10 +409,17 @@ class ReadinessApp(tk.Tk):
             f"System disk: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
             f"Virtualization: {self.machine.virtualization or 'Unknown'}",
         ]
-        lifecycle_line = f"Release: {lifecycle['release']} • Lifecycle: {lifecycle['lifecycle_type']} • Status: {lifecycle['support_status']}"
-        readiness_line = f"Installation readiness: {readiness['status'].replace('_', ' ').title()} — {readiness['explanation']}"
-        readiness_items = [f"  {item['status'].upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_line}\n{readiness_line}\n" + "\n".join(readiness_items + [f"Suitability: {suitability['category']} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
+        lifecycle_line = f"Release: {lifecycle['release']} • {t('label.lifecycle', self.language)}: {lifecycle['lifecycle_type']} • Status: {status_label(lifecycle['support_status'], self.language)}"
+        readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness['explanation']}"
+        readiness_items = [f"  {status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
+        machine_details = [
+            f"{t('machine.processor', self.language)}: {self.machine.cpu_name}",
+            f"{t('machine.graphics', self.language)}: {gpu}",
+            f"{t('machine.system_disk', self.language)}: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
+            f"{t('machine.virtualization', self.language)}: {self.machine.virtualization or 'Unknown'}",
+        ]
+        suitability_label = t("status." + suitability["category"].lower().replace(" ", "_"), self.language)
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_line}\n{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
@@ -427,7 +487,7 @@ class ReadinessApp(tk.Tk):
         target = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="os-readiness-report.html")
         if target:
             name = self.choice.get()
-            html = html_report(self.machine, name, self.requirements[name])
+            html = html_report(self.machine, name, self.requirements[name], self.language)
             if self.machine_source == "Imported profile":
                 html = html.replace("<h1>OS Readiness Report</h1>", f"<h1>OS Readiness Report</h1><p><strong>Machine source:</strong> Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')}).</p>")
             Path(target).write_text(html, encoding="utf-8")
@@ -438,12 +498,12 @@ class ReadinessApp(tk.Tk):
             return
         name = self.choice.get()
         self.clipboard_clear()
-        text = plain_text_report(self.machine, name, self.requirements[name])
+        text = plain_text_report(self.machine, name, self.requirements[name], self.language)
         if self.machine_source == "Imported profile":
             text = f"Machine source: Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')})\n" + text
         self.clipboard_append(text)
         self.update()
-        messagebox.showinfo("Results copied", "A compact compatibility summary was copied to the clipboard.")
+        messagebox.showinfo(t("action.copy_results", self.language), t("dialog.results_copied", self.language))
 
     def check_requirements_updates(self) -> None:
         self.update_button.config(state="disabled")
@@ -474,12 +534,12 @@ class ReadinessApp(tk.Tk):
 
     def export_machine_profile(self) -> None:
         if not self.machine:
-            messagebox.showinfo("No scan yet", "Scan this computer before exporting a machine profile.")
+            messagebox.showinfo(t("action.export_profile", self.language), t("dialog.no_scan", self.language))
             return
         target = filedialog.asksaveasfilename(defaultextension=".osrprofile", filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")], initialfile="machine-profile.osrprofile")
         if target:
             export_profile(self.machine, Path(target), data_version=self.requirements_info.data_version)
-            messagebox.showinfo("Profile exported", "The machine profile was saved successfully.")
+            messagebox.showinfo(t("dialog.profile_export", self.language), t("dialog.profile_exported", self.language))
 
     def import_machine_profile(self) -> None:
         target = filedialog.askopenfilename(filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")])
@@ -493,7 +553,7 @@ class ReadinessApp(tk.Tk):
             self.machine_source, self.profile_metadata = "Imported profile", metadata
             self._show_overview(machine, all_results, ranked)
         except ValueError as exc:
-            messagebox.showerror("Profile could not be imported", str(exc))
+            messagebox.showerror(t("dialog.profile_import_error", self.language), str(exc))
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ A small desktop application that scans the current computer and compares it with
 - Checks for newer validated requirements data from this repository without updating the application
 - Includes a cross-platform CLI for single-target or all-target scans
 - Supports System, Light, and Dark GUI themes
+- Supports English and Italian GUI/report text; System follows the detected locale and falls back to English
 - Remembers theme, selected OS, and safe window placement per user
 - Includes an About panel and keyboard shortcuts (F5/Ctrl+R scan, Ctrl+S JSON report)
 - Keeps OS definitions in an editable JSON file
@@ -48,6 +49,7 @@ os-readiness-checker --check "Windows 11" --verbose
 os-readiness-checker --all --json --output readiness.json
 os-readiness-checker --profile machine-profile.osrprofile --all --json
 os-readiness-checker --export-profile machine-profile.osrprofile --check ubuntu
+os-readiness-checker --check ubuntu --lang it
 ```
 
 Exit code `0` means no requested target failed, `1` means at least one mandatory check failed, and `2` means invalid arguments or an operational error. Review/unknown results are reported normally and are not operational errors.
@@ -70,6 +72,8 @@ Profiles may include release and lifecycle information. The overview uses each O
 Results keep four concepts separate: Compatibility checks official hardware requirements; Suitability estimates application-defined hardware headroom; Lifecycle reports release support/EOL; Installation readiness checks the machine's current boot, firmware, storage, and security configuration. Installation readiness is advisory and read-only—it never changes firmware, disks, or boot settings.
 
 Machine profiles are human-readable JSON files with the `.osrprofile` extension. They contain only detected hardware/configuration fields needed for analysis (never usernames, hostnames, serial numbers, network data, keys, or personal files). Imported profiles are re-evaluated with the current requirements database and application logic; installation readiness describes the configuration captured when the profile was created.
+
+The GUI language can be set to **System**, **English**, or **Italiano** and is remembered in the existing settings. CLI flags and JSON/profile formats remain language-neutral; use `--lang it` only for human-readable CLI output.
 
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 

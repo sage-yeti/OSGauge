@@ -1,0 +1,36 @@
+import json
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from checker import MachineInfo, html_report
+from localization import detect_system_language, resolve_language, t
+
+
+class LocalizationTests(unittest.TestCase):
+    def test_english_and_italian_lookup_and_fallback(self):
+        self.assertEqual(t("label.compatibility", "en"), "Compatibility")
+        self.assertEqual(t("label.compatibility", "it"), "Compatibilità")
+        self.assertEqual(t("app.title", "xx"), "OS Readiness Checker")
+        self.assertEqual(t("app.title", "it"), "OS Readiness Checker")
+
+    def test_translation_files_have_complete_keys(self):
+        root = Path(__file__).with_name("locales")
+        english = json.loads((root / "en.json").read_text(encoding="utf-8"))
+        italian = json.loads((root / "it.json").read_text(encoding="utf-8"))
+        self.assertTrue(set(english).issubset(italian))
+
+    def test_language_resolution(self):
+        self.assertEqual(resolve_language("Italiano"), "it")
+        self.assertEqual(resolve_language("invalid"), detect_system_language())
+
+    def test_html_report_localizes_labels_without_changing_data(self):
+        machine = MachineInfo("Linux", "X86_64", "CPU", 4, 2.0, 8, 100, 50)
+        requirements = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 20, "architecture": ["X86_64"], "source": "https://example.com"}
+        html = html_report(machine, "Test OS", requirements, "it")
+        self.assertIn("compatibilit", html.lower())
+        self.assertNotIn('"status"', html)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -13,6 +13,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import profile_metadata, resolve_profile, lifecycle_status
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from localization import resolve_language, status_label, suitability_explanation, suitability_label, t
 
 
 def _key(value: str) -> str:
@@ -61,10 +62,12 @@ def main(argv=None) -> int:
     parser.add_argument("--output", type=Path, help="write output to a file")
     parser.add_argument("--profile", type=Path, help="analyze an exported .osrprofile instead of scanning this computer")
     parser.add_argument("--export-profile", type=Path, help="scan this computer once and save a machine profile")
+    parser.add_argument("--lang", choices=("en", "it"), default="en", help="language for human-readable output")
     args = parser.parse_args(argv)
     try:
         info = load_requirements_info()
         requirements = info.profiles
+        language = resolve_language(args.lang)
         if args.list:
             value = json.dumps(list(requirements)) if args.json else "\n".join(requirements)
             if args.output:
@@ -97,10 +100,10 @@ def main(argv=None) -> int:
         else:
             lines = []
             for item in payload["results"]:
-                lines.append(f"{item['name']:<24} {item['status'].upper():<7} {item['suitability']['category']}")
-                lines.append(f"  Installation readiness: {item['installation_readiness']['status'].replace('_', ' ').title()}")
+                lines.append(f"{item['name']:<24} {status_label(item['status'], language).upper():<12} {suitability_label(item['suitability']['category'], language)}")
+                lines.append(f"  {t('label.installation_readiness', language)}: {status_label(item['installation_readiness']['status'], language)}")
                 if args.verbose:
-                    lines.append(f"  Suitability: {item['suitability']['explanation']}")
+                    lines.append(f"  {t('label.suitability', language)}: {suitability_explanation(item['suitability']['category'], item['suitability']['explanation'], language)}")
                     for check in item["checks"]:
                         lines.append(f"  {check['name']}: {check['status']} ({check['detected']} / {check['required']})")
             text = "\n".join(lines)
