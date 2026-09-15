@@ -327,6 +327,7 @@ def load_requirements(path: Path | None = None) -> dict[str, Any]:
 def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, Any]:
     from suitability import assess_suitability, suitability_dict
     from lifecycle import profile_metadata, lifecycle_status
+    from installation_readiness import evaluate_installation_readiness
     checks = evaluate(machine, requirements)
     enriched = []
     for check in checks:
@@ -336,7 +337,8 @@ def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, A
     suitability = suitability_dict(assess_suitability(machine, requirements, checks))
     metadata = profile_metadata(requirements.get("os_family", requirements.get("version", "")), requirements)
     metadata["support_status"] = lifecycle_status(requirements)
-    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched, "suitability": suitability, "lifecycle": metadata}
+    readiness = evaluate_installation_readiness(machine, requirements, checks)
+    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched, "suitability": suitability, "lifecycle": metadata, "installation_readiness": readiness}
 
 
 def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: CheckResult) -> dict[str, str]:
@@ -377,10 +379,14 @@ def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[s
     report = as_report(machine, requirements)
     score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
     lifecycle = report["lifecycle"]
-    lines = [f"OS Readiness Checker - {target_os}", f"Compatibility: {report['overall'].upper()} (score {score}/100)", f"Suitability: {report['suitability']['category']} — {report['suitability']['explanation']}", f"Lifecycle: {lifecycle['release']} ({lifecycle['support_status']})", "",
+    lines = [f"OS Readiness Checker - {target_os}", f"Compatibility: {report['overall'].upper()} (score {score}/100)", f"Suitability: {report['suitability']['category']} — {report['suitability']['explanation']}", f"Lifecycle: {lifecycle['release']} ({lifecycle['support_status']})", f"Installation readiness: {report['installation_readiness']['status'].upper()} — {report['installation_readiness']['explanation']}", "",
              f"OS: {machine.operating_system}", f"CPU: {machine.cpu_name}",
              f"GPU: {machine.gpu_name or 'Unknown'}", f"RAM: {machine.ram_gb or 'Unknown'} GB",
              f"Free storage: {machine.storage_free_gb or 'Unknown'} GB", "", "Checks:"]
+    lines.append("Installation readiness:")
+    for item in report["installation_readiness"]["checks"]:
+        lines.append(f"- {item['name']}: {item['status'].upper()} ({item['detected']} / {item['required']})")
+    lines.append("")
     for item in report["checks"]:
         lines.append(f"- {item['name']}: {item['status'].upper()} ({item['detected']} / {item['required']})")
         if item["status"] != "pass":
@@ -403,5 +409,6 @@ def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, An
         rows.append(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(item['status'].title())}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td><td>{extra}</td></tr>")
     machine_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Operating system", machine.operating_system), ("CPU", machine.cpu_name), ("GPU", machine.gpu_name), ("RAM (GB)", machine.ram_gb), ("Free storage (GB)", machine.storage_free_gb), ("System disk", machine.system_disk), ("Partition style", machine.storage_partition_style), ("Filesystem", machine.storage_filesystem), ("Virtualization", machine.virtualization)))
     lifecycle = report["lifecycle"]
+    readiness_rows = "".join(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(item['status'].replace('_', ' ').title())}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td></tr>" for item in report["installation_readiness"]["checks"])
     lifecycle_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Release", lifecycle["release"]), ("Lifecycle", lifecycle["lifecycle_type"]), ("Support status", lifecycle["support_status"]), ("Release date", lifecycle["release_date"]), ("EOL date", lifecycle["eol_date"])))
-    return f"""<!doctype html><html><head><meta charset='utf-8'><title>OS Readiness Report</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>OS Readiness Report</h1><p><strong>{escape(target_os)}</strong> — compatibility <strong>{escape(report['overall'].title())}</strong> — score <strong>{score}/100</strong></p><section><h2>Release and lifecycle</h2><table>{lifecycle_rows}</table></section><section><h2>Suitability</h2><p><strong>{escape(report['suitability']['category'])}</strong> — {escape(report['suitability']['explanation'])}</p></section><section><h2>Detected machine</h2><table>{machine_rows}</table></section><section><h2>Compatibility checks</h2><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th><th>Explanation</th></tr>{''.join(rows)}</table></section></body></html>"""
+    return f"""<!doctype html><html><head><meta charset='utf-8'><title>OS Readiness Report</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2),.not_ready td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>OS Readiness Report</h1><p><strong>{escape(target_os)}</strong> — compatibility <strong>{escape(report['overall'].title())}</strong> — score <strong>{score}/100</strong></p><section><h2>Release and lifecycle</h2><table>{lifecycle_rows}</table></section><section><h2>Suitability</h2><p><strong>{escape(report['suitability']['category'])}</strong> — {escape(report['suitability']['explanation'])}</p></section><section><h2>Installation readiness</h2><p><strong>{escape(report['installation_readiness']['status'].replace('_', ' ').title())}</strong> — {escape(report['installation_readiness']['explanation'])}</p><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th></tr>{readiness_rows}</table></section><section><h2>Detected machine</h2><table>{machine_rows}</table></section><section><h2>Compatibility checks</h2><table><tr><th>Check</th><th>Status</th><th>Detected</th><th>Required</th><th>Explanation</th></tr>{''.join(rows)}</table></section></body></html>"""

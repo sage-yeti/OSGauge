@@ -40,6 +40,9 @@ def validate_database(data: Any) -> RequirementsInfo | None:
     lifecycle = data.get("_lifecycle", {})
     if lifecycle and not isinstance(lifecycle, dict):
         return None
+    installation = data.get("_installation", {})
+    if installation and not isinstance(installation, dict):
+        return None
     profiles: dict[str, dict[str, Any]] = {}
     required = ("cpu_cores", "cpu_ghz", "ram_gb", "storage_gb", "architecture", "source")
     for name, profile in data.items():
@@ -75,7 +78,18 @@ def validate_database(data: Any) -> RequirementsInfo | None:
             return None
         if metadata.get("support_status") and metadata["support_status"] not in {"current", "supported", "nearing_eol", "eol", "rolling", "unknown"}:
             return None
-        profiles[name] = {**profile, **metadata}
+        install = installation.get(name, {})
+        if install and not isinstance(install, dict):
+            return None
+        if "uefi" in install and install["uefi"] not in {"required", "optional"}:
+            return None
+        if "secure_boot" in install and install["secure_boot"] not in {"required", "optional", "disabled"}:
+            return None
+        if "partition_style" in install and not isinstance(install["partition_style"], str):
+            return None
+        if "tpm_version" in install and (not isinstance(install["tpm_version"], (int, float)) or install["tpm_version"] < 0):
+            return None
+        profiles[name] = {**profile, **metadata, "installation": install}
     return RequirementsInfo(profiles, data_version, "") if profiles else None
 
 

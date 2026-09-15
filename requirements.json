@@ -25,6 +25,10 @@
     "EndeavourOS": {"os_family": "EndeavourOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://endeavouros.com/"},
     "CachyOS": {"os_family": "CachyOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://cachyos.org/"}
   },
+  "_installation": {
+    "Windows 11": {"uefi": "required", "secure_boot": "required", "partition_style": "GPT", "tpm_version": 2.0},
+    "Kali Linux": {"secure_boot": "disabled"}
+  },
   "Windows 11": {
     "version": "Windows 11",
     "cpu_cores": 2,

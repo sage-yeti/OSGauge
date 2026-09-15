@@ -11,6 +11,7 @@ from requirements_update import load_requirements_info
 from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
 from lifecycle import profile_metadata, resolve_profile, lifecycle_status
+from installation_readiness import evaluate_installation_readiness
 
 
 def _key(value: str) -> str:
@@ -36,7 +37,8 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int) -> 
     for item in ranked:
         metadata = profile_metadata(item["name"], requirements[item["name"]])
         metadata["support_status"] = lifecycle_status(requirements[item["name"]])
-        entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"], **metadata}
+        readiness = evaluate_installation_readiness(machine, requirements[item["name"]], results[item["name"]])
+        entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"], "installation_readiness": readiness, **metadata}
         if verbose:
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
@@ -77,6 +79,7 @@ def main(argv=None) -> int:
             lines = []
             for item in payload["results"]:
                 lines.append(f"{item['name']:<24} {item['status'].upper():<7} {item['suitability']['category']}")
+                lines.append(f"  Installation readiness: {item['installation_readiness']['status'].replace('_', ' ').title()}")
                 if args.verbose:
                     lines.append(f"  Suitability: {item['suitability']['explanation']}")
                     for check in item["checks"]:

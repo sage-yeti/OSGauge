@@ -9,6 +9,7 @@ from checker import CheckResult, MachineInfo, as_report, compatibility_score, ev
 from requirements_update import fetch_latest, load_requirements_info, validate_database
 from suitability import assess_suitability
 from lifecycle import default_profiles, lifecycle_status, resolve_profile
+from installation_readiness import evaluate_installation_readiness
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -66,6 +67,22 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(resolve_profile("ubuntu", requirements), "Ubuntu Desktop 26.04 LTS")
         self.assertEqual(resolve_profile("ubuntu@26.04-lts", requirements), "Ubuntu Desktop 26.04 LTS")
         self.assertEqual(len(default_profiles(requirements)), 20)
+
+    def test_installation_readiness_is_separate_and_read_only(self):
+        machine = self.machine(architecture="AMD64", storage_free_gb=100, uefi=True, secure_boot=False,
+                               tpm_version=2.0, storage_partition_style="GPT")
+        requirements = {**REQ, "installation": {"uefi": "required", "secure_boot": "required", "partition_style": "GPT", "tpm_version": 2.0}}
+        readiness = evaluate_installation_readiness(machine, requirements)
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertEqual(overall_status(evaluate(machine, requirements)), "pass")
+        self.assertEqual(next(item for item in readiness["checks"] if item["name"] == "Secure Boot")["status"], "not_ready")
+
+    def test_installation_readiness_unknown_is_not_failure(self):
+        machine = self.machine(architecture="AMD64", uefi=None, secure_boot=None, storage_partition_style=None)
+        requirements = {**REQ, "installation": {"uefi": "required", "secure_boot": "required", "partition_style": "GPT"}}
+        readiness = evaluate_installation_readiness(machine, requirements)
+        self.assertEqual(readiness["status"], "unknown")
+        self.assertTrue(all(item["status"] != "not_ready" for item in readiness["checks"]))
 
     def test_all_profiles_evaluate_from_one_machine_snapshot(self):
         requirements = load_requirements(Path(__file__).with_name("requirements.json"))

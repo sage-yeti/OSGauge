@@ -64,6 +64,8 @@ The requirements database has its own schema/data version. Use **Check requireme
 
 Profiles may include release and lifecycle information. The overview uses each OS family's current/default profile; rolling distributions are labeled as rolling, and lifecycle/EOL status is separate from hardware compatibility. When multiple releases are available, a specific profile can be selected with the CLI form `--check family@release` (for example, `--check ubuntu@26.04-lts`).
 
+Results keep four concepts separate: Compatibility checks official hardware requirements; Suitability estimates application-defined hardware headroom; Lifecycle reports release support/EOL; Installation readiness checks the machine's current boot, firmware, storage, and security configuration. Installation readiness is advisory and read-only—it never changes firmware, disks, or boot settings.
+
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 
 ## Important limits

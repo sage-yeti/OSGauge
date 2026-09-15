@@ -23,6 +23,7 @@ from theme import colors_for, load_settings, load_theme_mode, save_settings, sav
 from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
+from installation_readiness import evaluate_installation_readiness
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -329,6 +330,7 @@ class ReadinessApp(tk.Tk):
         notes = self.requirements[name].get("notes", [])
         lifecycle = profile_metadata(name, self.requirements[name])
         lifecycle["support_status"] = lifecycle_status(self.requirements[name])
+        readiness = evaluate_installation_readiness(self.machine, self.requirements[name], results)
         gpu = self.machine.gpu_name or "Unknown"
         if self.machine.gpu_vram_mb:
             gpu += f" ({self.machine.gpu_vram_mb} MB VRAM)"
@@ -339,7 +341,9 @@ class ReadinessApp(tk.Tk):
             f"Virtualization: {self.machine.virtualization or 'Unknown'}",
         ]
         lifecycle_line = f"Release: {lifecycle['release']} • Lifecycle: {lifecycle['lifecycle_type']} • Status: {lifecycle['support_status']}"
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_line}\nSuitability: {suitability['category']} — {suitability['explanation']}\n" + "\n".join(machine_details + ["• " + note for note in notes]))
+        readiness_line = f"Installation readiness: {readiness['status'].replace('_', ' ').title()} — {readiness['explanation']}"
+        readiness_items = [f"  {item['status'].upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_line}\n{readiness_line}\n" + "\n".join(readiness_items + [f"Suitability: {suitability['category']} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
