@@ -132,7 +132,7 @@ class ReadinessApp(tk.Tk):
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
         self.overview_button.pack(side="right", padx=(0, 8))
-        self.recommend_button = ttk.Button(controls, text="Recommend an OS", command=self.show_recommendations, style="Secondary.TButton")
+        self.recommend_button = ttk.Button(controls, text=t("recommend.action", self.language), command=self.show_recommendations, style="Secondary.TButton")
         self.recommend_button.pack(side="right", padx=(0, 8))
         self.update_button = ttk.Button(controls, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton")
         self.update_button.pack(side="right", padx=(0, 8))
