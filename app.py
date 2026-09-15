@@ -70,6 +70,7 @@ class ReadinessApp(tk.Tk):
         self.ranked_results = []
         self.suitability_by_os = {}
         self.scan_in_progress = False
+        self.issues_only = tk.BooleanVar(value=False)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._build()
         self.bind("<F5>", lambda _event: self.run_check())
@@ -170,6 +171,31 @@ class ReadinessApp(tk.Tk):
         self.summary = tk.Label(summary_card, text="Scanning…", bg=UI["surface"], fg=UI["text"], font=(font, 14, "bold"))
         self.summary.pack(side="left", anchor="w")
 
+        self.analysis_frame = tk.Frame(body, bg=UI["background"])
+        self.analysis_frame._ui_role = "workspace"
+        self.analysis_frame.pack_forget()
+        context_row = tk.Frame(self.analysis_frame, bg=UI["background"])
+        context_row._ui_role = "workspace"
+        context_row.pack(fill="x", pady=(0, 8))
+        self.analysis_context = tk.Label(context_row, text="", bg=UI["background"], fg=UI["muted"], font=(font, 9), anchor="w")
+        self.analysis_context.pack(side="left", fill="x", expand=True)
+        self.issue_filter = ttk.Checkbutton(context_row, text=t("analysis.issues_only", self.language), variable=self.issues_only, command=self._refresh_detail_rows)
+        self.issue_filter.pack(side="right")
+        self.analysis_cards = {}
+        card_specs = (("compatibility", t("label.compatibility", self.language)), ("suitability", t("label.suitability", self.language)), ("lifecycle", t("label.lifecycle", self.language)), ("readiness", t("label.installation_readiness", self.language)))
+        for index, (key, title) in enumerate(card_specs):
+            card = FluentCard(self.analysis_frame, tokens=self.ui_tokens, padding=(14, 11))
+            card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 6, 6 if index % 2 == 0 else 0), pady=(0, 8))
+            self.analysis_frame.grid_columnconfigure(index % 2, weight=1, uniform="analysis-card")
+            tk.Label(card, text=title, bg=UI["surface"], fg=UI["muted"], font=(font, 9, "bold"), anchor="w").pack(fill="x")
+            status = tk.Label(card, text="—", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), anchor="w")
+            status.pack(fill="x", pady=(4, 2))
+            explanation = tk.Label(card, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w", justify="left", wraplength=300)
+            explanation.pack(fill="x")
+            self.analysis_cards[key] = (card, status, explanation)
+        self.analysis_frame.grid_rowconfigure(0, weight=1)
+        self.analysis_frame.grid_rowconfigure(1, weight=1)
+
         columns = ("result", "detected", "required")
         table_card = tk.Frame(body, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
         table_card.pack(fill="both", expand=True)
@@ -187,6 +213,8 @@ class ReadinessApp(tk.Tk):
         self.table.tag_configure("fail", foreground=COLORS["fail"])
         self.table.tag_configure("unknown", foreground=COLORS["unknown"])
         self.table.bind("<<TreeviewSelect>>", self.show_selected_check)
+        self.table.bind("<Double-1>", self._open_selected_os)
+        self.table.bind("<Return>", self._open_selected_os)
 
         footer = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         footer.pack(fill="x")
@@ -420,8 +448,51 @@ class ReadinessApp(tk.Tk):
 
     def _show_detail(self, results) -> None:
         self._clear_table()
-        for item in results:
+        visible = [item for item in results if not self.issues_only.get() or item.status != "pass"]
+        for item in visible:
             self.table.insert("", "end", text=item.name, values=(ICONS[item.status] + " " + status_label(item.status, self.language), item.detected, item.required), tags=(item.status,))
+
+    def _refresh_detail_rows(self) -> None:
+        if self.machine and self.choice.get() in self.all_results:
+            self._show_detail(self.all_results[self.choice.get()])
+
+    def _status_presentation(self, status: str) -> tuple[str, str]:
+        normalized = status.lower().replace(" ", "_")
+        if normalized in {"pass", "ready", "supported", "excellent_fit", "good_fit", "meets_minimum", "rolling", "current"}:
+            return "✓", COLORS["pass"]
+        if normalized in {"fail", "not_ready", "eol", "not_compatible"}:
+            return "×", COLORS["fail"]
+        return "!", COLORS["review"]
+
+    def _update_analysis_cards(self, name: str, status: str, suitability: dict, lifecycle: dict, readiness: dict, score: int) -> None:
+        lifecycle_status_value = lifecycle.get("support_status", "unknown")
+        cards = {
+            "compatibility": (status, f"{score}/100 — {t('analysis.published_requirements', self.language)}"),
+            "suitability": (suitability.get("category", "Unknown"), suitability.get("explanation", t("analysis.headroom_unknown", self.language))),
+            "lifecycle": (lifecycle_status_value, f"Release {lifecycle.get('release', 'Unknown')}"),
+            "readiness": (readiness.get("status", "review"), readiness.get("explanation", "Some configuration items need review.")),
+        }
+        for key, (value, explanation) in cards.items():
+            _icon, color = self._status_presentation(str(value))
+            _card, status_label_widget, explanation_widget = self.analysis_cards[key]
+            if key == "compatibility":
+                display = f"{_icon} {status_label(value, self.language).upper()}"
+            elif key == "lifecycle":
+                display = f"{_icon} {status_label(value, self.language).upper()}"
+            elif key == "readiness":
+                display = f"{_icon} {status_label(value, self.language).upper()}"
+            else:
+                display = f"{_icon} {t('status.' + str(value).lower().replace(' ', '_'), self.language).upper()}"
+            status_label_widget.config(text=display, fg=color)
+            explanation_widget.config(text=explanation)
+
+    def _open_selected_os(self, _event=None) -> None:
+        if not self.table.selection():
+            return
+        name = self.table.item(self.table.selection()[0], "text")
+        if name in self.requirements:
+            self.choice.set(name)
+            self.show_detail()
 
     def show_selected_check(self, _event=None) -> None:
         if not self.machine or not self.choice.get() or not self.table.selection():
@@ -439,6 +510,8 @@ class ReadinessApp(tk.Tk):
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
+        self._set_active_nav("overview")
+        self.analysis_frame.pack_forget()
         source_key = "profile.source_imported" if self.machine_source == "Imported profile" else "profile.source_local"
         self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t(source_key, self.language)}")
         if self.choice.get() not in all_results and all_results:
@@ -477,6 +550,8 @@ class ReadinessApp(tk.Tk):
         if not self.machine or self.choice.get() not in self.all_results:
             return
         name = self.choice.get()
+        self._set_active_nav("analysis")
+        self.analysis_frame.pack(fill="x", pady=(0, 4), before=self.table.master)
         self.settings["last_os"] = name
         save_settings(self.settings)
         results = self.all_results[name]
@@ -518,7 +593,15 @@ class ReadinessApp(tk.Tk):
             f"{t('machine.virtualization', self.language)}: {self.machine.virtualization or 'Unknown'}",
         ]
         suitability_label = t("status." + suitability["category"].lower().replace(" ", "_"), self.language)
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_line}\n{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
+        self.analysis_context.config(text=f"{name} • {lifecycle['release']} • {t('label.machine_source', self.language)}: {t('profile.source_imported' if self.machine_source == 'Imported profile' else 'profile.source_local', self.language)}")
+        self._update_analysis_cards(name, status, suitability, lifecycle, readiness, score)
+        context_note = ""
+        if self.machine_source == "Imported profile":
+            context_note = f"{t('analysis.imported_context', self.language)} ({self.profile_metadata.get('created_at', 'unknown')}). {t('analysis.current_database', self.language)}\n"
+        lifecycle_warning = ""
+        if lifecycle["support_status"] in {"nearing_eol", "eol"}:
+            lifecycle_warning = f"\n{t('analysis.release_notice', self.language)}: {lifecycle_line}\n"
+        self.details.config(text=f"{context_note}Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_warning}{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
