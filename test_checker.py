@@ -171,6 +171,33 @@ class CheckerTests(unittest.TestCase):
         result = assess_suitability(machine, REQ, evaluate(machine, REQ))
         self.assertEqual(result.category, "Marginal")
 
+    def test_suitability_zero_detected_values_do_not_crash(self):
+        for field in ("cpu_ghz", "cpu_cores", "ram_gb", "storage_free_gb"):
+            with self.subTest(field=field):
+                machine = self.machine(**{field: 0})
+                result = assess_suitability(machine, REQ, evaluate(machine, REQ))
+                self.assertEqual(result.category, "Not compatible")
+
+    def test_suitability_ignores_missing_or_nonpositive_requirements(self):
+        checks = evaluate(self.machine(), REQ)
+        for field in ("cpu_ghz", "cpu_cores", "ram_gb", "storage_gb"):
+            with self.subTest(field=field):
+                requirements = {key: value for key, value in REQ.items() if key != field}
+                result = assess_suitability(self.machine(), requirements, checks)
+                self.assertIn(result.category, {"Excellent fit", "Good fit", "Meets minimum", "Marginal"})
+        result = assess_suitability(self.machine(), {**REQ, "ram_gb": None}, checks)
+        self.assertIn(result.category, {"Excellent fit", "Good fit", "Meets minimum", "Marginal"})
+        requirements = {**REQ, "cpu_cores": 4, "cpu_ghz": 0, "ram_gb": 0, "storage_gb": 0}
+        result = assess_suitability(self.machine(), requirements, checks)
+        self.assertEqual(result.category, "Marginal")
+
+    def test_marginal_limiting_factor_uses_validated_ratios(self):
+        requirements = {**REQ, "cpu_cores": 4, "cpu_ghz": 0, "ram_gb": 8, "storage_gb": 0}
+        machine = self.machine(cpu_cores=4, ram_gb=8)
+        result = assess_suitability(machine, requirements, evaluate(machine, requirements))
+        self.assertEqual(result.category, "Marginal")
+        self.assertIn("CPU cores", result.explanation)
+
     def test_synthetic_failure_and_unknown_matrix(self):
         cases = [
             (self.machine(storage_free_gb=1), "Free storage", "fail"),
