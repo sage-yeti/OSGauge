@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from checker import MachineInfo
+from architecture import normalize_architecture
 
 
 @dataclass(frozen=True)
@@ -27,8 +28,10 @@ def _result(name: str, actual: Any, required: str, ok: bool | None, explanation:
 def evaluate_installation_readiness(machine: MachineInfo, requirements: dict[str, Any], compatibility_results=None) -> dict[str, Any]:
     """Evaluate current configuration without scanning hardware or changing compatibility."""
     checks: list[ReadinessCheck] = []
-    allowed = [item.upper() for item in requirements.get("architecture", [])]
-    checks.append(_result("Architecture", machine.architecture, " or ".join(allowed), machine.architecture.upper() in allowed,
+    allowed = [normalize_architecture(item) for item in requirements.get("architecture", [])]
+    detected_architecture = normalize_architecture(machine.architecture)
+    architecture_ok = None if detected_architecture == "unknown" else detected_architecture in allowed
+    checks.append(_result("Architecture", "Unknown" if architecture_ok is None else detected_architecture, " or ".join(allowed), architecture_ok,
                           "The installer must support the detected processor architecture.",
                           "This processor architecture cannot be changed by a software setting."))
     required = requirements.get("storage_gb")

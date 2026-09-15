@@ -12,6 +12,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 
+from architecture import architecture_label, host_architecture, normalize_architecture
+
 
 @dataclass
 class MachineInfo:
@@ -35,6 +37,10 @@ class MachineInfo:
     storage_partition_style: str | None = None
     storage_filesystem: str | None = None
     virtualization: str | None = None
+
+    def __post_init__(self) -> None:
+        # Keep imported and locally detected snapshots on the same stable vocabulary.
+        self.architecture = normalize_architecture(self.architecture)
 
 
 @dataclass
@@ -223,7 +229,7 @@ def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
 
     return MachineInfo(
         operating_system=f"{platform.system()} {platform.release()}",
-        architecture=platform.machine().upper(),
+        architecture=host_architecture(),
         cpu_name=str(cpu_name).strip(),
         cpu_cores=int(details.get("Cores") or os.cpu_count() or 0) or None,
         cpu_ghz=cpu_ghz,
@@ -261,15 +267,16 @@ def evaluate(machine: MachineInfo, requirements: dict[str, Any]) -> list[CheckRe
         _numeric("Memory", machine.ram_gb, requirements.get("ram_gb"), "GB"),
         _numeric("Free storage", machine.storage_free_gb, requirements.get("storage_gb"), "GB"),
     ]
-    allowed = [a.upper() for a in requirements.get("architecture", [])]
-    architecture = str(machine.architecture or "").upper()
-    if architecture in {"", "UNKNOWN", "N/A", "UNAVAILABLE"}:
+    allowed = [normalize_architecture(a) for a in requirements.get("architecture", [])]
+    allowed = [a for a in allowed if a != "unknown"]
+    architecture = normalize_architecture(machine.architecture)
+    if architecture == "unknown":
         arch_status = "unknown"
         detected_architecture = "Could not detect"
     else:
         arch_status = "pass" if architecture in allowed else "fail"
-        detected_architecture = machine.architecture
-    results.append(CheckResult("Architecture", arch_status, detected_architecture, " or ".join(allowed)))
+        detected_architecture = architecture
+    results.append(CheckResult("Architecture", arch_status, detected_architecture, " or ".join(allowed) or "Not specified"))
 
     for key, label in (("uefi", "UEFI firmware"), ("secure_boot", "Secure Boot")):
         if key in requirements:
@@ -392,7 +399,7 @@ def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[s
     score = compatibility_score([CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}) for item in report["checks"]])
     lifecycle = report["lifecycle"]
     lines = [f"{t('app.title', language)} - {target_os}", f"{t('label.compatibility', language)}: {status_label(report['overall'], language).upper()} (score {score}/100)", f"{t('label.suitability', language)}: {suitability_label(report['suitability']['category'], language)} — {suitability_explanation(report['suitability']['category'], report['suitability']['explanation'], language)}", f"{t('label.lifecycle', language)}: {lifecycle['release']} ({status_label(lifecycle['support_status'], language)})", f"{t('label.installation_readiness', language)}: {status_label(report['installation_readiness']['status'], language).upper()} — {report['installation_readiness']['explanation']}", "",
-             f"OS: {machine.operating_system}", f"{t('machine.processor', language)}: {machine.cpu_name}",
+             f"OS: {machine.operating_system}", f"Architecture: {architecture_label(machine.architecture)}", f"{t('machine.processor', language)}: {machine.cpu_name}",
              f"{t('machine.graphics', language)}: {machine.gpu_name or 'Unknown'}", f"RAM: {machine.ram_gb or 'Unknown'} GB",
              f"{t('check.free_storage', language)}: {machine.storage_free_gb or 'Unknown'} GB", "", f"{t('label.check', language)}:"]
     lines.append(f"{t('label.installation_readiness', language)}:")
@@ -428,7 +435,7 @@ def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, An
         if localized["remediation"]:
             extra += f"<p><strong>{escape(t('label.next_step', language))}:</strong> {escape(localized['remediation'])}</p>"
         rows.append(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(status_label(item['status'], language))}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td><td>{extra}</td></tr>")
-    machine_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Operating system", machine.operating_system), ("CPU", machine.cpu_name), ("GPU", machine.gpu_name), ("RAM (GB)", machine.ram_gb), ("Free storage (GB)", machine.storage_free_gb), ("System disk", machine.system_disk), ("Partition style", machine.storage_partition_style), ("Filesystem", machine.storage_filesystem), ("Virtualization", machine.virtualization)))
+    machine_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Operating system", machine.operating_system), ("Architecture", architecture_label(machine.architecture)), ("CPU", machine.cpu_name), ("GPU", machine.gpu_name), ("RAM (GB)", machine.ram_gb), ("Free storage (GB)", machine.storage_free_gb), ("System disk", machine.system_disk), ("Partition style", machine.storage_partition_style), ("Filesystem", machine.storage_filesystem), ("Virtualization", machine.virtualization)))
     lifecycle = report["lifecycle"]
     readiness_rows = "".join(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(status_label(item['status'], language))}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td></tr>" for item in report["installation_readiness"]["checks"])
     lifecycle_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Release", lifecycle["release"]), (t("label.lifecycle", language), lifecycle["lifecycle_type"]), ("Support status", status_label(lifecycle["support_status"], language)), ("Release date", lifecycle["release_date"]), ("EOL date", lifecycle["eol_date"])))

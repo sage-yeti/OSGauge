@@ -18,6 +18,7 @@ from checker import (
     plain_text_report,
     rank_compatibility,
 )
+from architecture import architecture_label
 from requirements_update import RequirementsInfo, fetch_latest, load_requirements_info
 from theme import colors_for, load_settings, load_theme_mode, save_settings, save_theme_mode
 from version import APP_VERSION
@@ -416,6 +417,7 @@ class ReadinessApp(tk.Tk):
         readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness['explanation']}"
         readiness_items = [f"  {status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
         machine_details = [
+            f"Architecture: {architecture_label(self.machine.architecture)}",
             f"{t('machine.processor', self.language)}: {self.machine.cpu_name}",
             f"{t('machine.graphics', self.language)}: {gpu}",
             f"{t('machine.system_disk', self.language)}: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",

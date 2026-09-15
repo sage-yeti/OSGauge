@@ -9,6 +9,7 @@ from typing import Any
 
 from checker import MachineInfo
 from version import APP_VERSION
+from architecture import normalize_architecture
 
 PROFILE_FORMAT_VERSION = 1
 PROFILE_EXTENSION = ".osrprofile"
@@ -19,6 +20,7 @@ _TEXT = {field.name for field in fields(MachineInfo)} - _NUMERIC - {"uefi", "sec
 
 def export_profile(machine: MachineInfo, path: Path, *, created_at: str | None = None, data_version: int | None = None) -> None:
     values = asdict(machine)
+    values["architecture"] = normalize_architecture(values.get("architecture"))
     profile: dict[str, Any] = {
         "profile_format_version": PROFILE_FORMAT_VERSION,
         "created_at": created_at or datetime.now(timezone.utc).isoformat(),
@@ -57,7 +59,7 @@ def import_profile(path: Path) -> tuple[MachineInfo, dict[str, Any]]:
                 raise ValueError(f"Invalid boolean value for {key}.")
         elif value is not None and not isinstance(value, str):
             raise ValueError(f"Invalid text value for {key}.")
-        values[key] = value
+        values[key] = normalize_architecture(value) if key == "architecture" else value
     # Optional fields are normalized to None; extra fields are intentionally ignored.
     for field in fields(MachineInfo):
         values.setdefault(field.name, None)

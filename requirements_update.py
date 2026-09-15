@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from architecture import normalize_architecture
+
 
 SCHEMA_VERSION = 1
 REQUIREMENTS_URL = "https://raw.githubusercontent.com/sage-yeti/os-readiness-checker/main/requirements.json"
@@ -54,6 +56,9 @@ def validate_database(data: Any) -> RequirementsInfo | None:
             return None
         if not isinstance(profile["architecture"], list) or not all(isinstance(item, str) for item in profile["architecture"]):
             return None
+        normalized_architectures = [normalize_architecture(item) for item in profile["architecture"]]
+        if any(item == "unknown" for item in normalized_architectures):
+            return None
         if not isinstance(profile["source"], str) or not profile["source"].startswith("https://"):
             return None
         if any(not isinstance(profile[key], (int, float)) or profile[key] < 0 for key in required[:4]):
@@ -89,7 +94,7 @@ def validate_database(data: Any) -> RequirementsInfo | None:
             return None
         if "tpm_version" in install and (not isinstance(install["tpm_version"], (int, float)) or install["tpm_version"] < 0):
             return None
-        profiles[name] = {**profile, **metadata, "installation": install}
+        profiles[name] = {**profile, "architecture": normalized_architectures, **metadata, "installation": install}
     return RequirementsInfo(profiles, data_version, "") if profiles else None
 
 

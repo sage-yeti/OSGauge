@@ -90,6 +90,8 @@ Machine profiles are human-readable JSON files with the `.osrprofile` extension.
 
 The GUI language can be set to **System**, **English**, **Italiano**, **Español**, **Deutsch**, or **Français** and is remembered in the existing settings. System recognizes common `es-*`, `de-*`, and `fr-*` locales and otherwise falls back to English. CLI flags and JSON/profile formats remain language-neutral; use `--lang en`, `it`, `es`, `de`, or `fr` only for human-readable CLI output.
 
+Architecture-aware analysis recognizes x86-64, x86, ARM64/AArch64, and ARM32 aliases. OS compatibility follows each profile's published architecture support, and imported ARM64 profiles can be analyzed on another machine. Distributed binaries remain the existing Windows and Linux x86-64 builds; ARM64 analysis support does not imply a native ARM64 checker binary.
+
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 
 ## Important limits
