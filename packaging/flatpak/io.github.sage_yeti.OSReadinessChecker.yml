@@ -1,4 +1,4 @@
-app-id: io.github.sage-yeti.OSReadinessChecker
+app-id: io.github.sageyeti.OSReadinessChecker
 runtime: org.gnome.Platform
 runtime-version: "46"
 sdk: org.gnome.Sdk
@@ -17,9 +17,9 @@ modules:
       - install -Dm644 app.py checker.py cli.py installation_readiness.py lifecycle.py localization.py machine_comparison.py machine_profile.py requirements_update.py suitability.py upgrade_planner.py version.py architecture.py theme.py /app/share/os-readiness-checker/
       - install -Dm644 requirements.json recommendation.json /app/share/os-readiness-checker/
       - cp -a locales /app/share/os-readiness-checker/locales
-      - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.desktop /app/share/applications/io.github.sage-yeti.OSReadinessChecker.desktop
-      - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.metainfo.xml /app/share/metainfo/io.github.sage-yeti.OSReadinessChecker.metainfo.xml
-      - install -Dm644 packaging/linux/OS-Readiness-Checker.svg /app/share/icons/hicolor/scalable/apps/io.github.sage-yeti.OSReadinessChecker.svg
+      - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.desktop /app/share/applications/io.github.sageyeti.OSReadinessChecker.desktop
+      - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.metainfo.xml /app/share/metainfo/io.github.sageyeti.OSReadinessChecker.metainfo.xml
+      - install -Dm644 packaging/linux/OS-Readiness-Checker.svg /app/share/icons/hicolor/scalable/apps/io.github.sageyeti.OSReadinessChecker.svg
     sources:
       - type: dir
         path: ../..
