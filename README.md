@@ -18,6 +18,7 @@ A small desktop application that scans the current computer and compares it with
 - Keeps OS definitions in an editable JSON file
 - Scans hardware once, then ranks every supported OS by compatibility score
 - Shows pass, review, or fail status and supports side-by-side OS comparison
+- Exports and imports privacy-conscious `.osrprofile` machine profiles for offline analysis on another computer
 - Uses only Python's standard library
 
 ## Download and run
@@ -45,6 +46,8 @@ The CLI uses the same hardware scan and compatibility engine:
 os-readiness-checker --list
 os-readiness-checker --check "Windows 11" --verbose
 os-readiness-checker --all --json --output readiness.json
+os-readiness-checker --profile machine-profile.osrprofile --all --json
+os-readiness-checker --export-profile machine-profile.osrprofile --check ubuntu
 ```
 
 Exit code `0` means no requested target failed, `1` means at least one mandatory check failed, and `2` means invalid arguments or an operational error. Review/unknown results are reported normally and are not operational errors.
@@ -65,6 +68,8 @@ The requirements database has its own schema/data version. Use **Check requireme
 Profiles may include release and lifecycle information. The overview uses each OS family's current/default profile; rolling distributions are labeled as rolling, and lifecycle/EOL status is separate from hardware compatibility. When multiple releases are available, a specific profile can be selected with the CLI form `--check family@release` (for example, `--check ubuntu@26.04-lts`).
 
 Results keep four concepts separate: Compatibility checks official hardware requirements; Suitability estimates application-defined hardware headroom; Lifecycle reports release support/EOL; Installation readiness checks the machine's current boot, firmware, storage, and security configuration. Installation readiness is advisory and read-only—it never changes firmware, disks, or boot settings.
+
+Machine profiles are human-readable JSON files with the `.osrprofile` extension. They contain only detected hardware/configuration fields needed for analysis (never usernames, hostnames, serial numbers, network data, keys, or personal files). Imported profiles are re-evaluated with the current requirements database and application logic; installation readiness describes the configuration captured when the profile was created.
 
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 

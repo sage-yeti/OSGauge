@@ -24,6 +24,7 @@ from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
 from installation_readiness import evaluate_installation_readiness
+from machine_profile import export_profile, import_profile
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -52,6 +53,8 @@ class ReadinessApp(tk.Tk):
         self.requirements_info = load_requirements_info()
         self.requirements = self.requirements_info.profiles
         self.machine = None
+        self.machine_source = "This computer"
+        self.profile_metadata = {}
         self.results = []
         self.all_results = {}
         self.ranked_results = []
@@ -114,6 +117,12 @@ class ReadinessApp(tk.Tk):
         self.update_button.pack(side="right", padx=(0, 8))
         self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
         self.update_status.pack(side="right", padx=(0, 10))
+        profile_actions = tk.Frame(body, bg=UI["background"])
+        profile_actions.pack(fill="x", pady=(0, 10))
+        ttk.Button(profile_actions, text="Import machine profile", command=self.import_machine_profile, style="Secondary.TButton").pack(side="left")
+        ttk.Button(profile_actions, text="Export machine profile", command=self.export_machine_profile, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        self.source_status = tk.Label(profile_actions, text="Machine source: This computer", bg=UI["background"], fg=UI["muted"], font=(font, 9))
+        self.source_status.pack(side="right")
 
         summary_card = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         summary_card.pack(fill="x", pady=(0, 14))
@@ -178,6 +187,8 @@ class ReadinessApp(tk.Tk):
     def run_check(self) -> None:
         if self.scan_in_progress:
             return
+        self.machine_source = "This computer"
+        self.profile_metadata = {}
         self.scan_in_progress = True
         self.check_button.config(state="disabled")
         self.summary.config(text="Scanning this computer…", fg="#374151")
@@ -274,6 +285,7 @@ class ReadinessApp(tk.Tk):
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
+        self.source_status.config(text=f"Machine source: {self.machine_source}")
         if self.choice.get() not in all_results and all_results:
             self.choice.current(0)
         self.results = all_results.get(self.choice.get(), [])
@@ -291,7 +303,11 @@ class ReadinessApp(tk.Tk):
             self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status.title(), f'{item["score"]}/100', item["suitability"]["category"]), tags=(status,))
         self.summary.config(text=f"Compared {len(ranked)} operating systems from one hardware scan", fg=UI["text"])
         self.status_badge.config(text="  OVERVIEW  ", bg=UI["accent"], fg="white")
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Compatibility is based on published requirements; suitability is application-defined headroom guidance.")
+        source_note = ""
+        if self.machine_source == "Imported profile":
+            captured = self.profile_metadata.get("created_at", "")
+            source_note = f" Imported profile captured {captured}. Installation readiness reflects its recorded configuration."
+        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Compatibility is based on published requirements; suitability is application-defined headroom guidance.{source_note}")
         self.check_button.config(state="normal")
         self.scan_in_progress = False
         self.compare_button.config(state="normal")
@@ -399,6 +415,9 @@ class ReadinessApp(tk.Tk):
         if target:
             report = as_report(self.machine, self.requirements[self.choice.get()])
             report["target_os"] = self.choice.get()
+            report["machine_source"] = self.machine_source
+            if self.profile_metadata:
+                report["profile_metadata"] = self.profile_metadata
             Path(target).write_text(json.dumps(report, indent=2), encoding="utf-8")
             messagebox.showinfo("Report saved", "The readiness report was saved successfully.")
 
@@ -408,7 +427,10 @@ class ReadinessApp(tk.Tk):
         target = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="os-readiness-report.html")
         if target:
             name = self.choice.get()
-            Path(target).write_text(html_report(self.machine, name, self.requirements[name]), encoding="utf-8")
+            html = html_report(self.machine, name, self.requirements[name])
+            if self.machine_source == "Imported profile":
+                html = html.replace("<h1>OS Readiness Report</h1>", f"<h1>OS Readiness Report</h1><p><strong>Machine source:</strong> Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')}).</p>")
+            Path(target).write_text(html, encoding="utf-8")
             messagebox.showinfo("Report saved", "The HTML report was saved successfully.")
 
     def copy_results(self) -> None:
@@ -416,7 +438,10 @@ class ReadinessApp(tk.Tk):
             return
         name = self.choice.get()
         self.clipboard_clear()
-        self.clipboard_append(plain_text_report(self.machine, name, self.requirements[name]))
+        text = plain_text_report(self.machine, name, self.requirements[name])
+        if self.machine_source == "Imported profile":
+            text = f"Machine source: Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')})\n" + text
+        self.clipboard_append(text)
         self.update()
         messagebox.showinfo("Results copied", "A compact compatibility summary was copied to the clipboard.")
 
@@ -446,6 +471,29 @@ class ReadinessApp(tk.Tk):
             self.results = self.all_results.get(self.choice.get(), [])
             self._show_overview(self.machine, self.all_results, self.ranked_results)
         self.update_status.config(text=f"DB v{info.data_version} ({info.source}); updated")
+
+    def export_machine_profile(self) -> None:
+        if not self.machine:
+            messagebox.showinfo("No scan yet", "Scan this computer before exporting a machine profile.")
+            return
+        target = filedialog.asksaveasfilename(defaultextension=".osrprofile", filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")], initialfile="machine-profile.osrprofile")
+        if target:
+            export_profile(self.machine, Path(target), data_version=self.requirements_info.data_version)
+            messagebox.showinfo("Profile exported", "The machine profile was saved successfully.")
+
+    def import_machine_profile(self) -> None:
+        target = filedialog.askopenfilename(filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")])
+        if not target:
+            return
+        try:
+            machine, metadata = import_profile(Path(target))
+            all_results = evaluate_all(machine, self.requirements)
+            suitability = {name: suitability_dict(assess_suitability(machine, profile, all_results[name])) for name, profile in self.requirements.items()}
+            ranked = rank_compatibility(all_results, suitability)
+            self.machine_source, self.profile_metadata = "Imported profile", metadata
+            self._show_overview(machine, all_results, ranked)
+        except ValueError as exc:
+            messagebox.showerror("Profile could not be imported", str(exc))
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
 from lifecycle import profile_metadata, resolve_profile, lifecycle_status
 from installation_readiness import evaluate_installation_readiness
+from machine_profile import export_profile, import_profile
 
 
 def _key(value: str) -> str:
@@ -29,7 +30,7 @@ def _find_target(value: str, requirements: dict) -> str | None:
     return next((name for name in requirements if _key(name).startswith(wanted)), None)
 
 
-def _payload(machine, requirements, names, verbose: bool, data_version: int) -> dict:
+def _payload(machine, requirements, names, verbose: bool, data_version: int, profile_metadata=None) -> dict:
     results = evaluate_all(machine, requirements)
     suitability = {name: suitability_dict(assess_suitability(machine, requirements[name], results[name])) for name in names}
     ranked = rank_compatibility({name: results[name] for name in names}, suitability)
@@ -42,7 +43,11 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int) -> 
         if verbose:
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
-    return {"requirements_database_version": data_version, "machine": asdict(machine), "results": output}
+    payload = {"requirements_database_version": data_version, "machine": asdict(machine), "results": output}
+    if profile_metadata:
+        payload["machine_source"] = "Imported profile"
+        payload["profile_metadata"] = profile_metadata
+    return payload
 
 
 def main(argv=None) -> int:
@@ -54,6 +59,8 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="emit JSON")
     parser.add_argument("--verbose", action="store_true", help="include detected and required check details")
     parser.add_argument("--output", type=Path, help="write output to a file")
+    parser.add_argument("--profile", type=Path, help="analyze an exported .osrprofile instead of scanning this computer")
+    parser.add_argument("--export-profile", type=Path, help="scan this computer once and save a machine profile")
     args = parser.parse_args(argv)
     try:
         info = load_requirements_info()
@@ -65,14 +72,26 @@ def main(argv=None) -> int:
             else:
                 print(value)
             return 0
-        if bool(args.all) == bool(args.check):
+        if not args.export_profile and bool(args.all) == bool(args.check):
             parser.error("choose exactly one of --all or --check (or use --list)")
-        names = list(requirements) if args.all else [_find_target(args.check, requirements)]
-        if not names[0]:
+        names = list(requirements) if args.all else ([_find_target(args.check, requirements)] if args.check else [])
+        if args.export_profile and not names:
+            machine = collect_machine_info()
+            export_profile(machine, args.export_profile, data_version=info.data_version)
+            return 0
+        if not names or not names[0]:
             print(f"Unknown operating system: {args.check}", file=sys.stderr)
             return 2
-        machine = collect_machine_info()
-        payload = _payload(machine, requirements, names, args.verbose, info.data_version)
+        profile_metadata = None
+        if args.profile:
+            if args.export_profile:
+                parser.error("--profile and --export-profile cannot be used together")
+            machine, profile_metadata = import_profile(args.profile)
+        else:
+            machine = collect_machine_info()
+            if args.export_profile:
+                export_profile(machine, args.export_profile, data_version=info.data_version)
+        payload = _payload(machine, requirements, names, args.verbose, info.data_version, profile_metadata)
         if args.json:
             text = json.dumps(payload, indent=2)
         else:
@@ -85,6 +104,8 @@ def main(argv=None) -> int:
                     for check in item["checks"]:
                         lines.append(f"  {check['name']}: {check['status']} ({check['detected']} / {check['required']})")
             text = "\n".join(lines)
+            if profile_metadata:
+                text = f"Machine source: Imported profile (captured {profile_metadata.get('created_at', 'unknown')})\n" + text
         if args.output:
             args.output.write_text(text + "\n", encoding="utf-8")
         else:
