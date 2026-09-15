@@ -7,7 +7,7 @@
     <p>OS Readiness Checker evaluates detected hardware against published requirements for supported operating systems.</p>
   </description>
   <launchable type="desktop-id">io.github.sage-yeti.OSReadinessChecker.desktop</launchable>
-  <metadata_license>MIT</metadata_license>
+  <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <url type="homepage">https://github.com/sage-yeti/os-readiness-checker</url>
   <developer id="io.github.sage_yeti"><name>sage-yeti</name></developer>
