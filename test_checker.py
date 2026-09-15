@@ -8,6 +8,7 @@ from pathlib import Path
 from checker import CheckResult, MachineInfo, as_report, compatibility_score, evaluate, evaluate_all, explain_check, html_report, load_requirements, overall_status, plain_text_report, rank_compatibility
 from requirements_update import fetch_latest, load_requirements_info, validate_database
 from suitability import assess_suitability
+from lifecycle import default_profiles, lifecycle_status, resolve_profile
 
 
 REQ = {"cpu_cores": 2, "cpu_ghz": 1, "ram_gb": 4, "storage_gb": 64, "architecture": ["AMD64"]}
@@ -57,6 +58,14 @@ class CheckerTests(unittest.TestCase):
             with self.subTest(target=name):
                 self.assertEqual(overall_status(evaluate(machine, requirements[name])), "fail")
         self.assertEqual(overall_status(evaluate(machine, requirements["NixOS"])), "pass")
+
+    def test_lifecycle_metadata_and_legacy_resolution(self):
+        requirements = load_requirements(Path(__file__).with_name("requirements.json"))
+        self.assertEqual(requirements["Arch Linux"]["lifecycle_type"], "rolling")
+        self.assertEqual(lifecycle_status(requirements["Arch Linux"]), "rolling")
+        self.assertEqual(resolve_profile("ubuntu", requirements), "Ubuntu Desktop 26.04 LTS")
+        self.assertEqual(resolve_profile("ubuntu@26.04-lts", requirements), "Ubuntu Desktop 26.04 LTS")
+        self.assertEqual(len(default_profiles(requirements)), 20)
 
     def test_all_profiles_evaluate_from_one_machine_snapshot(self):
         requirements = load_requirements(Path(__file__).with_name("requirements.json"))

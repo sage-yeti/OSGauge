@@ -3,6 +3,28 @@
     "schema_version": 1,
     "data_version": 1
   },
+  "_lifecycle": {
+    "Windows 11": {"os_family": "Windows 11", "release": "Windows 11", "release_id": "windows-11", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro"},
+    "Ubuntu Desktop 26.04 LTS": {"os_family": "Ubuntu Desktop", "release": "26.04 LTS", "release_id": "26.04-lts", "lifecycle_type": "lts", "support_status": "current", "is_default": true, "lifecycle_source": "https://ubuntu.com/about/release-cycle"},
+    "Fedora Workstation 44": {"os_family": "Fedora Workstation", "release": "44", "release_id": "44", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://docs.fedoraproject.org/en-US/releases/lifecycle/"},
+    "Arch Linux": {"os_family": "Arch Linux", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://wiki.archlinux.org/title/Arch_Linux"},
+    "Linux Mint": {"os_family": "Linux Mint", "release": "Linux Mint", "release_id": "current", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://linuxmint.com/download.php"},
+    "openSUSE Leap 15.6": {"os_family": "openSUSE Leap", "release": "15.6", "release_id": "15.6", "lifecycle_type": "fixed", "support_status": "supported", "lifecycle_source": "https://en.opensuse.org/Lifetime"},
+    "Pop!_OS": {"os_family": "Pop!_OS", "release": "Pop!_OS", "release_id": "current", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://support.system76.com/support/install-pop"},
+    "Debian 13 (trixie)": {"os_family": "Debian", "release": "13 (trixie)", "release_id": "13", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "release_date": "2025-08-09", "lifecycle_source": "https://www.debian.org/releases/"},
+    "ChromeOS Flex": {"os_family": "ChromeOS Flex", "release": "Stable channel", "release_id": "stable", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://support.google.com/chromeosflex/answer/11552529"},
+    "Zorin OS 18.1": {"os_family": "Zorin OS", "release": "18.1", "release_id": "18.1", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://zorin.com/os/details/"},
+    "elementary OS 8.1": {"os_family": "elementary OS", "release": "8.1", "release_id": "8.1", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://elementary.io/support"},
+    "Manjaro": {"os_family": "Manjaro", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://wiki.manjaro.org/index.php?title=Manjaro:Developers"},
+    "Kali Linux": {"os_family": "Kali Linux", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://www.kali.org/docs/policy/kali-branching/"},
+    "Tails": {"os_family": "Tails", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://tails.net/doc/about/releases/"},
+    "MX Linux": {"os_family": "MX Linux", "release": "25", "release_id": "25", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://mxlinux.org/wiki/releases/"},
+    "Rocky Linux 10": {"os_family": "Rocky Linux", "release": "10", "release_id": "10", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "eol_date": "2035-05-31", "lifecycle_source": "https://wiki.rockylinux.org/rocky/version/"},
+    "AlmaLinux 9": {"os_family": "AlmaLinux", "release": "9", "release_id": "9", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "eol_date": "2032-05-31", "lifecycle_source": "https://wiki.almalinux.org/release-notes/"},
+    "NixOS": {"os_family": "NixOS", "release": "Rolling stable channel", "release_id": "stable", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://nixos.org/manual/nixos/stable/"},
+    "EndeavourOS": {"os_family": "EndeavourOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://endeavouros.com/"},
+    "CachyOS": {"os_family": "CachyOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://cachyos.org/"}
+  },
   "Windows 11": {
     "version": "Windows 11",
     "cpu_cores": 2,

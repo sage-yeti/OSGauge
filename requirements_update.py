@@ -37,6 +37,9 @@ def validate_database(data: Any) -> RequirementsInfo | None:
     data_version = metadata.get("data_version")
     if not isinstance(data_version, int) or data_version < 1:
         return None
+    lifecycle = data.get("_lifecycle", {})
+    if lifecycle and not isinstance(lifecycle, dict):
+        return None
     profiles: dict[str, dict[str, Any]] = {}
     required = ("cpu_cores", "cpu_ghz", "ram_gb", "storage_gb", "architecture", "source")
     for name, profile in data.items():
@@ -52,7 +55,27 @@ def validate_database(data: Any) -> RequirementsInfo | None:
             return None
         if any(not isinstance(profile[key], (int, float)) or profile[key] < 0 for key in required[:4]):
             return None
-        profiles[name] = profile
+        metadata = lifecycle.get(name, {})
+        if metadata and not isinstance(metadata, dict):
+            return None
+        for key in ("os_family", "release", "release_id", "lifecycle_type", "support_status", "lifecycle_source"):
+            if key in metadata and not isinstance(metadata[key], str):
+                return None
+        for key in ("release_date", "eol_date"):
+            if key in metadata and metadata[key] is not None:
+                if not isinstance(metadata[key], str):
+                    return None
+                try:
+                    __import__("datetime").date.fromisoformat(metadata[key])
+                except ValueError:
+                    return None
+        if "is_default" in metadata and not isinstance(metadata["is_default"], bool):
+            return None
+        if metadata.get("lifecycle_type") and metadata["lifecycle_type"] not in {"fixed", "lts", "rolling"}:
+            return None
+        if metadata.get("support_status") and metadata["support_status"] not in {"current", "supported", "nearing_eol", "eol", "rolling", "unknown"}:
+            return None
+        profiles[name] = {**profile, **metadata}
     return RequirementsInfo(profiles, data_version, "") if profiles else None
 
 

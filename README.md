@@ -62,6 +62,8 @@ The app scans the computer once and opens a compatibility overview for every sup
 
 The requirements database has its own schema/data version. Use **Check requirements updates** to fetch a newer validated copy from this repository; failures are non-fatal and the bundled database always remains available. Validated data is cached per user in `%LOCALAPPDATA%\\OS Readiness Checker` on Windows or `~/.cache/OS Readiness Checker` on Linux. The GUI offers **System**, **Light**, and **Dark** themes; System follows the Windows preference or a detectable Linux desktop preference and otherwise falls back to light.
 
+Profiles may include release and lifecycle information. The overview uses each OS family's current/default profile; rolling distributions are labeled as rolling, and lifecycle/EOL status is separate from hardware compatibility. When multiple releases are available, a specific profile can be selected with the CLI form `--check family@release` (for example, `--check ubuntu@26.04-lts`).
+
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 
 ## Important limits

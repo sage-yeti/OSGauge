@@ -10,6 +10,7 @@ from checker import collect_machine_info, evaluate_all, explain_check, rank_comp
 from requirements_update import load_requirements_info
 from version import APP_VERSION
 from suitability import assess_suitability, suitability_dict
+from lifecycle import profile_metadata, resolve_profile, lifecycle_status
 
 
 def _key(value: str) -> str:
@@ -17,6 +18,9 @@ def _key(value: str) -> str:
 
 
 def _find_target(value: str, requirements: dict) -> str | None:
+    resolved = resolve_profile(value, requirements)
+    if resolved:
+        return resolved
     wanted = _key(value)
     for name in requirements:
         if _key(name) == wanted:
@@ -30,7 +34,9 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int) -> 
     ranked = rank_compatibility({name: results[name] for name in names}, suitability)
     output = []
     for item in ranked:
-        entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"]}
+        metadata = profile_metadata(item["name"], requirements[item["name"]])
+        metadata["support_status"] = lifecycle_status(requirements[item["name"]])
+        entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"], **metadata}
         if verbose:
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
