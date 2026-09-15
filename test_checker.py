@@ -50,14 +50,32 @@ class CheckerTests(unittest.TestCase):
                 self.assertTrue(definition["source"].startswith("https://"))
                 self.assertEqual(overall_status(evaluate(machine, definition)), "pass")
 
+    def test_batch_one_applicable_minimums_fail_without_artificial_checks(self):
+        requirements = load_requirements(Path(__file__).with_name("requirements.json"))
+        machine = self.machine(architecture="AMD64", ram_gb=0.5, storage_free_gb=1)
+        for name in ("Kali Linux", "Tails", "MX Linux", "Rocky Linux 10", "AlmaLinux 9", "EndeavourOS", "CachyOS"):
+            with self.subTest(target=name):
+                self.assertEqual(overall_status(evaluate(machine, requirements[name])), "fail")
+        self.assertEqual(overall_status(evaluate(machine, requirements["NixOS"])), "pass")
+
     def test_all_profiles_evaluate_from_one_machine_snapshot(self):
         requirements = load_requirements(Path(__file__).with_name("requirements.json"))
         results = evaluate_all(self.machine(architecture="X86_64", ram_gb=16, storage_free_gb=200), requirements)
-        self.assertEqual(len(results), 12)
+        self.assertEqual(len(results), 20)
         self.assertEqual(set(results), set(requirements))
         ranked = rank_compatibility(results)
-        self.assertEqual(len(ranked), 12)
+        self.assertEqual(len(ranked), 20)
         self.assertTrue(all(0 <= item["score"] <= 100 for item in ranked))
+
+    def test_batch_one_profiles_are_valid_and_generic(self):
+        requirements = load_requirements(Path(__file__).with_name("requirements.json"))
+        targets = ["Kali Linux", "Tails", "MX Linux", "Rocky Linux 10", "AlmaLinux 9", "NixOS", "EndeavourOS", "CachyOS"]
+        machine = self.machine(architecture="AMD64", ram_gb=16, storage_free_gb=200)
+        for name in targets:
+            with self.subTest(target=name):
+                definition = requirements[name]
+                self.assertTrue(definition["source"].startswith("https://"))
+                self.assertEqual(overall_status(evaluate(machine, definition)), "pass")
 
     def test_score_penalizes_failures_more_than_unknowns(self):
         checks = [

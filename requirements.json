@@ -179,5 +179,111 @@
       "The desktop profile targets Manjaro's x86 workstation images."
     ],
     "source": "https://wiki.manjaro.org/index.php?title=About_Manjaro/en"
+  },
+  "Kali Linux": {
+    "version": "Kali Linux",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 2,
+    "storage_gb": 20,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "This profile targets Kali's default Xfce desktop and kali-linux-default metapackage.",
+      "Kali documents 2 GB RAM and 20 GB disk space for that desktop installation; CPU speed and core minimums are not specified.",
+      "Kali installer media requires USB/DVD boot support and Secure Boot disabled."
+    ],
+    "source": "https://www.kali.org/docs/installation/hard-disk-install/"
+  },
+  "Tails": {
+    "version": "Tails",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 3,
+    "storage_gb": 8,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "Tails is a live operating system intended to run from USB/DVD, not a conventional hard-disk desktop installation.",
+      "Tails documents 3 GB RAM for smooth operation, a 64-bit x86-64 processor, and an 8 GB minimum USB stick.",
+      "The storage check is a proxy for the documented USB capacity because the current schema cannot inspect removable media."
+    ],
+    "source": "https://tails.net/doc/about/requirements/"
+  },
+  "MX Linux": {
+    "version": "MX Linux",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 1,
+    "storage_gb": 6,
+    "architecture": ["I686", "AMD64", "X86_64"],
+    "notes": [
+      "This profile uses the MX Linux desktop installation minimums from the official user manual: a modern i686-or-newer Intel/AMD processor, 1 GB RAM, and 6 GB free disk space.",
+      "The manual recommends 2 GB RAM and 20 GB free space for general use; those are not strict compatibility minimums."
+    ],
+    "source": "https://github.com/MX-Linux/mx-docs/blob/master/mxum_en.pdf"
+  },
+  "Rocky Linux 10": {
+    "version": "Rocky Linux 10",
+    "cpu_cores": 1,
+    "cpu_ghz": 1.0,
+    "ram_gb": 2,
+    "storage_gb": 10,
+    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "notes": [
+      "Rocky's minimum hardware guidance targets a minimal/server installation; graphical environments need more resources.",
+      "Rocky documents 1 GHz 64-bit CPU, 2 GB RAM minimum for text-mode installation, and 10 GB disk space."
+    ],
+    "source": "https://docs.rockylinux.org/guides/minimum_hardware_requirements/"
+  },
+  "AlmaLinux 9": {
+    "version": "AlmaLinux 9",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 1.5,
+    "storage_gb": 10,
+    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64", "PPC64LE", "S390X"],
+    "notes": [
+      "AlmaLinux's installation guide lists 1.5 GB RAM and 10 GB disk as system requirements; CPU speed is not specified.",
+      "The project supports several architectures; this checker can meaningfully compare only architectures reported by its generic detector."
+    ],
+    "source": "https://wiki.almalinux.org/documentation/installation-guide"
+  },
+  "NixOS": {
+    "version": "NixOS",
+    "cpu_cores": 0,
+    "cpu_ghz": 0.0,
+    "ram_gb": 0.0,
+    "storage_gb": 0.0,
+    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "notes": [
+      "NixOS does not publish a single conventional desktop minimum for its configurable installations, so RAM and storage thresholds are intentionally omitted.",
+      "The official manual covers both graphical and manual installations and supports x86-64 and ARM graphical images."
+    ],
+    "source": "https://nixos.org/manual/nixos/stable/"
+  },
+  "EndeavourOS": {
+    "version": "EndeavourOS",
+    "cpu_cores": 2,
+    "cpu_ghz": 0.0,
+    "ram_gb": 2.5,
+    "storage_gb": 15,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "This profile targets the standard x86-64 desktop installer. EndeavourOS lists 2.5 GB RAM, a dual-core 64-bit processor, and 15 GB disk space as minimums.",
+      "The installer supports legacy BIOS, while modern UEFI is recommended."
+    ],
+    "source": "https://endeavouros.com/"
+  },
+  "CachyOS": {
+    "version": "CachyOS",
+    "cpu_cores": 1,
+    "cpu_ghz": 0.0,
+    "ram_gb": 3,
+    "storage_gb": 30,
+    "architecture": ["AMD64", "X86_64"],
+    "notes": [
+      "This profile targets the CachyOS desktop edition on physical x86-64 hardware.",
+      "CachyOS documents 3 GB RAM and 30 GB storage as minimums; its x86-64-v3 CPU and GPU guidance is listed as recommended, not a generic minimum."
+    ],
+    "source": "https://wiki.cachyos.org/installation/installation_prepare/"
   }
 }

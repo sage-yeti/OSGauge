@@ -18,6 +18,14 @@ class CliTests(unittest.TestCase):
         with patch("cli.collect_machine_info", side_effect=AssertionError("scan")):
             self.assertEqual(cli.main(["--check", "missing-os"]), 2)
 
+    def test_batch_one_target_identifiers_resolve(self):
+        requirements = {"Kali Linux": {}, "Tails": {}, "MX Linux": {}, "Rocky Linux 10": {}, "AlmaLinux 9": {}, "NixOS": {}, "EndeavourOS": {}, "CachyOS": {}}
+        for identifier, expected in (("kali", "Kali Linux"), ("tails", "Tails"), ("mx-linux", "MX Linux"),
+                                     ("rocky-linux", "Rocky Linux 10"), ("almalinux", "AlmaLinux 9"),
+                                     ("nixos", "NixOS"), ("endeavouros", "EndeavourOS"), ("cachyos", "CachyOS")):
+            with self.subTest(identifier=identifier):
+                self.assertEqual(cli._find_target(identifier, requirements), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

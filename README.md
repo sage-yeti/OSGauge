@@ -1,6 +1,6 @@
 # OS Readiness Checker
 
-A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, and Manjaro.
+A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, Manjaro, Kali Linux, Tails, MX Linux, Rocky Linux, AlmaLinux, NixOS, EndeavourOS, and CachyOS.
 
 ## Features
 
