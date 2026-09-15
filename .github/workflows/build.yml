@@ -115,7 +115,7 @@ jobs:
       - name: Build and validate bundle
         run: |
           flatpak-builder --user --force-clean --repo=repo build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml
-          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sage-yeti.OSReadinessChecker
+          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sageyeti.OSReadinessChecker
           test -s OS-Readiness-Checker-Linux-x86_64.flatpak
           python -m unittest -q
       - uses: actions/upload-artifact@v4
