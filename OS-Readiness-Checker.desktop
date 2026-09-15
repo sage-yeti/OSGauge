@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=OS Readiness Checker
+Comment=Check hardware compatibility with operating-system requirements
+Exec=OS-Readiness-Checker-Linux-x64
+Icon=OS-Readiness-Checker
+Categories=System;Utility;
+Terminal=false

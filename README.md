@@ -28,10 +28,20 @@ Download the latest release for your platform:
 
 - Windows GUI: `OS-Readiness-Checker-Windows-x64.exe` (double-click to run; no console window opens)
 - Linux GUI: `OS-Readiness-Checker-Linux-x64` (make it executable with `chmod +x`, then run it)
+- Linux portable AppImage: `OS-Readiness-Checker-Linux-x86_64.AppImage` (x86-64; make it executable with `chmod +x`, then run it)
 - Windows CLI: `OS-Readiness-Checker-CLI-Windows-x64.exe`
 - Linux CLI: `OS-Readiness-Checker-CLI-Linux-x64`
 
 The packaged versions include the requirements database and do not require Python to be installed.
+
+To run the Linux AppImage, download it, make it executable, and launch it:
+
+```text
+chmod +x OS-Readiness-Checker-Linux-x86_64.AppImage
+./OS-Readiness-Checker-Linux-x86_64.AppImage
+```
+
+The existing standalone Linux GUI and CLI artifacts remain available separately. The AppImage is GUI-focused; use the separate Linux CLI artifact for command-line scans. Python is not required for either packaged Linux GUI format.
 
 ## Run from source or build
 
@@ -62,6 +72,7 @@ python -m PyInstaller --noconfirm --clean os_readiness_checker.spec
 ```
 
 GitHub Actions builds separate native Windows and Linux binaries and publishes them as release assets for version tags.
+The Linux workflow also builds and validates the x86-64 AppImage as a downloadable workflow artifact. It includes the packaged requirements database and English/Italian localization resources; settings and requirements caches remain in the normal per-user Linux locations outside the AppImage.
 
 The app scans the computer once and opens a compatibility overview for every supported OS. Each result has an authoritative Pass, Review, or Fail status plus a supplementary 0–100 hardware compatibility score; ranking is based only on those detected hardware checks. Select an OS for its individual details, or use **Compare OSes** for a side-by-side view without another scan. Select an individual check to see a concise explanation and safe next steps. Use **Save report**, **Save HTML**, or **Copy results** to share the results.
 
