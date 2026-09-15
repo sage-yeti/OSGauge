@@ -15,7 +15,8 @@ from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
 from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, plain_text_comparison
-from localization import resolve_language, status_label, suitability_explanation, suitability_label, t
+from localization import recommendation_match_label, resolve_language, status_label, suitability_explanation, suitability_label, t
+from recommendation import recommend, primary_recommendations, PREFERENCES, PREFERENCE_LABELS
 
 
 def _key(value: str) -> str:
@@ -69,11 +70,42 @@ def main(argv=None) -> int:
     parser.add_argument("--compare", nargs=2, metavar=("MACHINE_A", "MACHINE_B"), help="compare two profiles, or use 'local' for this computer")
     parser.add_argument("--export-profile", type=Path, help="scan this computer once and save a machine profile")
     parser.add_argument("--lang", choices=("en", "it", "es", "de", "fr"), default="en", help="language for human-readable output")
+    parser.add_argument("--recommend", action="store_true", help="rank operating systems for selected priorities")
+    parser.add_argument("--prefer", action="append", default=[], metavar="KEY=0|1|2", help="recommendation priority (repeatable)")
     args = parser.parse_args(argv)
     try:
         info = load_requirements_info()
         requirements = info.profiles
         language = resolve_language(args.lang)
+        if args.recommend:
+            preferences = {}
+            for value in args.prefer:
+                key, _, weight = value.partition("=")
+                if key in PREFERENCES:
+                    try:
+                        preferences[key] = max(0, min(2, int(weight)))
+                    except ValueError:
+                        pass
+            machine = import_profile(args.profile)[0] if args.profile else collect_machine_info()
+            all_checks = evaluate_all(machine, requirements)
+            suits = {name: suitability_dict(assess_suitability(machine, requirements[name], all_checks[name])) for name in requirements}
+            readiness = {name: evaluate_installation_readiness(machine, requirements[name], all_checks[name]) for name in requirements}
+            recommendations = recommend(requirements, all_checks, suits, readiness, preferences)
+            payload = {"machine": asdict(machine), "preferences": preferences, "recommendations": recommendations}
+            if args.json:
+                text = json.dumps(payload, indent=2)
+            else:
+                lines = ["Best matches for your selected priorities:"]
+                for item in primary_recommendations(recommendations)[:5]:
+                    lines.append(f"{item['name']} — {recommendation_match_label(item['preference_match_category'], language)} ({item['preference_score']}/100), {item['compatibility_status'].upper()}")
+                if not primary_recommendations(recommendations):
+                    lines.append("No fully compatible recommendation is currently available.")
+                text = "\n".join(lines)
+            if args.output:
+                args.output.write_text(text + "\n", encoding="utf-8")
+            else:
+                print(text)
+            return 0
         if args.compare:
             machines = []
             metadata = []

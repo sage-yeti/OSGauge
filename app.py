@@ -28,7 +28,8 @@ from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
 from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
-from localization import LANGUAGES, resolve_language, status_label, t
+from localization import LANGUAGES, preference_label, recommendation_match_label, resolve_language, status_label, t
+from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -131,6 +132,8 @@ class ReadinessApp(tk.Tk):
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
         self.overview_button.pack(side="right", padx=(0, 8))
+        self.recommend_button = ttk.Button(controls, text="Recommend an OS", command=self.show_recommendations, style="Secondary.TButton")
+        self.recommend_button.pack(side="right", padx=(0, 8))
         self.update_button = ttk.Button(controls, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton")
         self.update_button.pack(side="right", padx=(0, 8))
         self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
@@ -241,6 +244,7 @@ class ReadinessApp(tk.Tk):
         self.about_button.config(text=t("action.about", self.language))
         self.check_button.config(text=t("action.scan", self.language))
         self.overview_button.config(text=t("action.overview", self.language))
+        self.recommend_button.config(text=t("recommend.action", self.language))
         self.update_button.config(text=t("action.updates", self.language))
         self.import_button.config(text=t("action.import_profile", self.language))
         self.export_button.config(text=t("action.export_profile", self.language))
@@ -277,6 +281,49 @@ class ReadinessApp(tk.Tk):
         ttk.Button(actions, text="Check updates", command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
         ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
         window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
+
+    def show_recommendations(self) -> None:
+        if not self.machine or not self.all_results:
+            messagebox.showinfo("Recommend an OS", "Run a scan first so recommendations can use the current machine.")
+            return
+        window = tk.Toplevel(self)
+        window.title(t("recommend.title", self.language))
+        window.geometry("620x560")
+        window.configure(bg=UI["background"])
+        card = tk.Frame(window, bg=UI["surface"], padx=18, pady=16, highlightbackground=UI["border"], highlightthickness=1)
+        card.pack(fill="both", expand=True, padx=18, pady=18)
+        tk.Label(card, text=t("recommend.prompt", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold"), wraplength=550, justify="left").pack(anchor="w")
+        vars_by_key = {key: tk.IntVar(value=int(self.settings.get("preferences", {}).get(key, 0))) for key in PREFERENCES}
+        choices = tk.Frame(card, bg=UI["surface"])
+        choices.pack(fill="x", pady=(12, 8))
+        for key in PREFERENCES:
+            row = tk.Frame(choices, bg=UI["surface"])
+            row.pack(fill="x", pady=1)
+            tk.Label(row, text=preference_label(key, self.language), bg=UI["surface"], fg=UI["text"], width=34, anchor="w", font=(self.font, 9)).pack(side="left")
+            for value, label in ((0, "—"), (1, "Somewhat"), (2, "Important")):
+                tk.Radiobutton(row, text=label, value=value, variable=vars_by_key[key], bg=UI["surface"], fg=UI["text"], activebackground=UI["surface"], selectcolor=UI["background"], font=(self.font, 8)).pack(side="left")
+        output = tk.Label(card, text="", bg=UI["surface"], fg=UI["muted"], justify="left", anchor="nw", wraplength=550, font=(self.font, 9))
+        output.pack(fill="both", expand=True, pady=(8, 8))
+        def analyze() -> None:
+            preferences = {key: var.get() for key, var in vars_by_key.items()}
+            self.settings["preferences"] = preferences
+            save_settings(self.settings)
+            suits = {name: self.suitability_by_os.get(name) for name in self.requirements}
+            readiness = {name: evaluate_installation_readiness(self.machine, self.requirements[name], self.all_results[name]) for name in self.requirements}
+            ranked = recommend(self.requirements, self.all_results, suits, readiness, preferences)
+            primary = primary_recommendations(ranked)[:5]
+            lines = [t("recommend.disclaimer", self.language), ""]
+            if not primary:
+                lines.append(t("recommend.none", self.language))
+            for item in primary:
+                lines.append(f"{item['name']} — {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)")
+                if item["strengths"]:
+                    lines.append("  " + t("recommend.strengths", self.language) + ": " + ", ".join(item["strengths"]))
+                if item["tradeoffs"]:
+                    lines.append("  " + t("recommend.tradeoffs", self.language) + ": " + ", ".join(item["tradeoffs"]))
+            output.config(text="\n".join(lines))
+        ttk.Button(card, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
 
     def _apply_theme(self, widget) -> None:
