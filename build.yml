@@ -92,3 +92,25 @@ jobs:
         with:
           name: OS-Readiness-Checker-Linux-x86_64.AppImage
           path: dist/OS-Readiness-Checker-Linux-x86_64.AppImage
+
+  flatpak:
+    name: Validate Flatpak package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.gnome.Sdk//46 org.gnome.Platform//46
+      - name: Build and validate bundle
+        run: |
+          flatpak-builder --user --force-clean --repo=repo build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml
+          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sage-yeti.OSReadinessChecker
+          test -s OS-Readiness-Checker-Linux-x86_64.flatpak
+          python -m unittest -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OS-Readiness-Checker-Linux-x86_64.flatpak
+          path: OS-Readiness-Checker-Linux-x86_64.flatpak

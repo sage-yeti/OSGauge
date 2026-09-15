@@ -159,6 +159,10 @@ def _linux_cpu() -> tuple[str, float | None]:
 
 def _linux_details() -> dict[str, Any]:
     details: dict[str, Any] = {}
+    # Flatpak cannot reliably see the host's block devices or PCI inventory.
+    # Keep CPU information, but leave host-only fields unknown rather than reading sandbox paths.
+    if os.environ.get("FLATPAK_ID"):
+        return details
     try:
         text = Path("/proc/cpuinfo").read_text(errors="ignore")
         vendor = re.search(r"vendor_id\s*:\s*(.+)", text)
@@ -201,9 +205,15 @@ def _linux_details() -> dict[str, Any]:
 
 
 def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
-    root = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
-    disk = shutil.disk_usage(root)
+    disk = None
+    if not os.environ.get("FLATPAK_ID"):
+        root = Path(os.environ.get("SystemDrive", "C:") + "\\") if sys.platform == "win32" else Path("/")
+        try:
+            disk = shutil.disk_usage(root)
+        except OSError:
+            disk = None
     details: dict[str, Any] = {}
+    tpm_version = None
     if sys.platform == "win32":
         details.update(_windows_native_fallback())
         details.update({key: value for key, value in _windows_details().items() if value is not None})
@@ -234,8 +244,8 @@ def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
         cpu_cores=int(details.get("Cores") or os.cpu_count() or 0) or None,
         cpu_ghz=cpu_ghz,
         ram_gb=ram_gb,
-        storage_total_gb=disk.total / 1024**3,
-        storage_free_gb=disk.free / 1024**3,
+        storage_total_gb=disk.total / 1024**3 if disk else None,
+        storage_free_gb=disk.free / 1024**3 if disk else None,
         uefi=details.get("Uefi") if "Uefi" in details else None,
         secure_boot=details.get("SecureBoot") if isinstance(details.get("SecureBoot"), bool) else None,
         tpm_version=tpm_version,
