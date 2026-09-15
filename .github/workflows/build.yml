@@ -32,6 +32,7 @@ jobs:
             artifact_name: OS-Readiness-Checker-CLI-Linux-x64
             executable: OS-Readiness-Checker-CLI
             spec: os_readiness_checker_cli.spec
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,10 +45,36 @@ jobs:
       - name: Rename binary
         shell: bash
         run: mv "dist/${{ matrix.executable }}" "dist/${{ matrix.artifact_name }}"
+      - name: Smoke test CLI artifact
+        if: contains(matrix.artifact_name, 'CLI')
+        shell: bash
+        run: |
+          chmod +x "dist/${{ matrix.artifact_name }}" || true
+          "dist/${{ matrix.artifact_name }}" --version
+          "dist/${{ matrix.artifact_name }}" --help >/dev/null
+          "dist/${{ matrix.artifact_name }}" --list >/dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/${{ matrix.artifact_name }}
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, appimage]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
+      - name: Generate SHA-256 checksums
+        run: find release-assets -type f -exec sha256sum {} + | sed -E 's#release-assets/[^/]*/##' > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: SHA256SUMS.txt
 
   appimage:
     name: Build Linux AppImage
@@ -74,20 +101,24 @@ jobs:
           name: OS-Readiness-Checker-Linux-x86_64.AppImage
           path: dist/OS-Readiness-Checker-Linux-x86_64.AppImage
 
-  release:
-    name: Publish GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, appimage]
+  flatpak:
+    name: Validate Flatpak package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.gnome.Sdk//46 org.gnome.Platform//46
+      - name: Build and validate bundle
+        run: |
+          flatpak-builder --user --force-clean --repo=repo build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml
+          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sage-yeti.OSReadinessChecker
+          test -s OS-Readiness-Checker-Linux-x86_64.flatpak
+          python -m unittest -q
+      - uses: actions/upload-artifact@v4
         with:
-          path: release-assets
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/**
-      - name: Generate SHA-256 checksums
-        run: find release-assets -type f -exec sha256sum {} + | sed -E 's#release-assets/[^/]*/##' > SHA256SUMS.txt
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: SHA256SUMS.txt
+          name: OS-Readiness-Checker-Linux-x86_64.flatpak
+          path: OS-Readiness-Checker-Linux-x86_64.flatpak
