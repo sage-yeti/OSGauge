@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 THEMES = {
-    "Light": {"background": "#f5f7fb", "surface": "#ffffff", "border": "#dfe5ef", "text": "#1f2937", "muted": "#64748b", "accent": "#2563eb", "accent_dark": "#1d4ed8", "heading": "#f8fafc"},
-    "Dark": {"background": "#111827", "surface": "#1f2937", "border": "#374151", "text": "#f3f4f6", "muted": "#cbd5e1", "accent": "#60a5fa", "accent_dark": "#3b82f6", "heading": "#273449"},
+    "Light": {"background": "#f5f7fb", "surface": "#ffffff", "elevated": "#ffffff", "border": "#dfe5ef", "subtle_border": "#e8edf5", "text": "#1f2937", "muted": "#64748b", "accent": "#2563eb", "accent_dark": "#1d4ed8", "heading": "#f8fafc"},
+    "Dark": {"background": "#111827", "surface": "#1f2937", "elevated": "#243247", "border": "#374151", "subtle_border": "#2d3a4d", "text": "#f3f4f6", "muted": "#cbd5e1", "accent": "#60a5fa", "accent_dark": "#3b82f6", "heading": "#273449"},
 }
 
 

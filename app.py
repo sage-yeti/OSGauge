@@ -30,6 +30,7 @@ from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, preference_label, recommendation_match_label, resolve_language, status_label, t
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
+from ui_foundation import FluentCard, NAV_DESTINATIONS, configure_styles, tokens_for
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -58,6 +59,7 @@ class ReadinessApp(tk.Tk):
         self.title(f"{t('app.title', self.language)} {APP_VERSION}")
         self.theme_mode = load_theme_mode()
         UI.update(colors_for(self.theme_mode))
+        self.ui_tokens = tokens_for(UI)
         self.requirements_info = load_requirements_info()
         self.requirements = self.requirements_info.profiles
         self.machine = None
@@ -81,20 +83,30 @@ class ReadinessApp(tk.Tk):
         style = ttk.Style(self)
         self.style = style
         self.font = font
-        style.theme_use("clam")
-        style.configure("Fluent.TCombobox", padding=8, fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], font=(font, 10), selectbackground=UI["accent"], selectforeground="white")
-        style.map("Fluent.TCombobox", fieldbackground=[("readonly", UI["surface"]), ("focus", UI["surface"]), ("active", UI["surface"])], foreground=[("readonly", UI["text"]), ("focus", UI["text"]), ("active", UI["text"])])
-        style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=UI["accent"])
-        style.map("Accent.TButton", background=[("active", UI["accent_dark"]), ("pressed", UI["accent_dark"])])
-        style.configure("Secondary.TButton", padding=(12, 8), font=(font, 9), foreground=UI["text"], background=UI["surface"])
-        style.map("Secondary.TButton", background=[("active", UI["heading"]), ("pressed", UI["heading"])])
-        style.configure("Fluent.Treeview", rowheight=36, font=(font, 10), background=UI["surface"], fieldbackground=UI["surface"], foreground=UI["text"], borderwidth=0)
-        style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background=UI["heading"], foreground=UI["muted"], relief="flat", padding=(8, 9))
-        style.map("Fluent.Treeview", background=[("selected", UI["accent"])], foreground=[("selected", "white")])
-        style.map("Fluent.Treeview.Heading", background=[("active", UI["heading"]), ("pressed", UI["heading"])], foreground=[("active", UI["text"]), ("pressed", UI["text"])])
+        configure_styles(style, UI, font)
 
         self.configure(bg=UI["background"])
-        header = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
+        shell = tk.Frame(self, bg=UI["background"])
+        shell._ui_role = "root"
+        shell.pack(fill="both", expand=True)
+        self.nav = tk.Frame(shell, bg=UI["surface"], width=190, padx=12, pady=18, highlightbackground=UI["subtle_border"], highlightthickness=1)
+        self.nav._ui_role = "nav"
+        self.nav.pack(side="left", fill="y")
+        self.nav.pack_propagate(False)
+        tk.Label(self.nav, text="OS Readiness", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold")).pack(anchor="w", padx=8, pady=(0, 16))
+        self.nav_buttons = {}
+        nav_labels = {"overview": "nav.overview", "analysis": "nav.analysis", "compare_os": "nav.compare_os", "compare_machines": "nav.compare_machines", "upgrade": "nav.upgrade", "recommendations": "nav.recommendations", "reports": "nav.reports", "settings": "nav.settings", "about": "nav.about"}
+        for page in NAV_DESTINATIONS:
+            button = tk.Button(self.nav, text=t(nav_labels[page], self.language), command=lambda p=page: self._navigate(p), anchor="w", relief="flat", bd=0, padx=10, pady=7, bg=UI["surface"], fg=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"], font=(font, 9), cursor="hand2")
+            button.pack(fill="x", pady=1)
+            self.nav_buttons[page] = button
+            if page == "settings":
+                tk.Frame(self.nav, bg=UI["subtle_border"], height=1).pack(fill="x", pady=8)
+        workspace = tk.Frame(shell, bg=UI["background"])
+        workspace._ui_role = "workspace"
+        workspace.pack(side="left", fill="both", expand=True)
+        header = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
+        header._ui_role = "workspace"
         header.pack(fill="x")
         tk.Label(header, text=t("app.title", self.language), bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
         self.subtitle_label = tk.Label(header, text=t("app.subtitle", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 10))
@@ -117,7 +129,8 @@ class ReadinessApp(tk.Tk):
         self.about_button = ttk.Button(theme_box, text=t("action.about", self.language), command=self.show_about, style="Secondary.TButton")
         self.about_button.pack(side="left", padx=(8, 0))
 
-        body = tk.Frame(self, bg=UI["background"], padx=28, pady=24)
+        body = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
+        body._ui_role = "workspace"
         body.pack(fill="both", expand=True)
         controls = tk.Frame(body, bg=UI["surface"], padx=18, pady=16, highlightbackground=UI["border"], highlightthickness=1)
         controls.pack(fill="x", pady=(0, 14))
@@ -139,6 +152,7 @@ class ReadinessApp(tk.Tk):
         self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
         self.update_status.pack(side="right", padx=(0, 10))
         profile_actions = tk.Frame(body, bg=UI["background"])
+        profile_actions._ui_role = "workspace"
         profile_actions.pack(fill="x", pady=(0, 10))
         self.import_button = ttk.Button(profile_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton")
         self.import_button.pack(side="left")
@@ -149,7 +163,7 @@ class ReadinessApp(tk.Tk):
         self.source_status = tk.Label(profile_actions, text=f"{t('label.machine_source', self.language)}: {t('profile.source_local', self.language)}", bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.source_status.pack(side="right")
 
-        summary_card = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
+        summary_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
         summary_card.pack(fill="x", pady=(0, 14))
         self.status_badge = tk.Label(summary_card, text="  SCANNING  ", bg="#e2e8f0", fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
         self.status_badge.pack(side="left", padx=(0, 12))
@@ -191,6 +205,35 @@ class ReadinessApp(tk.Tk):
         self.plan_button = ttk.Button(footer, text=t("action.upgrade_plan", self.language), command=self.show_upgrade_plan, style="Secondary.TButton", state="disabled")
         self.plan_button.pack(side="right", padx=(8, 0))
         self._apply_theme(self)
+        self._set_active_nav("overview")
+
+    def _set_active_nav(self, page: str) -> None:
+        self.active_page = page
+        for key, button in self.nav_buttons.items():
+            active = key == page
+            button.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], font=(self.font, 9, "bold" if active else "normal"))
+
+    def _navigate(self, page: str) -> None:
+        """Route to existing views without rescanning or changing machine state."""
+        self._set_active_nav(page)
+        if page == "overview":
+            self.show_overview()
+        elif page == "analysis":
+            self.show_detail()
+        elif page == "compare_os":
+            self.show_compare()
+        elif page == "compare_machines":
+            self.show_machine_compare()
+        elif page == "upgrade":
+            self.show_upgrade_plan()
+        elif page == "recommendations":
+            self.show_recommendations()
+        elif page == "reports":
+            self.save_report()
+        elif page == "settings":
+            self.theme_choice.focus_set()
+        elif page == "about":
+            self.show_about()
 
     def _restore_window(self) -> None:
         try:
@@ -231,6 +274,7 @@ class ReadinessApp(tk.Tk):
         self.theme_mode = next((value for value in ("System", "Light", "Dark") if selected == t(f"theme.{value.lower()}", self.language)), "System")
         save_theme_mode(self.theme_mode)
         UI.update(colors_for(self.theme_mode))
+        self.ui_tokens = tokens_for(UI)
         self._apply_theme(self)
 
     def change_language(self) -> None:
@@ -260,6 +304,9 @@ class ReadinessApp(tk.Tk):
         self.theme_label.config(text=t("label.theme", self.language))
         self.language_label.config(text=t("label.language", self.language))
         self.os_label.config(text=t("label.operating_system", self.language))
+        nav_labels = {"overview": "nav.overview", "analysis": "nav.analysis", "compare_os": "nav.compare_os", "compare_machines": "nav.compare_machines", "upgrade": "nav.upgrade", "recommendations": "nav.recommendations", "reports": "nav.reports", "settings": "nav.settings", "about": "nav.about"}
+        for page, button in self.nav_buttons.items():
+            button.config(text=t(nav_labels[page], self.language))
         for column, key in (("#0", "label.check"), ("result", "label.result"), ("detected", "label.detected"), ("required", "label.required")):
             self.table.heading(column, text=t(key, self.language))
         if self.machine and self.choice.get() in self.all_results:
@@ -331,21 +378,21 @@ class ReadinessApp(tk.Tk):
             if isinstance(widget, tk.Toplevel):
                 widget.configure(bg=UI["background"])
             elif isinstance(widget, tk.Frame):
-                widget.configure(bg=UI["background"] if widget is self else UI["surface"])
+                role = getattr(widget, "_ui_role", "surface")
+                widget.configure(bg=UI["background"] if role in {"root", "workspace", "nav"} else UI["surface"])
+                if isinstance(widget, FluentCard):
+                    widget.configure(bg=UI["surface"], highlightbackground=UI.get("subtle_border", UI["border"]))
             elif isinstance(widget, tk.Label):
-                widget.configure(bg=UI["surface"] if widget.master is not self else UI["background"], fg=UI["text"])
+                parent_role = getattr(widget.master, "_ui_role", "surface")
+                widget.configure(bg=UI["background"] if parent_role == "workspace" else UI["surface"], fg=UI["text"])
+            elif isinstance(widget, tk.Button) and widget.master is self.nav:
+                active = getattr(self, "active_page", "overview") == next((key for key, value in self.nav_buttons.items() if value is widget), "")
+                widget.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
         except tk.TclError:
             pass
         for child in widget.winfo_children():
             self._apply_theme(child)
-        self.style.configure("Fluent.TCombobox", fieldbackground=UI["surface"], background=UI["surface"], foreground=UI["text"], selectbackground=UI["accent"], selectforeground="white")
-        self.style.map("Fluent.TCombobox", fieldbackground=[("readonly", UI["surface"]), ("focus", UI["surface"]), ("active", UI["surface"])], foreground=[("readonly", UI["text"]), ("focus", UI["text"]), ("active", UI["text"])])
-        self.style.configure("Secondary.TButton", foreground=UI["text"], background=UI["surface"])
-        self.style.map("Secondary.TButton", background=[("active", UI["heading"]), ("pressed", UI["heading"])])
-        self.style.configure("Fluent.Treeview", background=UI["surface"], fieldbackground=UI["surface"], foreground=UI["text"])
-        self.style.map("Fluent.Treeview", background=[("selected", UI["accent"])], foreground=[("selected", "white")])
-        self.style.configure("Fluent.Treeview.Heading", background=UI["heading"], foreground=UI["muted"])
-        self.style.map("Fluent.Treeview.Heading", background=[("active", UI["heading"]), ("pressed", UI["heading"])], foreground=[("active", UI["text"]), ("pressed", UI["text"])])
+        configure_styles(self.style, UI, self.font)
         self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
         self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
         self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
