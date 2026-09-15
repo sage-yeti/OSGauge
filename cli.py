@@ -13,6 +13,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import profile_metadata, resolve_profile, lifecycle_status
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from upgrade_planner import build_upgrade_plan
 from machine_comparison import compare_machines, plain_text_comparison
 from localization import resolve_language, status_label, suitability_explanation, suitability_label, t
 
@@ -32,7 +33,7 @@ def _find_target(value: str, requirements: dict) -> str | None:
     return next((name for name in requirements if _key(name).startswith(wanted)), None)
 
 
-def _payload(machine, requirements, names, verbose: bool, data_version: int, profile_info=None) -> dict:
+def _payload(machine, requirements, names, verbose: bool, data_version: int, profile_info=None, upgrade_plan: bool = False) -> dict:
     results = evaluate_all(machine, requirements)
     suitability = {name: suitability_dict(assess_suitability(machine, requirements[name], results[name])) for name in names}
     ranked = rank_compatibility({name: results[name] for name in names}, suitability)
@@ -42,6 +43,8 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int, pro
         metadata["support_status"] = lifecycle_status(requirements[item["name"]])
         readiness = evaluate_installation_readiness(machine, requirements[item["name"]], results[item["name"]])
         entry = {"name": item["name"], "status": item["status"], "score": item["score"], "suitability": item["suitability"], "installation_readiness": readiness, **metadata}
+        if upgrade_plan:
+            entry["upgrade_plan"] = build_upgrade_plan(machine, requirements[item["name"]], results[item["name"]], item["suitability"], readiness, metadata)
         if verbose:
             entry["checks"] = [{**asdict(check), **explain_check(machine, requirements[item["name"]], check)} for check in results[item["name"]]]
         output.append(entry)
@@ -60,6 +63,7 @@ def main(argv=None) -> int:
     parser.add_argument("--check", metavar="OS", help="check one operating system")
     parser.add_argument("--json", action="store_true", help="emit JSON")
     parser.add_argument("--verbose", action="store_true", help="include detected and required check details")
+    parser.add_argument("--upgrade-plan", action="store_true", help="include a read-only upgrade plan for the selected OS")
     parser.add_argument("--output", type=Path, help="write output to a file")
     parser.add_argument("--profile", type=Path, help="analyze an exported .osrprofile instead of scanning this computer")
     parser.add_argument("--compare", nargs=2, metavar=("MACHINE_A", "MACHINE_B"), help="compare two profiles, or use 'local' for this computer")
@@ -119,7 +123,7 @@ def main(argv=None) -> int:
             machine = collect_machine_info()
             if args.export_profile:
                 export_profile(machine, args.export_profile, data_version=info.data_version)
-        payload = _payload(machine, requirements, names, args.verbose, info.data_version, profile_metadata)
+        payload = _payload(machine, requirements, names, args.verbose, info.data_version, profile_metadata, args.upgrade_plan)
         if args.json:
             text = json.dumps(payload, indent=2)
         else:
@@ -131,6 +135,11 @@ def main(argv=None) -> int:
                     lines.append(f"  {t('label.suitability', language)}: {suitability_explanation(item['suitability']['category'], item['suitability']['explanation'], language)}")
                     for check in item["checks"]:
                         lines.append(f"  {check['name']}: {check['status']} ({check['detected']} / {check['required']})")
+                if args.upgrade_plan:
+                    lines.append(f"  Upgrade plan: {item['upgrade_plan']['overall_summary']}")
+                    for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items", "optional_improvements"):
+                        for plan_item in item["upgrade_plan"][key]:
+                            lines.append(f"    - {plan_item['check']}: {plan_item['current']} / {plan_item['target']}")
             text = "\n".join(lines)
             if profile_metadata:
                 text = f"Machine source: Imported profile (captured {profile_metadata.get('created_at', 'unknown')})\n" + text

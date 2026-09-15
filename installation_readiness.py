@@ -31,11 +31,15 @@ def evaluate_installation_readiness(machine: MachineInfo, requirements: dict[str
     checks.append(_result("Architecture", machine.architecture, " or ".join(allowed), machine.architecture.upper() in allowed,
                           "The installer must support the detected processor architecture.",
                           "This processor architecture cannot be changed by a software setting."))
-    if machine.storage_free_gb is None:
+    required = requirements.get("storage_gb")
+    if not isinstance(required, (int, float)) or isinstance(required, bool) or required <= 0:
+        required = None
+    if required is None:
+        pass
+    elif machine.storage_free_gb is None:
         checks.append(_result("Free storage", "Unknown", f"At least {requirements.get('storage_gb', 0):g} GB", None,
                               "Available installation space could not be verified.", "Check free space on the system disk manually."))
     else:
-        required = requirements.get("storage_gb", 0)
         checks.append(_result("Free storage", f"{machine.storage_free_gb:.1f} GB available", f"At least {required:g} GB",
                               machine.storage_free_gb >= required, "The installer needs enough free space for this profile.",
                               f"Free at least {max(0, required - machine.storage_free_gb):.1f} GB on the system disk."))

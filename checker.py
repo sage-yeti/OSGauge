@@ -245,7 +245,9 @@ def collect_machine_info(screen: tuple[int, int] | None = None) -> MachineInfo:
     )
 
 
-def _numeric(name: str, actual: float | int | None, required: float | int, unit: str) -> CheckResult:
+def _numeric(name: str, actual: float | int | None, required: float | int | None, unit: str) -> CheckResult:
+    if isinstance(required, bool) or not isinstance(required, (int, float)):
+        return CheckResult(name, "unknown", "Not specified", "Not specified")
     if actual is None:
         return CheckResult(name, "unknown", "Could not detect", f"{required:g} {unit}")
     passed = actual >= required
@@ -254,10 +256,10 @@ def _numeric(name: str, actual: float | int | None, required: float | int, unit:
 
 def evaluate(machine: MachineInfo, requirements: dict[str, Any]) -> list[CheckResult]:
     results = [
-        _numeric("CPU cores", machine.cpu_cores, requirements["cpu_cores"], "cores"),
-        _numeric("CPU speed", machine.cpu_ghz, requirements["cpu_ghz"], "GHz"),
-        _numeric("Memory", machine.ram_gb, requirements["ram_gb"], "GB"),
-        _numeric("Free storage", machine.storage_free_gb, requirements["storage_gb"], "GB"),
+        _numeric("CPU cores", machine.cpu_cores, requirements.get("cpu_cores"), "cores"),
+        _numeric("CPU speed", machine.cpu_ghz, requirements.get("cpu_ghz"), "GHz"),
+        _numeric("Memory", machine.ram_gb, requirements.get("ram_gb"), "GB"),
+        _numeric("Free storage", machine.storage_free_gb, requirements.get("storage_gb"), "GB"),
     ]
     allowed = [a.upper() for a in requirements.get("architecture", [])]
     architecture = str(machine.architecture or "").upper()
@@ -344,7 +346,9 @@ def as_report(machine: MachineInfo, requirements: dict[str, Any]) -> dict[str, A
     metadata = profile_metadata(requirements.get("os_family", requirements.get("version", "")), requirements)
     metadata["support_status"] = lifecycle_status(requirements)
     readiness = evaluate_installation_readiness(machine, requirements, checks)
-    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched, "suitability": suitability, "lifecycle": metadata, "installation_readiness": readiness}
+    from upgrade_planner import build_upgrade_plan
+    plan = build_upgrade_plan(machine, requirements, checks, suitability, readiness, metadata)
+    return {"machine": asdict(machine), "overall": overall_status(checks), "checks": enriched, "suitability": suitability, "lifecycle": metadata, "installation_readiness": readiness, "upgrade_plan": plan}
 
 
 def explain_check(machine: MachineInfo, requirements: dict[str, Any], check: CheckResult, language: str = "en") -> dict[str, str]:
@@ -394,6 +398,11 @@ def plain_text_report(machine: MachineInfo, target_os: str, requirements: dict[s
     lines.append(f"{t('label.installation_readiness', language)}:")
     for item in report["installation_readiness"]["checks"]:
         lines.append(f"- {item['name']}: {status_label(item['status'], language).upper()} ({item['detected']} / {item['required']})")
+    plan = report["upgrade_plan"]
+    lines += ["", "Upgrade plan:", plan["overall_summary"]]
+    for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items", "optional_improvements"):
+        for item in plan[key]:
+            lines.append(f"- {item['check']}: {item['current']} / {item['target']} — {item['explanation']}")
     lines.append("")
     for item in report["checks"]:
         localized = explain_check(machine, requirements, CheckResult(**{key: item[key] for key in ("name", "status", "detected", "required", "detail")}), language)
@@ -422,4 +431,6 @@ def html_report(machine: MachineInfo, target_os: str, requirements: dict[str, An
     lifecycle = report["lifecycle"]
     readiness_rows = "".join(f"<tr class='{escape(item['status'])}'><th>{escape(item['name'])}</th><td>{escape(status_label(item['status'], language))}</td><td>{escape(item['detected'])}</td><td>{escape(item['required'])}</td></tr>" for item in report["installation_readiness"]["checks"])
     lifecycle_rows = "".join(f"<tr><th>{escape(label)}</th><td>{escape(str(value or 'Unknown'))}</td></tr>" for label, value in (("Release", lifecycle["release"]), (t("label.lifecycle", language), lifecycle["lifecycle_type"]), ("Support status", status_label(lifecycle["support_status"], language)), ("Release date", lifecycle["release_date"]), ("EOL date", lifecycle["eol_date"])))
-    return f"""<!doctype html><html lang='{escape(language)}'><head><meta charset='utf-8'><title>{escape(t('report.title', language))}</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2),.not_ready td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>{escape(t('report.title', language))}</h1><p><strong>{escape(target_os)}</strong> — {escape(t('label.compatibility', language).lower())} <strong>{escape(status_label(report['overall'], language))}</strong> — score <strong>{score}/100</strong></p><section><h2>{escape(t('report.release', language))}</h2><table>{lifecycle_rows}</table></section><section><h2>{escape(t('label.suitability', language))}</h2><p><strong>{escape(suitability_label(report['suitability']['category'], language))}</strong> — {escape(suitability_explanation(report['suitability']['category'], report['suitability']['explanation'], language))}</p></section><section><h2>{escape(t('report.readiness', language))}</h2><p><strong>{escape(status_label(report['installation_readiness']['status'], language))}</strong> — {escape(report['installation_readiness']['explanation'])}</p><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th></tr>{readiness_rows}</table></section><section><h2>{escape(t('report.machine', language))}</h2><table>{machine_rows}</table></section><section><h2>{escape(t('report.checks', language))}</h2><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th><th>{escape(t('label.explanation', language))}</th></tr>{''.join(rows)}</table></section></body></html>"""
+    plan_rows = "".join(f"<tr><th>{escape(item['check'])}</th><td>{escape(item['current'])}</td><td>{escape(item['target'])}</td><td>{escape(item['explanation'])}</td></tr>" for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items", "optional_improvements") for item in report["upgrade_plan"][key])
+    plan_section = f"<section><h2>Upgrade plan</h2><p>{escape(report['upgrade_plan']['overall_summary'])}</p><table><tr><th>Item</th><th>Current</th><th>Target</th><th>Explanation</th></tr>{plan_rows}</table></section>"
+    return f"""<!doctype html><html lang='{escape(language)}'><head><meta charset='utf-8'><title>{escape(t('report.title', language))}</title><style>body{{font:15px Segoe UI,Arial,sans-serif;color:#1f2937;background:#f5f7fb;max-width:1100px;margin:32px auto;padding:0 20px}}section{{background:#fff;border:1px solid #dfe5ef;border-radius:10px;padding:18px;margin:16px 0}}table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:9px;border-bottom:1px solid #e5e7eb;vertical-align:top}}.pass td:nth-child(2){{color:#15803d}}.fail td:nth-child(2),.not_ready td:nth-child(2){{color:#b91c1c}}.unknown td:nth-child(2){{color:#a16207}}h1{{margin-bottom:4px}}</style></head><body><h1>{escape(t('report.title', language))}</h1><p><strong>{escape(target_os)}</strong> — {escape(t('label.compatibility', language).lower())} <strong>{escape(status_label(report['overall'], language))}</strong> — score <strong>{score}/100</strong></p><section><h2>{escape(t('report.release', language))}</h2><table>{lifecycle_rows}</table></section><section><h2>{escape(t('label.suitability', language))}</h2><p><strong>{escape(suitability_label(report['suitability']['category'], language))}</strong> — {escape(suitability_explanation(report['suitability']['category'], report['suitability']['explanation'], language))}</p></section><section><h2>{escape(t('report.readiness', language))}</h2><p><strong>{escape(status_label(report['installation_readiness']['status'], language))}</strong> — {escape(report['installation_readiness']['explanation'])}</p><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th></tr>{readiness_rows}</table></section>{plan_section}<section><h2>{escape(t('report.machine', language))}</h2><table>{machine_rows}</table></section><section><h2>{escape(t('report.checks', language))}</h2><table><tr><th>{escape(t('label.check', language))}</th><th>{escape(t('label.result', language))}</th><th>{escape(t('label.detected', language))}</th><th>{escape(t('label.required', language))}</th><th>{escape(t('label.explanation', language))}</th></tr>{''.join(rows)}</table></section></body></html>"""

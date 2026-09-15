@@ -25,6 +25,7 @@ from suitability import assess_suitability, suitability_dict
 from lifecycle import lifecycle_status, profile_metadata
 from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
+from upgrade_planner import build_upgrade_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, resolve_language, status_label, t
 
@@ -183,6 +184,8 @@ class ReadinessApp(tk.Tk):
         self.copy_button.pack(side="right", padx=(8, 0))
         self.compare_button = ttk.Button(footer, text=t("action.compare", self.language), command=self.show_compare, style="Secondary.TButton", state="disabled")
         self.compare_button.pack(side="right", padx=(8, 0))
+        self.plan_button = ttk.Button(footer, text=t("action.upgrade_plan", self.language), command=self.show_upgrade_plan, style="Secondary.TButton", state="disabled")
+        self.plan_button.pack(side="right", padx=(8, 0))
         self._apply_theme(self)
 
     def _restore_window(self) -> None:
@@ -246,6 +249,7 @@ class ReadinessApp(tk.Tk):
         self.html_button.config(text=t("action.save_html", self.language))
         self.copy_button.config(text=t("action.copy_results", self.language))
         self.compare_button.config(text=t("action.compare", self.language))
+        self.plan_button.config(text=t("action.upgrade_plan", self.language))
         self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t('profile.source_imported' if self.machine_source == 'Imported profile' else 'profile.source_local', self.language)}")
         self.subtitle_label.config(text=t("app.subtitle", self.language))
         self.theme_label.config(text=t("label.theme", self.language))
@@ -367,6 +371,7 @@ class ReadinessApp(tk.Tk):
         self.check_button.config(state="normal")
         self.scan_in_progress = False
         self.compare_button.config(state="normal")
+        self.plan_button.config(state="normal")
         self.machine_compare_button.config(state="normal")
 
     def show_overview(self) -> None:
@@ -462,6 +467,45 @@ class ReadinessApp(tk.Tk):
         left.bind("<<ComboboxSelected>>", refresh)
         right.bind("<<ComboboxSelected>>", refresh)
         refresh()
+
+    def show_upgrade_plan(self) -> None:
+        if not self.machine or self.choice.get() not in self.all_results:
+            return
+        name = self.choice.get()
+        results = self.all_results[name]
+        suitability = suitability_dict(assess_suitability(self.machine, self.requirements[name], results))
+        readiness = evaluate_installation_readiness(self.machine, self.requirements[name], results)
+        lifecycle = profile_metadata(name, self.requirements[name])
+        lifecycle["support_status"] = lifecycle_status(self.requirements[name])
+        plan = build_upgrade_plan(self.machine, self.requirements[name], results, suitability, readiness, lifecycle)
+        window = tk.Toplevel(self)
+        window.title(t("action.upgrade_plan", self.language))
+        window.geometry("720x560")
+        window.configure(bg=UI["background"])
+        card = tk.Frame(window, bg=UI["surface"], padx=20, pady=18, highlightbackground=UI["border"], highlightthickness=1)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+        tk.Label(card, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
+        tk.Label(card, text=plan["overall_summary"], bg=UI["surface"], fg=UI["muted"], font=(self.font, 10), wraplength=650, justify="left").pack(anchor="w", pady=(6, 12))
+        text = tk.Text(card, height=20, wrap="word", relief="flat", bg=UI["surface"], fg=UI["text"], font=(self.font, 10), padx=4, pady=4)
+        text.pack(fill="both", expand=True)
+        section_names = {"required_hardware_changes": "planner.hardware", "required_configuration_changes": "planner.configuration", "storage_actions": "planner.storage", "unresolved_items": "planner.unresolved", "optional_improvements": "planner.optional", "already_satisfied": "planner.satisfied"}
+        for key, label_key in section_names.items():
+            items = plan[key]
+            if not items:
+                continue
+            text.insert("end", t(label_key, self.language) + "\n", "heading")
+            for item in items:
+                if key == "already_satisfied":
+                    text.insert("end", f"• {item['check']}: {item['current']} / {item['target']}\n")
+                else:
+                    gap = f"; {t('planner.gap', self.language)} {item['gap']}" if item.get("gap") else ""
+                    text.insert("end", f"• {item['check']}: {item['current']} / {item['target']}{gap}\n  {item['explanation']}\n")
+        if plan["lifecycle_warning"]:
+            text.insert("end", f"\n{t('planner.lifecycle', self.language)}: {plan['lifecycle_warning']}\n")
+        text.configure(state="disabled")
+        ttk.Button(card, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(12, 0))
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
 
     def show_machine_compare(self) -> None:
         if not self.machine:
