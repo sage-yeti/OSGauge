@@ -34,6 +34,12 @@ class CheckerTests(unittest.TestCase):
     def test_unknown_data_needs_review(self):
         self.assertEqual(overall_status(evaluate(self.machine(cpu_ghz=None), REQ)), "review")
 
+    def test_unknown_architecture_needs_review(self):
+        results = evaluate(self.machine(architecture="Unknown"), REQ)
+        architecture = next(item for item in results if item.name == "Architecture")
+        self.assertEqual(architecture.status, "unknown")
+        self.assertEqual(overall_status(results), "review")
+
     def test_new_target_definitions_use_generic_evaluator(self):
         requirements = load_requirements(Path(__file__).with_name("requirements.json"))
         targets = {

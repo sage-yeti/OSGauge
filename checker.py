@@ -260,8 +260,14 @@ def evaluate(machine: MachineInfo, requirements: dict[str, Any]) -> list[CheckRe
         _numeric("Free storage", machine.storage_free_gb, requirements["storage_gb"], "GB"),
     ]
     allowed = [a.upper() for a in requirements.get("architecture", [])]
-    arch_pass = machine.architecture in allowed
-    results.append(CheckResult("Architecture", "pass" if arch_pass else "fail", machine.architecture, " or ".join(allowed)))
+    architecture = str(machine.architecture or "").upper()
+    if architecture in {"", "UNKNOWN", "N/A", "UNAVAILABLE"}:
+        arch_status = "unknown"
+        detected_architecture = "Could not detect"
+    else:
+        arch_status = "pass" if architecture in allowed else "fail"
+        detected_architecture = machine.architecture
+    results.append(CheckResult("Architecture", arch_status, detected_architecture, " or ".join(allowed)))
 
     for key, label in (("uefi", "UEFI firmware"), ("secure_boot", "Secure Boot")):
         if key in requirements:

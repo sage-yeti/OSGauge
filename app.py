@@ -402,12 +402,6 @@ class ReadinessApp(tk.Tk):
         gpu = self.machine.gpu_name or "Unknown"
         if self.machine.gpu_vram_mb:
             gpu += f" ({self.machine.gpu_vram_mb} MB VRAM)"
-        machine_details = [
-            f"CPU: {self.machine.cpu_name}",
-            f"GPU: {gpu}",
-            f"System disk: {self.machine.system_disk or 'Unknown'} ({self.machine.storage_partition_style or 'Unknown'} / {self.machine.storage_filesystem or 'Unknown'})",
-            f"Virtualization: {self.machine.virtualization or 'Unknown'}",
-        ]
         lifecycle_line = f"Release: {lifecycle['release']} • {t('label.lifecycle', self.language)}: {lifecycle['lifecycle_type']} • Status: {status_label(lifecycle['support_status'], self.language)}"
         readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness['explanation']}"
         readiness_items = [f"  {status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
