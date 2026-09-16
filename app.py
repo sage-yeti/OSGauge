@@ -98,8 +98,10 @@ class ReadinessApp(tk.Tk):
         self.nav_buttons = {}
         nav_labels = {"overview": "nav.overview", "analysis": "nav.analysis", "compare_os": "nav.compare_os", "compare_machines": "nav.compare_machines", "upgrade": "nav.upgrade", "recommendations": "nav.recommendations", "reports": "nav.reports", "settings": "nav.settings", "about": "nav.about"}
         for page in NAV_DESTINATIONS:
-            button = tk.Button(self.nav, text=t(nav_labels[page], self.language), command=lambda p=page: self._navigate(p), anchor="w", relief="flat", bd=0, padx=10, pady=7, bg=UI["surface"], fg=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"], font=(font, 9), cursor="hand2")
+            button = tk.Button(self.nav, text=t(nav_labels[page], self.language), command=lambda p=page: self._navigate(p), anchor="w", relief="flat", bd=0, padx=10, pady=7, bg=UI["surface"], fg=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"], font=(font, 9), cursor="hand2", highlightthickness=2, highlightcolor=UI["accent"], highlightbackground=UI["surface"])
             button.pack(fill="x", pady=1)
+            button.bind("<Return>", lambda _event, p=page: self._navigate(p))
+            button.bind("<space>", lambda _event, p=page: self._navigate(p))
             self.nav_buttons[page] = button
             if page == "settings":
                 tk.Frame(self.nav, bg=UI["subtle_border"], height=1).pack(fill="x", pady=8)
@@ -279,6 +281,18 @@ class ReadinessApp(tk.Tk):
         except (TypeError, ValueError, tk.TclError):
             pass
 
+    def _size_dialog(self, window: tk.Toplevel, width: int, height: int, min_width: int = 560, min_height: int = 420) -> None:
+        """Keep auxiliary workspaces usable on small or scaled displays."""
+        try:
+            screen_w, screen_h = self.winfo_screenwidth(), self.winfo_screenheight()
+            width = max(min_width, min(width, max(min_width, screen_w - 48)))
+            height = max(min_height, min(height, max(min_height, screen_h - 96)))
+        except tk.TclError:
+            pass
+        window.geometry(f"{width}x{height}")
+        window.minsize(min_width, min_height)
+        window.transient(self)
+
     def _on_close(self) -> None:
         self.update_idletasks()
         settings = dict(self.settings)
@@ -343,7 +357,7 @@ class ReadinessApp(tk.Tk):
     def show_about(self) -> None:
         window = tk.Toplevel(self)
         window.title("About OS Readiness Checker")
-        window.geometry("430x330")
+        self._size_dialog(window, 430, 330, 380, 280)
         window.resizable(False, False)
         window.configure(bg=UI["background"])
         card = tk.Frame(window, bg=UI["surface"], padx=24, pady=22, highlightbackground=UI["border"], highlightthickness=1)
@@ -364,7 +378,7 @@ class ReadinessApp(tk.Tk):
             return
         window = tk.Toplevel(self)
         window.title(t("recommend.title", self.language))
-        window.geometry("700x680")
+        self._size_dialog(window, 700, 680, 560, 480)
         window.configure(bg=UI["background"])
         card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
         card.pack(fill="both", expand=True, padx=18, pady=18)
@@ -628,7 +642,7 @@ class ReadinessApp(tk.Tk):
             return
         window = tk.Toplevel(self)
         window.title("Compare operating systems")
-        window.geometry("760x520")
+        self._size_dialog(window, 760, 520, 560, 400)
         window.configure(bg=UI["background"])
         font = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
         names = list(self.requirements)
@@ -679,7 +693,7 @@ class ReadinessApp(tk.Tk):
         plan = localized_plan(build_upgrade_plan(self.machine, self.requirements[name], results, suitability, readiness, lifecycle), self.language)
         window = tk.Toplevel(self)
         window.title(t("action.upgrade_plan", self.language))
-        window.geometry("760x680")
+        self._size_dialog(window, 760, 680, 600, 480)
         window.configure(bg=UI["background"])
         card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 18))
         card.pack(fill="both", expand=True, padx=20, pady=20)
@@ -719,7 +733,7 @@ class ReadinessApp(tk.Tk):
             return
         window = tk.Toplevel(self)
         window.title(t("comparison.title", self.language))
-        window.geometry("900x650")
+        self._size_dialog(window, 900, 650, 640, 480)
         window.configure(bg=UI["background"])
         sources = [self.machine, None]
         labels = [t("comparison.this_computer", self.language), t("comparison.choose_profile", self.language)]

@@ -65,17 +65,16 @@ def configure_styles(style: ttk.Style, colors: Mapping[str, str], font: str) -> 
     accent = colors["accent"]
     accent_dark = colors["accent_dark"]
     style.theme_use("clam")
-    style.configure("Fluent.TCombobox", padding=(8, 6), fieldbackground=surface, background=surface, foreground=text, bordercolor=colors["border"], lightcolor=colors["border"], darkcolor=colors["border"], font=(font, 10))
+    style.configure("Fluent.TCombobox", padding=(8, 6), fieldbackground=surface, background=surface, foreground=text, bordercolor=colors["border"], lightcolor=colors["border"], darkcolor=colors["border"], focuscolor=accent, font=(font, 10))
     style.map("Fluent.TCombobox", fieldbackground=[("disabled", heading), ("readonly", surface), ("focus", surface), ("active", surface)], foreground=[("disabled", muted), ("readonly", text), ("focus", text), ("active", text)])
-    style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=accent, borderwidth=0)
+    style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=accent, borderwidth=0, focuscolor=accent_dark)
     style.map("Accent.TButton", background=[("disabled", heading), ("active", accent_dark), ("pressed", accent_dark)], foreground=[("disabled", muted), ("!disabled", "white")])
-    style.configure("Secondary.TButton", padding=(12, 8), font=(font, 9), foreground=text, background=surface, borderwidth=0)
+    style.configure("Secondary.TButton", padding=(12, 8), font=(font, 9), foreground=text, background=surface, borderwidth=0, focuscolor=accent)
     style.map("Secondary.TButton", background=[("disabled", heading), ("active", heading), ("pressed", heading)], foreground=[("disabled", muted), ("!disabled", text)])
-    style.configure("Fluent.Treeview", rowheight=36, font=(font, 10), background=surface, fieldbackground=surface, foreground=text, borderwidth=0)
+    style.configure("Fluent.Treeview", rowheight=36, font=(font, 10), background=surface, fieldbackground=surface, foreground=text, borderwidth=0, focuscolor=accent)
     style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background=heading, foreground=muted, relief="flat", padding=(8, 9))
     style.map("Fluent.Treeview", background=[("selected", accent)], foreground=[("selected", "white")])
     style.map("Fluent.Treeview.Heading", background=[("active", heading), ("pressed", heading)], foreground=[("active", text), ("pressed", text)])
 
 
 NAV_DESTINATIONS = ("overview", "analysis", "compare_os", "compare_machines", "upgrade", "recommendations", "reports", "settings", "about")
-
