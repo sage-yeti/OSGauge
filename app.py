@@ -147,13 +147,14 @@ class ReadinessApp(tk.Tk):
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
         self.overview_button.pack(side="right", padx=(0, 8))
-        self.recommend_button = ttk.Button(controls, text=t("recommend.action", self.language), command=self.show_recommendations, style="Secondary.TButton")
+        self.recommend_button = ttk.Button(controls, text=t("recommend.action", self.language), command=self.show_recommendations, style="Secondary.TButton", state="disabled")
         self.recommend_button.pack(side="right", padx=(0, 8))
         self.update_button = ttk.Button(controls, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton")
         self.update_button.pack(side="right", padx=(0, 8))
         self.update_status = tk.Label(controls, text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source})", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
         self.update_status.pack(side="right", padx=(0, 10))
         profile_actions = tk.Frame(body, bg=UI["background"])
+        self.profile_actions = profile_actions
         profile_actions._ui_role = "workspace"
         profile_actions.pack(fill="x", pady=(0, 10))
         self.import_button = ttk.Button(profile_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton")
@@ -192,6 +193,7 @@ class ReadinessApp(tk.Tk):
             self.welcome_card.pack(fill="x", pady=(0, 14), before=summary_card if "summary_card" in locals() else None)
 
         summary_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
+        self.summary_card = summary_card
         summary_card.pack(fill="x", pady=(0, 14))
         self.status_badge = tk.Label(summary_card, text="  READY  ", bg="#e2e8f0", fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
         self.status_badge.pack(side="left", padx=(0, 12))
@@ -264,7 +266,7 @@ class ReadinessApp(tk.Tk):
         self.plan_button.pack(side="right", padx=(8, 0))
         self._apply_theme(self)
         self._set_active_nav("overview")
-
+        self._sync_overview_actions()
     def _set_active_nav(self, page: str) -> None:
         self.active_page = page
         for key, button in self.nav_buttons.items():
@@ -297,16 +299,33 @@ class ReadinessApp(tk.Tk):
         self.feedback.config(text=t(key, self.language))
         self.after(4500, lambda: self.feedback.config(text="") if self.feedback.winfo_exists() else None)
 
+    def _sync_overview_actions(self) -> None:
+        welcome_visible = bool(self.welcome_card.winfo_manager())
+        has_machine = bool(self.machine)
+        if welcome_visible:
+            self.check_button.pack_forget()
+        elif not self.check_button.winfo_manager():
+            self.check_button.pack(side="right")
+        self.check_button.configure(style="Secondary.TButton" if has_machine else "Accent.TButton")
+        self.recommend_button.configure(state="normal" if has_machine else "disabled")
+        self.export_button.configure(state="normal" if has_machine else "disabled")
+        self.machine_compare_button.configure(state="normal" if has_machine else "disabled")
+        self.compare_button.configure(state="normal" if has_machine else "disabled")
+        self.plan_button.configure(state="normal" if has_machine else "disabled")
+        if welcome_visible and not has_machine:
+            self.profile_actions.pack_forget()
+        elif not self.profile_actions.winfo_manager():
+            self.profile_actions.pack(fill="x", pady=(0, 10), before=self.welcome_card if welcome_visible else self.summary_card)
     def _dismiss_welcome(self) -> None:
         self.settings["onboarding_dismissed"] = True
         save_settings(self.settings)
         self.welcome_card.pack_forget()
-
+        self._sync_overview_actions()
     def _show_welcome(self) -> None:
         self.settings["onboarding_dismissed"] = False
         save_settings(self.settings)
-        self.welcome_card.pack(fill="x", pady=(0, 14))
-
+        self.welcome_card.pack(fill="x", pady=(0, 14), before=self.summary_card)
+        self._sync_overview_actions()
     def _unavailable(self, message_key: str, action: str | None = None) -> None:
         self._set_active_nav(getattr(self, "active_page", "overview"))
         message = t(message_key, self.language)
@@ -668,7 +687,7 @@ class ReadinessApp(tk.Tk):
         self.compare_button.config(state="normal")
         self.plan_button.config(state="normal")
         self.machine_compare_button.config(state="normal")
-
+        self._sync_overview_actions()
     def show_overview(self) -> None:
         if self.machine and self.ranked_results:
             self._show_overview(self.machine, self.all_results, self.ranked_results)
@@ -678,7 +697,7 @@ class ReadinessApp(tk.Tk):
         self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
         self.status_badge.config(text="  READY  ", bg="#e2e8f0", fg=UI["muted"])
         self.details.config(text=t("help.concepts_text", self.language))
-
+        self._sync_overview_actions()
     def show_detail(self) -> None:
         if not self.machine or self.choice.get() not in self.all_results:
             self._unavailable("empty.no_analysis", t("action.scan", self.language))
@@ -1172,3 +1191,4 @@ ReadinessApp = Batch6ReadinessApp
 
 if __name__ == "__main__":
     ReadinessApp().mainloop()
+
