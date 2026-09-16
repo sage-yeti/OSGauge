@@ -8,7 +8,7 @@ a = Analysis(
     [str(project_root / "app.py")],
     pathex=[str(project_root)],
     binaries=[],
-    datas=[(str(project_root / "requirements.json"), "."), (str(project_root / "recommendation.json"), "."), (str(project_root / "locales"), "locales")],
+    datas=[(str(project_root / "requirements.json"), "."), (str(project_root / "recommendation.json"), "."), (str(project_root / "locales"), "locales"), (str(project_root / "localization.py"), ".")],
     hiddenimports=["localization"],
     hookspath=[],
     hooksconfig={},
