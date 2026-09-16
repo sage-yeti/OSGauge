@@ -28,7 +28,7 @@ from installation_readiness import evaluate_installation_readiness
 from machine_profile import export_profile, import_profile
 from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
-from localization import LANGUAGES, preference_label, recommendation_match_label, resolve_language, status_label, t
+from localization import LANGUAGES, preference_label, readiness_explanation, recommendation_match_label, resolve_language, status_label, suitability_explanation, t
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
 from ui_foundation import FluentCard, NAV_DESTINATIONS, configure_styles, tokens_for
 
@@ -514,14 +514,16 @@ class ReadinessApp(tk.Tk):
                 result_body = result.content()
                 tk.Label(result_body, text=f"#{rank}  {item['name']}", bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
                 tk.Label(result_body, text=f"{t('recommend.preference_match', self.language)}: {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)", bg=UI["surface"], fg=UI["accent"], font=(self.font, 9, "bold")).pack(anchor="w")
-                strengths = ", ".join(item["strengths"]) or "—"
-                tradeoffs = ", ".join(item["tradeoffs"]) or "—"
+                strength_keys = item.get("strength_keys", item["strengths"])
+                tradeoff_keys = item.get("tradeoff_keys", item["tradeoffs"])
+                strengths = ", ".join(preference_label(key, self.language) for key in strength_keys) or "—"
+                tradeoffs = ", ".join(preference_label(key, self.language) for key in tradeoff_keys) or "—"
                 tk.Label(result_body, text=f"{t('recommend.strengths', self.language)}: {strengths}\n{t('recommend.tradeoffs', self.language)}: {tradeoffs}", bg=UI["surface"], fg=UI["muted"], justify="left", anchor="w", wraplength=590, font=(self.font, 9)).pack(anchor="w", pady=(4, 0))
                 lines.append(f"{item['name']} — {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)")
                 if item["strengths"]:
-                    lines.append("  " + t("recommend.strengths", self.language) + ": " + ", ".join(item["strengths"]))
+                    lines.append("  " + t("recommend.strengths", self.language) + ": " + ", ".join(preference_label(key, self.language) for key in item.get("strength_keys", item["strengths"])))
                 if item["tradeoffs"]:
-                    lines.append("  " + t("recommend.tradeoffs", self.language) + ": " + ", ".join(item["tradeoffs"]))
+                    lines.append("  " + t("recommend.tradeoffs", self.language) + ": " + ", ".join(preference_label(key, self.language) for key in item.get("tradeoff_keys", item["tradeoffs"])))
             output.config(text="\n".join(lines))
         ttk.Button(body, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
@@ -593,9 +595,9 @@ class ReadinessApp(tk.Tk):
         lifecycle_status_value = lifecycle.get("support_status", "unknown")
         cards = {
             "compatibility": (status, f"{score}/100 — {t('analysis.published_requirements', self.language)}"),
-            "suitability": (suitability.get("category", "Unknown"), suitability.get("explanation", t("analysis.headroom_unknown", self.language))),
+            "suitability": (suitability.get("category", "Unknown"), suitability_explanation(suitability.get("category", "Unknown"), suitability.get("explanation", t("analysis.headroom_unknown", self.language)), self.language)),
             "lifecycle": (lifecycle_status_value, f"Release {lifecycle.get('release', 'Unknown')}"),
-            "readiness": (readiness.get("status", "review"), readiness.get("explanation", "Some configuration items need review.")),
+            "readiness": (readiness.get("status", "review"), readiness_explanation(readiness.get("status", "review"), self.language)),
         }
         for key, (value, explanation) in cards.items():
             _icon, color = self._status_presentation(str(value))
@@ -715,7 +717,7 @@ class ReadinessApp(tk.Tk):
         if self.machine.gpu_vram_mb:
             gpu += f" ({self.machine.gpu_vram_mb} MB VRAM)"
         lifecycle_line = f"Release: {lifecycle['release']} • {t('label.lifecycle', self.language)}: {lifecycle['lifecycle_type']} • Status: {status_label(lifecycle['support_status'], self.language)}"
-        readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness['explanation']}"
+        readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness_explanation(readiness['status'], self.language)}"
         readiness_items = [f"  {status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
         machine_details = [
             f"Architecture: {architecture_label(self.machine.architecture)}",
@@ -733,7 +735,7 @@ class ReadinessApp(tk.Tk):
         lifecycle_warning = ""
         if lifecycle["support_status"] in {"nearing_eol", "eol"}:
             lifecycle_warning = f"\n{t('analysis.release_notice', self.language)}: {lifecycle_line}\n"
-        self.details.config(text=f"{context_note}Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_warning}{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability['explanation']}"] + machine_details + ["• " + note for note in notes]))
+        self.details.config(text=f"{context_note}Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_warning}{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability_explanation(suitability['category'], suitability['explanation'], self.language)}"] + machine_details + ["• " + note for note in notes]))
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
