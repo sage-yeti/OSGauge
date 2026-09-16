@@ -77,7 +77,6 @@ class ReadinessApp(tk.Tk):
         self.bind("<Control-r>", lambda _event: self.run_check())
         self.bind("<Control-s>", lambda _event: self.save_report())
         self.after_idle(self._restore_window)
-        self.after(100, self.run_check)
 
     def _build(self) -> None:
         font = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
@@ -131,6 +130,8 @@ class ReadinessApp(tk.Tk):
         self.language_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_language())
         self.about_button = ttk.Button(theme_box, text=t("action.about", self.language), command=self.show_about, style="Secondary.TButton")
         self.about_button.pack(side="left", padx=(8, 0))
+        self.help_button = ttk.Button(theme_box, text=t("action.help", self.language), command=self.show_help, style="Secondary.TButton")
+        self.help_button.pack(side="left", padx=(8, 0))
 
         body = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         body._ui_role = "workspace"
@@ -165,12 +166,38 @@ class ReadinessApp(tk.Tk):
         self.machine_compare_button.pack(side="left", padx=(8, 0))
         self.source_status = tk.Label(profile_actions, text=f"{t('label.machine_source', self.language)}: {t('profile.source_local', self.language)}", bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.source_status.pack(side="right")
+        self.feedback = tk.Label(profile_actions, text="", bg=UI["background"], fg=UI["muted"], font=(font, 9))
+        self.feedback.pack(side="right", padx=(0, 14))
+
+        self.welcome_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
+        welcome_body = self.welcome_card.content()
+        welcome_head = tk.Frame(welcome_body, bg=UI["surface"])
+        welcome_head.pack(fill="x")
+        self.welcome_title = tk.Label(welcome_head, text=t("welcome.title", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"))
+        self.welcome_title.pack(side="left")
+        self.welcome_dismiss = ttk.Button(welcome_head, text=t("action.dismiss", self.language), command=self._dismiss_welcome, style="Secondary.TButton")
+        self.welcome_dismiss.pack(side="right")
+        self.welcome_text = tk.Label(welcome_body, text=t("welcome.text", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w", justify="left", wraplength=620)
+        self.welcome_text.pack(fill="x", pady=(5, 7))
+        self.welcome_hints = []
+        for key in ("welcome.hint1", "welcome.hint2", "welcome.hint3", "welcome.hint4"):
+            hint = tk.Label(welcome_body, text=t(key, self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w")
+            hint.pack(fill="x", pady=1)
+            self.welcome_hints.append(hint)
+        welcome_actions = tk.Frame(welcome_body, bg=UI["surface"])
+        welcome_actions.pack(fill="x", pady=(8, 0))
+        ttk.Button(welcome_actions, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton").pack(side="left")
+        ttk.Button(welcome_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        if self.settings.get("onboarding_dismissed"):
+            self.welcome_card.pack_forget()
+        else:
+            self.welcome_card.pack(fill="x", pady=(0, 14), before=summary_card if "summary_card" in locals() else None)
 
         summary_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
         summary_card.pack(fill="x", pady=(0, 14))
-        self.status_badge = tk.Label(summary_card, text="  SCANNING  ", bg="#e2e8f0", fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
+        self.status_badge = tk.Label(summary_card, text="  READY  ", bg="#e2e8f0", fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
         self.status_badge.pack(side="left", padx=(0, 12))
-        self.summary = tk.Label(summary_card, text="Scanning…", bg=UI["surface"], fg=UI["text"], font=(font, 14, "bold"))
+        self.summary = tk.Label(summary_card, text=t("empty.no_machine", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), wraplength=620, justify="left", anchor="w")
         self.summary.pack(side="left", anchor="w")
 
         self.analysis_frame = tk.Frame(body, bg=UI["background"])
@@ -220,7 +247,7 @@ class ReadinessApp(tk.Tk):
 
         footer = tk.Frame(body, bg=UI["surface"], padx=18, pady=14, highlightbackground=UI["border"], highlightthickness=1)
         footer.pack(fill="x")
-        self.details = tk.Label(footer, text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], wraplength=570, font=(font, 9))
+        self.details = tk.Label(footer, text=t("help.concepts_text", self.language), justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], wraplength=570, font=(font, 9))
         self.details.pack(side="left", fill="x", expand=True)
         self.source_button = ttk.Button(footer, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton")
         self.source_button.pack(side="right", padx=(8, 0))
@@ -261,9 +288,67 @@ class ReadinessApp(tk.Tk):
         elif page == "reports":
             self.save_report()
         elif page == "settings":
-            self.theme_choice.focus_set()
+            self.show_settings()
         elif page == "about":
             self.show_about()
+
+    def _set_feedback(self, key: str) -> None:
+        self.feedback.config(text=t(key, self.language))
+        self.after(4500, lambda: self.feedback.config(text="") if self.feedback.winfo_exists() else None)
+
+    def _dismiss_welcome(self) -> None:
+        self.settings["onboarding_dismissed"] = True
+        save_settings(self.settings)
+        self.welcome_card.pack_forget()
+
+    def _show_welcome(self) -> None:
+        self.settings["onboarding_dismissed"] = False
+        save_settings(self.settings)
+        self.welcome_card.pack(fill="x", pady=(0, 14))
+
+    def _unavailable(self, message_key: str, action: str | None = None) -> None:
+        self._set_active_nav(getattr(self, "active_page", "overview"))
+        message = t(message_key, self.language)
+        if action:
+            message += f"\n\n{t('label.next_step', self.language)}: {action}"
+        messagebox.showinfo(t("label.next_step", self.language), message)
+
+    def show_settings(self) -> None:
+        window = tk.Toplevel(self)
+        window.title(t("settings.title", self.language))
+        self._size_dialog(window, 520, 390, 440, 320)
+        window.configure(bg=UI["background"])
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
+        card.pack(fill="both", expand=True, padx=18, pady=18)
+        body = card.content()
+        tk.Label(body, text=t("settings.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
+        tk.Label(body, text=t("settings.appearance", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
+        tk.Label(body, text=f"{t('label.theme', self.language)}: {t(f'theme.{self.theme_mode.lower()}', self.language)}", bg=UI["surface"], fg=UI["muted"], anchor="w").pack(fill="x")
+        tk.Label(body, text=t("settings.data", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
+        tk.Label(body, text=f"{t('label.external_source', self.language)}: {self.requirements_info.source}; v{self.requirements_info.data_version}", bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=440).pack(fill="x")
+        tk.Label(body, text=t("settings.onboarding", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
+        tk.Label(body, text=t("settings.onboarding_text", self.language), bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=440, justify="left").pack(fill="x")
+        ttk.Button(body, text=t("action.show_welcome", self.language), command=lambda: (self._show_welcome(), window.destroy()), style="Secondary.TButton").pack(anchor="w", pady=(8, 0))
+        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(18, 0))
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
+
+    def show_help(self) -> None:
+        window = tk.Toplevel(self)
+        window.title(t("help.title", self.language))
+        self._size_dialog(window, 700, 650, 540, 440)
+        window.configure(bg=UI["background"])
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
+        card.pack(fill="both", expand=True, padx=18, pady=18)
+        body = card.content()
+        tk.Label(body, text=t("help.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
+        tk.Label(body, text=t("help.intro", self.language), bg=UI["surface"], fg=UI["muted"], wraplength=620, justify="left", anchor="w").pack(fill="x", pady=(4, 12))
+        for title_key, text_key in (("help.workflow", "help.workflow_text"), ("help.concepts", "help.concepts_text"), ("help.review", "help.review_text"), ("help.planner", "help.planner_text"), ("help.recommendations", "help.recommendations_text"), ("help.privacy", "help.privacy_text"), ("help.data", "help.data_text")):
+            tk.Label(body, text=t(title_key, self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold"), anchor="w").pack(fill="x", pady=(5, 1))
+            tk.Label(body, text=t(text_key, self.language), bg=UI["surface"], fg=UI["muted"], font=(self.font, 9), wraplength=620, justify="left", anchor="w").pack(fill="x")
+        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(14, 0))
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
 
     def _restore_window(self) -> None:
         try:
@@ -328,6 +413,7 @@ class ReadinessApp(tk.Tk):
         self.theme_choice.config(values=tuple(t(f"theme.{value.lower()}", self.language) for value in ("System", "Light", "Dark")))
         self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
         self.about_button.config(text=t("action.about", self.language))
+        self.help_button.config(text=t("action.help", self.language))
         self.check_button.config(text=t("action.scan", self.language))
         self.overview_button.config(text=t("action.overview", self.language))
         self.recommend_button.config(text=t("recommend.action", self.language))
@@ -346,6 +432,11 @@ class ReadinessApp(tk.Tk):
         self.theme_label.config(text=t("label.theme", self.language))
         self.language_label.config(text=t("label.language", self.language))
         self.os_label.config(text=t("label.operating_system", self.language))
+        self.welcome_title.config(text=t("welcome.title", self.language))
+        self.welcome_text.config(text=t("welcome.text", self.language))
+        self.welcome_dismiss.config(text=t("action.dismiss", self.language))
+        for hint, key in zip(self.welcome_hints, ("welcome.hint1", "welcome.hint2", "welcome.hint3", "welcome.hint4")):
+            hint.config(text=t(key, self.language))
         nav_labels = {"overview": "nav.overview", "analysis": "nav.analysis", "compare_os": "nav.compare_os", "compare_machines": "nav.compare_machines", "upgrade": "nav.upgrade", "recommendations": "nav.recommendations", "reports": "nav.reports", "settings": "nav.settings", "about": "nav.about"}
         for page, button in self.nav_buttons.items():
             button.config(text=t(nav_labels[page], self.language))
@@ -356,25 +447,25 @@ class ReadinessApp(tk.Tk):
 
     def show_about(self) -> None:
         window = tk.Toplevel(self)
-        window.title("About OS Readiness Checker")
+        window.title(t("nav.about", self.language))
         self._size_dialog(window, 430, 330, 380, 280)
         window.resizable(False, False)
         window.configure(bg=UI["background"])
         card = tk.Frame(window, bg=UI["surface"], padx=24, pady=22, highlightbackground=UI["border"], highlightthickness=1)
         card.pack(fill="both", expand=True, padx=18, pady=18)
         tk.Label(card, text=t("app.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
-        tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT", justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
+        tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT\n\n{t('about.privacy', self.language)}", justify="left", anchor="w", wraplength=370, bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
         actions = tk.Frame(card, bg=UI["surface"])
         actions.pack(fill="x")
         ttk.Button(actions, text="Open GitHub", command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
-        ttk.Button(actions, text="Check updates", command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        ttk.Button(actions, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
         ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
 
     def show_recommendations(self) -> None:
         if not self.machine or not self.all_results:
-            messagebox.showinfo("Recommend an OS", "Run a scan first so recommendations can use the current machine.")
+            self._unavailable("empty.no_recommendations", t("action.scan", self.language))
             return
         window = tk.Toplevel(self)
         window.title(t("recommend.title", self.language))
@@ -415,7 +506,7 @@ class ReadinessApp(tk.Tk):
                 child.destroy()
             lines = [t("recommend.disclaimer", self.language), ""]
             if not primary:
-                lines.append(t("recommend.none", self.language))
+                lines.append(t("empty.no_candidate", self.language))
             for item in primary:
                 rank = primary.index(item) + 1
                 result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(10, 8))
@@ -472,9 +563,9 @@ class ReadinessApp(tk.Tk):
     def _scan_failed(self, error: Exception) -> None:
         self.scan_in_progress = False
         self.check_button.config(state="normal")
-        self.summary.config(text="Scan could not be completed; try again.", fg=UI["text"])
+        self.summary.config(text=t("error.scan", self.language), fg=UI["text"])
         self.status_badge.config(text="  REVIEW  ", bg=COLORS["review"], fg="white")
-        self.details.config(text=f"Hardware information was unavailable: {error}")
+        self.details.config(text=f"{t('error.scan', self.language)}\n\n{t('error.profile_details', self.language)}\nTechnical details: {error}")
 
     def _clear_table(self) -> None:
         for item in self.table.get_children():
@@ -579,9 +670,16 @@ class ReadinessApp(tk.Tk):
     def show_overview(self) -> None:
         if self.machine and self.ranked_results:
             self._show_overview(self.machine, self.all_results, self.ranked_results)
+            return
+        self._set_active_nav("overview")
+        self.analysis_frame.pack_forget()
+        self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
+        self.status_badge.config(text="  READY  ", bg="#e2e8f0", fg=UI["muted"])
+        self.details.config(text=t("help.concepts_text", self.language))
 
     def show_detail(self) -> None:
         if not self.machine or self.choice.get() not in self.all_results:
+            self._unavailable("empty.no_analysis", t("action.scan", self.language))
             return
         name = self.choice.get()
         self._set_active_nav("analysis")
@@ -639,6 +737,7 @@ class ReadinessApp(tk.Tk):
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
+            self._unavailable("empty.no_machine", t("action.scan", self.language))
             return
         window = tk.Toplevel(self)
         window.title("Compare operating systems")
@@ -683,6 +782,7 @@ class ReadinessApp(tk.Tk):
 
     def show_upgrade_plan(self) -> None:
         if not self.machine or self.choice.get() not in self.all_results:
+            self._unavailable("empty.no_plan", t("action.scan", self.language))
             return
         name = self.choice.get()
         results = self.all_results[name]
@@ -700,6 +800,12 @@ class ReadinessApp(tk.Tk):
         body = card.content()
         tk.Label(body, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
         tk.Label(body, text=plan["overall_summary"], bg=UI["surface"], fg=UI["muted"], font=(self.font, 10), wraplength=680, justify="left").pack(anchor="w", pady=(6, 12))
+        if not any(plan[key] for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items")):
+            positive = t("planner.no_required", self.language)
+            if plan.get("optional_improvements"):
+                positive += " " + t("planner.optional_only", self.language)
+            tk.Label(body, text=positive, bg=UI["surface"], fg=COLORS["pass"], font=(self.font, 10, "bold"), wraplength=680, justify="left").pack(anchor="w", pady=(0, 8))
+        tk.Label(body, text=t("help.planner_text", self.language), bg=UI["surface"], fg=UI["muted"], font=(self.font, 9), wraplength=680, justify="left").pack(anchor="w", pady=(0, 8))
         sections = tk.Frame(body, bg=UI["surface"])
         sections.pack(fill="both", expand=True)
         section_names = {"required_hardware_changes": "planner.hardware", "required_configuration_changes": "planner.configuration", "storage_actions": "planner.storage", "unresolved_items": "planner.unresolved", "optional_improvements": "planner.optional", "already_satisfied": "planner.satisfied"}
@@ -730,6 +836,7 @@ class ReadinessApp(tk.Tk):
 
     def show_machine_compare(self) -> None:
         if not self.machine:
+            self._unavailable("empty.no_compare", t("action.scan", self.language))
             return
         window = tk.Toplevel(self)
         window.title(t("comparison.title", self.language))
@@ -782,7 +889,7 @@ class ReadinessApp(tk.Tk):
             try:
                 machine, meta = import_profile(Path(path))
             except ValueError as exc:
-                messagebox.showerror(t("dialog.profile_import_error", self.language), str(exc), parent=window)
+                self._show_profile_error(exc, parent=window)
                 return
             sources[index], metadata[index] = machine, meta
             captured = meta.get("created_at") or "unknown"
@@ -804,6 +911,9 @@ class ReadinessApp(tk.Tk):
 
         def refresh(*_args) -> None:
             if sources[0] is None or sources[1] is None:
+                table.delete(*table.get_children())
+                missing = t("comparison.machine_a", self.language) if sources[0] is None else t("comparison.machine_b", self.language)
+                summary.config(text=f"{missing}: {t('empty.no_compare', self.language)}")
                 return
             result_holder["value"] = compare_machines(sources[0], sources[1], self.requirements, target.get(), labels=tuple(labels), metadata=tuple(metadata))
             table.delete(*table.get_children())
@@ -819,11 +929,13 @@ class ReadinessApp(tk.Tk):
         def save_comparison_html() -> None:
             if not result_holder["value"]: return
             path = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="machine-comparison.html")
-            if path: Path(path).write_text(html_comparison_report(result_holder["value"]), encoding="utf-8")
+            if path:
+                Path(path).write_text(html_comparison_report(result_holder["value"]), encoding="utf-8")
+                self._set_feedback("feedback.saved")
         def copy_comparison() -> None:
             if not result_holder["value"]: return
             self.clipboard_clear(); self.clipboard_append(plain_text_comparison(result_holder["value"])); self.update()
-            messagebox.showinfo(t("comparison.copy", self.language), t("dialog.results_copied", self.language), parent=window)
+            self._set_feedback("feedback.copied")
         ttk.Button(actions, text=t("comparison.save_html", self.language), command=save_comparison_html, style="Secondary.TButton").pack(side="left")
         ttk.Button(actions, text=t("comparison.copy", self.language), command=copy_comparison, style="Secondary.TButton").pack(side="left", padx=(8, 0))
         ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
@@ -835,6 +947,7 @@ class ReadinessApp(tk.Tk):
 
     def save_report(self) -> None:
         if not self.machine:
+            self._unavailable("empty.no_report", t("action.scan", self.language))
             return
         target = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON report", "*.json")], initialfile="os-readiness-report.json")
         if target:
@@ -844,10 +957,11 @@ class ReadinessApp(tk.Tk):
             if self.profile_metadata:
                 report["profile_metadata"] = self.profile_metadata
             Path(target).write_text(json.dumps(report, indent=2), encoding="utf-8")
-            messagebox.showinfo("Report saved", "The readiness report was saved successfully.")
+            self._set_feedback("feedback.saved")
 
     def save_html_report(self) -> None:
         if not self.machine:
+            self._unavailable("empty.no_report", t("action.scan", self.language))
             return
         target = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="os-readiness-report.html")
         if target:
@@ -856,10 +970,11 @@ class ReadinessApp(tk.Tk):
             if self.machine_source == "Imported profile":
                 html = html.replace("<h1>OS Readiness Report</h1>", f"<h1>OS Readiness Report</h1><p><strong>Machine source:</strong> Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')}).</p>")
             Path(target).write_text(html, encoding="utf-8")
-            messagebox.showinfo("Report saved", "The HTML report was saved successfully.")
+            self._set_feedback("feedback.saved")
 
     def copy_results(self) -> None:
         if not self.machine:
+            self._unavailable("empty.no_report", t("action.scan", self.language))
             return
         name = self.choice.get()
         self.clipboard_clear()
@@ -868,7 +983,7 @@ class ReadinessApp(tk.Tk):
             text = f"Machine source: Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')})\n" + text
         self.clipboard_append(text)
         self.update()
-        messagebox.showinfo(t("action.copy_results", self.language), t("dialog.results_copied", self.language))
+        self._set_feedback("feedback.copied")
 
     def check_requirements_updates(self) -> None:
         self.update_button.config(state="disabled")
@@ -884,7 +999,7 @@ class ReadinessApp(tk.Tk):
     def _finish_requirements_update(self, info: RequirementsInfo | None) -> None:
         self.update_button.config(state="normal")
         if info is None:
-            self.update_status.config(text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source}); no newer data")
+            self.update_status.config(text=f"DB v{self.requirements_info.data_version} ({self.requirements_info.source}); {t('error.requirements_offline', self.language)}")
             return
         self.requirements_info = info
         self.requirements = info.profiles
@@ -895,7 +1010,8 @@ class ReadinessApp(tk.Tk):
             self.ranked_results = rank_compatibility(self.all_results, suitability)
             self.results = self.all_results.get(self.choice.get(), [])
             self._show_overview(self.machine, self.all_results, self.ranked_results)
-        self.update_status.config(text=f"DB v{info.data_version} ({info.source}); updated")
+        self.update_status.config(text=f"DB v{info.data_version} ({info.source}); {t('feedback.updated', self.language)}")
+        self._set_feedback("feedback.updated")
 
     def export_machine_profile(self) -> None:
         if not self.machine:
@@ -904,7 +1020,7 @@ class ReadinessApp(tk.Tk):
         target = filedialog.asksaveasfilename(defaultextension=".osrprofile", filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")], initialfile="machine-profile.osrprofile")
         if target:
             export_profile(self.machine, Path(target), data_version=self.requirements_info.data_version)
-            messagebox.showinfo(t("dialog.profile_export", self.language), t("dialog.profile_exported", self.language))
+            self._set_feedback("feedback.saved")
 
     def import_machine_profile(self) -> None:
         target = filedialog.askopenfilename(filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")])
@@ -918,7 +1034,11 @@ class ReadinessApp(tk.Tk):
             self.machine_source, self.profile_metadata = "Imported profile", metadata
             self._show_overview(machine, all_results, ranked)
         except ValueError as exc:
-            messagebox.showerror(t("dialog.profile_import_error", self.language), str(exc))
+            self._show_profile_error(exc)
+
+    def _show_profile_error(self, error: ValueError, parent=None) -> None:
+        """Show a useful profile error without silently scanning this machine."""
+        messagebox.showerror(t("dialog.profile_import_error", self.language), f"{error}\n\n{t('error.profile_details', self.language)}", parent=parent)
 
 
 if __name__ == "__main__":
