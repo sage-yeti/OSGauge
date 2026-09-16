@@ -210,20 +210,23 @@ class ReadinessApp(tk.Tk):
         self.analysis_context.pack(side="left", fill="x", expand=True)
         self.issue_filter = ttk.Checkbutton(context_row, text=t("analysis.issues_only", self.language), variable=self.issues_only, command=self._refresh_detail_rows)
         self.issue_filter.pack(side="right")
+        analysis_cards = tk.Frame(self.analysis_frame, bg=UI["background"])
+        analysis_cards._ui_role = "workspace"
+        analysis_cards.pack(fill="x", pady=(0, 8))
         self.analysis_cards = {}
         card_specs = (("compatibility", t("label.compatibility", self.language)), ("suitability", t("label.suitability", self.language)), ("lifecycle", t("label.lifecycle", self.language)), ("readiness", t("label.installation_readiness", self.language)))
         for index, (key, title) in enumerate(card_specs):
-            card = FluentCard(self.analysis_frame, tokens=self.ui_tokens, padding=(14, 11))
+            card = FluentCard(analysis_cards, tokens=self.ui_tokens, padding=(14, 11))
             card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 6, 6 if index % 2 == 0 else 0), pady=(0, 8))
-            self.analysis_frame.grid_columnconfigure(index % 2, weight=1, uniform="analysis-card")
+            analysis_cards.grid_columnconfigure(index % 2, weight=1, uniform="analysis-card")
             tk.Label(card, text=title, bg=UI["surface"], fg=UI["muted"], font=(font, 9, "bold"), anchor="w").pack(fill="x")
             status = tk.Label(card, text="—", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), anchor="w")
             status.pack(fill="x", pady=(4, 2))
             explanation = tk.Label(card, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w", justify="left", wraplength=300)
             explanation.pack(fill="x")
             self.analysis_cards[key] = (card, status, explanation)
-        self.analysis_frame.grid_rowconfigure(0, weight=1)
-        self.analysis_frame.grid_rowconfigure(1, weight=1)
+        analysis_cards.grid_rowconfigure(0, weight=1)
+        analysis_cards.grid_rowconfigure(1, weight=1)
 
         columns = ("result", "detected", "required")
         table_card = tk.Frame(body, bg=UI["surface"], padx=1, pady=1, highlightbackground=UI["border"], highlightthickness=1)
