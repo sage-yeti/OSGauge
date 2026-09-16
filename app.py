@@ -48,7 +48,7 @@ class ReadinessApp(tk.Tk):
         self.configure(bg=UI["background"])
         self.settings = load_settings()
         self.language_selection = self.settings.get("language") if self.settings.get("language") in LANGUAGES else "System"
-        self.language =        self.table_empty.config(text=t("empty.no_machine", self.language)) resolve_language(self.language_selection)
+        self.language = resolve_language(self.language_selection)
         self.title(f"{t('app.title', self.language)} {APP_VERSION}")
         self.theme_mode = load_theme_mode()
         UI.update(colors_for(self.theme_mode))
