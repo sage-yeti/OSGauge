@@ -29,6 +29,7 @@ from machine_profile import export_profile, import_profile
 from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, preference_label, readiness_explanation, recommendation_match_label, resolve_language, status_label, suitability_explanation, t
+from os_icons import load_logo
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
 from ui_foundation import FluentCard, NAV_DESTINATIONS, configure_styles, tokens_for
 
@@ -51,6 +52,7 @@ class ReadinessApp(tk.Tk):
         self.title(f"{t('app.title', self.language)} {APP_VERSION}")
         self.theme_mode = load_theme_mode()
         UI.update(colors_for(self.theme_mode))
+        self._logo_images = {}
         self.ui_tokens = tokens_for(UI)
         self.requirements_info = load_requirements_info()
         self.requirements = self.requirements_info.profiles
@@ -199,6 +201,8 @@ class ReadinessApp(tk.Tk):
         context_row._ui_role = "workspace"
         context_row.pack(fill="x", pady=(0, 8))
         self.analysis_context = tk.Label(context_row, text="", bg=UI["background"], fg=UI["muted"], font=(font, 9), anchor="w")
+        self.analysis_logo = tk.Label(context_row, bg=UI["background"], bd=0)
+        self.analysis_logo.pack(side="left", padx=(0, 8))
         self.analysis_context.pack(side="left", fill="x", expand=True)
         self.issue_filter = ttk.Checkbutton(context_row, text=t("analysis.issues_only", self.language), variable=self.issues_only, command=self._refresh_detail_rows)
         self.issue_filter.pack(side="right")
@@ -408,6 +412,12 @@ class ReadinessApp(tk.Tk):
         screen = (self.winfo_screenwidth(), self.winfo_screenheight())
         threading.Thread(target=self._scan, args=(screen,), daemon=True).start()
 
+    def _logo_for(self, name: str, profile=None):
+        logo = load_logo(self, name, profile)
+        if logo is not None:
+            self._logo_images[name] = logo
+        return logo
+
     def change_theme(self) -> None:
         selected = self.theme_choice.get()
         self.theme_mode = next((value for value in ("System", "Light", "Dark") if selected == t(f"theme.{value.lower()}", self.language)), "System")
@@ -523,7 +533,12 @@ class ReadinessApp(tk.Tk):
                 result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(10, 8))
                 result.pack(fill="x", pady=4)
                 result_body = result.content()
-                tk.Label(result_body, text=f"#{rank}  {item['name']}", bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
+                identity = tk.Frame(result_body, bg=UI["surface"])
+                identity.pack(fill="x")
+                logo = self._logo_for(item["name"], self.requirements.get(item["name"], {}))
+                if logo is not None:
+                    tk.Label(identity, image=logo, bg=UI["surface"], bd=0).pack(side="left", padx=(0, 8))
+                tk.Label(identity, text=f"#{rank}  {item['name']}", bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(side="left")
                 tk.Label(result_body, text=f"{t('recommend.preference_match', self.language)}: {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)", bg=UI["surface"], fg=UI["accent"], font=(self.font, 9, "bold")).pack(anchor="w")
                 strength_keys = item.get("strength_keys", item["strengths"])
                 tradeoff_keys = item.get("tradeoff_keys", item["tradeoffs"])
@@ -666,7 +681,9 @@ class ReadinessApp(tk.Tk):
         self.table.column("required", width=110, anchor="center")
         for item in ranked:
             status = item["status"]
-            self.table.insert("", "end", text=item["name"], values=(ICONS.get(status, "") + " " + status_label(status, self.language), f'{item["score"]}/100', t("status." + item["suitability"]["category"].lower().replace(" ", "_"), self.language)), tags=(status,))
+            profile = self.requirements.get(item["name"], {})
+            logo = self._logo_for(item["name"], profile)
+            self.table.insert("", "end", image=logo, text=item["name"], values=(ICONS.get(status, "") + " " + status_label(status, self.language), f'{item["score"]}/100', t("status." + item["suitability"]["category"].lower().replace(" ", "_"), self.language)), tags=(status,))
         self.summary.config(text=t("overview.compared", self.language, count=len(ranked)), fg=UI["text"])
         self.status_badge.config(text=f"  {t('status.overview', self.language).upper()}  ", bg=UI["accent"], fg="white")
         source_note = ""
@@ -696,6 +713,7 @@ class ReadinessApp(tk.Tk):
             return
         name = self.choice.get()
         self._set_active_nav("analysis")
+        self.analysis_logo.configure(image=self._logo_for(name, self.requirements[name]))
         self.analysis_frame.pack(fill="x", pady=(0, 4), before=self.table.master)
         self.settings["last_os"] = name
         save_settings(self.settings)
@@ -811,7 +829,12 @@ class ReadinessApp(tk.Tk):
         card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 18))
         card.pack(fill="both", expand=True, padx=20, pady=20)
         body = card.content()
-        tk.Label(body, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
+        identity = tk.Frame(body, bg=UI["surface"])
+        identity.pack(fill="x")
+        logo = self._logo_for(name, self.requirements[name])
+        if logo is not None:
+            tk.Label(identity, image=logo, bg=UI["surface"], bd=0).pack(side="left", padx=(0, 10))
+        tk.Label(identity, text=f"{name} — {t('action.upgrade_plan', self.language)}", bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(side="left")
         tk.Label(body, text=plan["overall_summary"], bg=UI["surface"], fg=UI["muted"], font=(self.font, 10), wraplength=680, justify="left").pack(anchor="w", pady=(6, 12))
         if not any(plan[key] for key in ("required_hardware_changes", "required_configuration_changes", "storage_actions", "unresolved_items")):
             positive = t("planner.no_required", self.language)
@@ -1092,7 +1115,13 @@ class Batch6ReadinessApp(ReadinessApp):
         card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
         card.pack(fill="both", expand=True, padx=18, pady=18)
         body = card.content()
-        tk.Label(body, text=t("nav.reports", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
+        identity = tk.Frame(body, bg=UI["surface"])
+        identity.pack(fill="x")
+        report_name = self.choice.get() if self.choice.get() in self.requirements else ""
+        logo = self._logo_for(report_name, self.requirements.get(report_name, {})) if report_name else None
+        if logo is not None:
+            tk.Label(identity, image=logo, bg=UI["surface"], bd=0).pack(side="left", padx=(0, 10))
+        tk.Label(identity, text=t("nav.reports", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(side="left")
         tk.Label(body, text=t("help.data_text", self.language), bg=UI["surface"], fg=UI["muted"], wraplength=640, justify="left", anchor="w").pack(fill="x", pady=(4, 12))
         context = self._report_context()
         box = tk.Frame(body, bg=UI["heading"], padx=14, pady=12)
