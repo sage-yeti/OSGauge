@@ -1041,5 +1041,132 @@ class ReadinessApp(tk.Tk):
         messagebox.showerror(t("dialog.profile_import_error", self.language), f"{error}\n\n{t('error.profile_details', self.language)}", parent=parent)
 
 
+class Batch6ReadinessApp(ReadinessApp):
+    """Batch 6 presentation polish for reports and result context."""
+
+    def _report_available(self) -> bool:
+        return bool(self.machine and self.choice.get() in self.all_results and self.all_results.get(self.choice.get()))
+
+    def _report_context(self) -> dict[str, str]:
+        name = self.choice.get() if self.choice.get() in self.requirements else ""
+        unknown = t("status.unknown", self.language)
+        release = compatibility = suitability = lifecycle = readiness = unknown
+        if name:
+            profile = self.requirements[name]
+            metadata = profile_metadata(name, profile)
+            release = metadata.get("release", "") or unknown
+            lifecycle = status_label(lifecycle_status(profile), self.language)
+            checks = self.all_results.get(name, [])
+            if checks:
+                compatibility = status_label(overall_status(checks), self.language)
+                fit = suitability_dict(assess_suitability(self.machine, profile, checks))
+                suitability = fit.get("label", fit.get("category", unknown))
+                readiness = status_label(evaluate_installation_readiness(self.machine, profile, checks)["status"], self.language)
+        imported = self.machine_source == "Imported profile"
+        return {"source": t("profile.source_imported" if imported else "profile.source_local", self.language), "captured": self.profile_metadata.get("created_at", "") if imported else "", "os": name or unknown, "release": release, "compatibility": compatibility, "suitability": suitability, "lifecycle": lifecycle, "readiness": readiness, "database": f"v{self.requirements_info.data_version} ({self.requirements_info.source})"}
+
+    def _navigate(self, page: str) -> None:
+        self._set_active_nav(page)
+        actions = {"overview": self.show_overview, "analysis": self.show_detail, "compare_os": self.show_compare, "compare_machines": self.show_machine_compare, "upgrade": self.show_upgrade_plan, "recommendations": self.show_recommendations, "reports": self.show_reports, "settings": self.show_settings, "about": self.show_about}
+        if page in actions:
+            actions[page]()
+
+    def show_reports(self) -> None:
+        window = tk.Toplevel(self)
+        window.title(t("nav.reports", self.language))
+        self._size_dialog(window, 720, 620, 560, 460)
+        window.configure(bg=UI["background"])
+        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
+        card.pack(fill="both", expand=True, padx=18, pady=18)
+        body = card.content()
+        tk.Label(body, text=t("nav.reports", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
+        tk.Label(body, text=t("help.data_text", self.language), bg=UI["surface"], fg=UI["muted"], wraplength=640, justify="left", anchor="w").pack(fill="x", pady=(4, 12))
+        context = self._report_context()
+        box = tk.Frame(body, bg=UI["heading"], padx=14, pady=12)
+        box.pack(fill="x", pady=(0, 14))
+        tk.Label(box, text=t("help.concepts", self.language), bg=UI["heading"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
+        if not self._report_available():
+            tk.Label(box, text=t("empty.no_report", self.language), bg=UI["heading"], fg=UI["muted"], wraplength=600, justify="left", anchor="w").pack(fill="x", pady=(6, 0))
+        else:
+            fields = (("label.machine_source", context["source"]), ("label.operating_system", context["os"]), ("label.lifecycle", context["release"]), ("label.compatibility", context["compatibility"]), ("label.suitability", context["suitability"]), ("label.lifecycle", context["lifecycle"]), ("label.installation_readiness", context["readiness"]))
+            for key, value in fields:
+                tk.Label(box, text=f"{t(key, self.language)}: {value}", bg=UI["heading"], fg=UI["muted"], anchor="w").pack(fill="x", pady=1)
+            if context["captured"]:
+                tk.Label(box, text=t("report.captured", self.language, timestamp=context["captured"]), bg=UI["heading"], fg=UI["muted"], anchor="w").pack(fill="x", pady=(4, 1))
+        state = "normal" if self._report_available() else "disabled"
+        tk.Label(body, text=t("action.save_report", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
+        actions = tk.Frame(body, bg=UI["surface"])
+        actions.pack(fill="x", pady=(5, 0))
+        ttk.Button(actions, text=t("action.save_report", self.language), command=self.save_report, style="Accent.TButton", state=state).pack(side="left")
+        ttk.Button(actions, text=t("action.save_html", self.language), command=self.save_html_report, style="Accent.TButton", state=state).pack(side="left", padx=(8, 0))
+        secondary = tk.Frame(body, bg=UI["surface"])
+        secondary.pack(fill="x", pady=(16, 0))
+        ttk.Button(secondary, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton", state=state).pack(side="left")
+        ttk.Button(secondary, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton", state="normal" if self._report_available() else "disabled").pack(side="left", padx=(8, 0))
+        ttk.Button(secondary, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
+        tk.Label(body, text=f"{t('label.external_source', self.language)} • {context['database']} • {t('app.title', self.language)} {APP_VERSION}", bg=UI["surface"], fg=UI["muted"], wraplength=640, justify="left", anchor="w").pack(fill="x", pady=(18, 0))
+        window.bind("<Escape>", lambda _event: window.destroy())
+        self._apply_theme(window)
+
+    def _report_metadata(self) -> dict[str, str]:
+        context = self._report_context()
+        context["generated_at"] = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+        context["version"] = APP_VERSION
+        return context
+
+    def save_report(self) -> None:
+        if not self._report_available():
+            self._unavailable("empty.no_report", t("action.scan", self.language))
+            return
+        target = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON report", "*.json")], initialfile="os-readiness-report.json")
+        if not target:
+            return
+        name = self.choice.get()
+        report = as_report(self.machine, self.requirements[name])
+        report.update({"target_os": name, "machine_source": self.machine_source, "report_context": self._report_metadata()})
+        if self.profile_metadata:
+            report["profile_metadata"] = {k: v for k, v in self.profile_metadata.items() if k in {"created_at", "name", "data_version"}}
+        Path(target).write_text(json.dumps(report, indent=2), encoding="utf-8")
+        self._set_feedback("feedback.saved")
+
+    def save_html_report(self) -> None:
+        if not self._report_available():
+            self._unavailable("empty.no_report", t("action.scan", self.language))
+            return
+        target = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="os-readiness-report.html")
+        if not target:
+            return
+        name = self.choice.get()
+        html = html_report(self.machine, name, self.requirements[name])
+        from html import escape
+        context = self._report_metadata()
+        metadata = f"<section class='report-context'><h2>{escape(t('nav.reports', self.language))}</h2><p>{escape(t('label.machine_source', self.language))}: {escape(context['source'])} · {escape(t('label.operating_system', self.language))}: {escape(context['os'])} · {escape(t('label.compatibility', self.language))}: {escape(context['compatibility'])}</p><p>{escape(t('label.external_source', self.language))}: {escape(context['database'])} · {escape(t('app.title', self.language))} {escape(APP_VERSION)} · {escape(context['generated_at'])}</p></section>"
+        html = html.replace("</h1>", "</h1>" + metadata, 1).replace("</style>", ".report-context{border:1px solid #d1d5db;border-radius:8px;padding:12px;margin:16px 0;color:#374151} @media print{body{max-width:none}.report-context{break-inside:avoid}} </style>", 1)
+        Path(target).write_text(html, encoding="utf-8")
+        self._set_feedback("feedback.saved")
+
+    def copy_results(self) -> None:
+        if not self._report_available():
+            self._unavailable("empty.no_report", t("action.scan", self.language))
+            return
+        name = self.choice.get()
+        context = self._report_metadata()
+        prefix = [f"{t('app.title', self.language)} {APP_VERSION}", f"{t('label.machine_source', self.language)}: {context['source']}", f"{t('label.external_source', self.language)}: {context['database']}", ""]
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(prefix) + plain_text_report(self.machine, name, self.requirements[name], self.language))
+        self._set_feedback("feedback.copied")
+
+    def open_source(self) -> None:
+        if not self._report_available():
+            return
+        try:
+            if not webbrowser.open(self.requirements[self.choice.get()]["source"]):
+                self._set_feedback("error.requirements_offline")
+        except (KeyError, OSError, webbrowser.Error):
+            self._set_feedback("error.requirements_offline")
+
+ReadinessApp = Batch6ReadinessApp
+
+
 if __name__ == "__main__":
     ReadinessApp().mainloop()
