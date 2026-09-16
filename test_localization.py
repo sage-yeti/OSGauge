@@ -4,7 +4,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from checker import MachineInfo, html_report
-from localization import _BATCH5_TRANSLATIONS, detect_system_language, resolve_language, t
+from localization import _BATCH5_TRANSLATIONS, detect_system_language, preference_label, readiness_explanation, resolve_language, suitability_explanation, t
+from recommendation import PREFERENCES
 
 
 class LocalizationTests(unittest.TestCase):
@@ -64,6 +65,20 @@ class LocalizationTests(unittest.TestCase):
         html = html_report(machine, "Test OS", requirements, "it")
         self.assertIn("compatibilit", html.lower())
         self.assertNotIn('"status"', html)
+
+    def test_generated_values_are_localized_for_all_supported_languages(self):
+        preference_keys = (
+            "beginner_friendly", "low_resource", "gaming", "development", "privacy",
+            "stability", "long_term_support", "rolling", "windows_like",
+        )
+        self.assertEqual(PREFERENCES, preference_keys)
+        for code in ("it", "es", "de", "fr"):
+            for key in ("action.scan", "action.import_profile", "label.suitability", "label.installation_readiness", "recommend.strengths", "recommend.tradeoffs"):
+                self.assertTrue(t(key, code) and t(key, code) != key, f"missing {code}:{key}")
+            self.assertNotEqual(suitability_explanation("Excellent fit", "unused", code), suitability_explanation("Excellent fit", "unused", "en"))
+            self.assertNotEqual(readiness_explanation("ready", code), readiness_explanation("ready", "en"))
+            for key in preference_keys:
+                self.assertTrue(preference_label(key, code) and preference_label(key, code) != key)
 
 
 if __name__ == "__main__":
