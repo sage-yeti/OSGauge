@@ -15,6 +15,22 @@ SPACING = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32}
 RADII = {"control": 8, "card": 10, "small": 6}
 
 
+def _draw_rounded_surface(canvas: tk.Canvas, width: int, height: int, radius: int, fill: str, outline: str) -> None:
+    canvas.delete("surface")
+    if width < 2 or height < 2:
+        return
+    radius = max(4, min(radius, width // 2, height // 2))
+    canvas.create_rectangle(radius, 0, width - radius, height, fill=fill, outline="", tags="surface")
+    canvas.create_rectangle(0, radius, width, height - radius, fill=fill, outline="", tags="surface")
+    for x, y, start in ((0, 0, 90), (width - 2 * radius, 0, 0), (0, height - 2 * radius, 180), (width - 2 * radius, height - 2 * radius, 270)):
+        canvas.create_arc(x, y, x + 2 * radius, y + 2 * radius, start=start, extent=90, fill=fill, outline="", tags="surface")
+    canvas.create_line(radius, 0, width - radius, 0, fill=outline, tags="surface")
+    canvas.create_line(radius, height - 1, width - radius, height - 1, fill=outline, tags="surface")
+    canvas.create_line(0, radius, 0, height - radius, fill=outline, tags="surface")
+    canvas.create_line(width - 1, radius, width - 1, height - radius, fill=outline, tags="surface")
+
+
+
 def tokens_for(colors: Mapping[str, str]) -> dict[str, object]:
     """Return one small, reusable set of visual tokens for the active theme."""
     return {
@@ -39,16 +55,23 @@ def tokens_for(colors: Mapping[str, str]) -> dict[str, object]:
 
 
 class FluentCard(tk.Frame):
-    """A theme-aware grouped surface for existing Tk content.
+    """A theme-aware rounded grouped surface for existing Tk content.
 
-    The frame intentionally keeps native Tk geometry and child widgets, so it
-    remains portable in standalone Linux and Windows builds.
+    The canvas only paints the outer surface; native child widgets and their
+    geometry managers remain unchanged and keyboard accessible.
     """
 
     def __init__(self, master: tk.Misc, *, tokens: Mapping[str, object], padding=(16, 14), **kwargs):
-        super().__init__(master, bg=str(tokens["surface"]), highlightbackground=str(tokens["subtle_border"]), highlightthickness=1, bd=0, relief="flat", **kwargs)
+        super().__init__(master, bg=str(tokens["background"]), highlightthickness=0, bd=0, relief="flat", **kwargs)
         self.tokens = tokens
         self.padding = padding
+        self._surface = tk.Canvas(self, bg=str(tokens["background"]), highlightthickness=0, bd=0)
+        self._surface.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.bind("<Configure>", self._redraw_surface, add="+")
+
+    def _redraw_surface(self, _event=None) -> None:
+        _draw_rounded_surface(self._surface, self.winfo_width(), self.winfo_height(), int(self.tokens["radii"]["card"]), str(self.tokens["surface"]), str(self.tokens["subtle_border"]))
+        self._surface.lower()
 
     def content(self) -> tk.Frame:
         body = tk.Frame(self, bg=str(self.tokens["surface"]))
