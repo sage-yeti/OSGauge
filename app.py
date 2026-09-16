@@ -457,7 +457,7 @@ class ReadinessApp(tk.Tk):
         tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT\n\n{t('about.privacy', self.language)}", justify="left", anchor="w", wraplength=370, bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
         actions = tk.Frame(card, bg=UI["surface"])
         actions.pack(fill="x")
-        ttk.Button(actions, text="Open GitHub", command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
+        ttk.Button(actions, text=t("action.open_github", self.language), command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
         ttk.Button(actions, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
         ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
         window.bind("<Escape>", lambda _event: window.destroy())
@@ -630,7 +630,7 @@ class ReadinessApp(tk.Tk):
         info = explain_check(self.machine, self.requirements[self.choice.get()], check, self.language)
         text = f"{check.name}: {info['explanation']}"
         if info["remediation"]:
-            text += f"\nNext step: {info['remediation']}"
+            text += f"\n{t('label.next_step', self.language)}: {info['remediation']}"
         self.details.config(text=text)
 
     def _show_overview(self, machine, all_results, ranked) -> None:
@@ -643,10 +643,10 @@ class ReadinessApp(tk.Tk):
             self.choice.current(0)
         self.results = all_results.get(self.choice.get(), [])
         self._clear_table()
-        self.table.heading("#0", text="Operating system")
-        self.table.heading("result", text="Status")
-        self.table.heading("detected", text="Compatibility")
-        self.table.heading("required", text="Suitability")
+        self.table.heading("#0", text=t("label.operating_system", self.language))
+        self.table.heading("result", text=t("label.status", self.language))
+        self.table.heading("detected", text=t("label.compatibility_short", self.language))
+        self.table.heading("required", text=t("label.suitability_short", self.language))
         self.table.column("#0", width=270)
         self.table.column("result", width=110, anchor="center")
         self.table.column("detected", width=120, anchor="center")
@@ -659,8 +659,8 @@ class ReadinessApp(tk.Tk):
         source_note = ""
         if self.machine_source == "Imported profile":
             captured = self.profile_metadata.get("created_at", "")
-            source_note = f" Imported profile captured {captured}. Installation readiness reflects its recorded configuration."
-        self.details.config(text=f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source}). Compatibility is based on published requirements; suitability is application-defined headroom guidance.{source_note}")
+            source_note = t("overview.imported_note", self.language, captured=captured)
+        self.details.config(text=t("overview.requirements_note", self.language, version=self.requirements_info.data_version, source=self.requirements_info.source, source_note=source_note))
         self.check_button.config(state="normal")
         self.scan_in_progress = False
         self.compare_button.config(state="normal")
@@ -740,14 +740,14 @@ class ReadinessApp(tk.Tk):
             self._unavailable("empty.no_machine", t("action.scan", self.language))
             return
         window = tk.Toplevel(self)
-        window.title("Compare operating systems")
+        window.title(t("comparison.title", self.language))
         self._size_dialog(window, 760, 520, 560, 400)
         window.configure(bg=UI["background"])
         font = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
         names = list(self.requirements)
         controls = tk.Frame(window, bg=UI["surface"], padx=16, pady=12, highlightbackground=UI["border"], highlightthickness=1)
         controls.pack(fill="x", padx=20, pady=20)
-        tk.Label(controls, text="Compare", bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(side="left")
+        tk.Label(controls, text=t("comparison.label", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(side="left")
         left = ttk.Combobox(controls, state="readonly", values=names, width=23, style="Fluent.TCombobox")
         right = ttk.Combobox(controls, state="readonly", values=names, width=23, style="Fluent.TCombobox")
         left.current(0)
