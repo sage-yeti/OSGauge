@@ -248,6 +248,44 @@ _BATCH5_TRANSLATIONS = {
     "label.requirement": "Exigence"
 }
 }
+_BATCH6_TRANSLATIONS = {
+    "en": {
+        "label.hardware": "hardware",
+        "readiness.ready": "The current configuration is ready for the checked installation conditions.",
+        "readiness.review": "Some installation conditions need review.",
+        "readiness.unknown": "Some installation conditions could not be verified.",
+        "readiness.not_ready": "One or more mandatory installation conditions are not met."
+    },
+    "it": {
+        "label.hardware": "hardware",
+        "readiness.ready": "La configurazione attuale è pronta per le condizioni di installazione verificate.",
+        "readiness.review": "Alcune condizioni di installazione richiedono una verifica.",
+        "readiness.unknown": "Non è stato possibile verificare alcune condizioni di installazione.",
+        "readiness.not_ready": "Una o più condizioni obbligatorie di installazione non sono soddisfatte."
+    },
+    "es": {
+        "label.hardware": "hardware",
+        "readiness.ready": "La configuración actual está lista para las condiciones de instalación comprobadas.",
+        "readiness.review": "Algunas condiciones de instalación requieren revisión.",
+        "readiness.unknown": "No se pudieron verificar algunas condiciones de instalación.",
+        "readiness.not_ready": "No se cumplen una o más condiciones obligatorias de instalación."
+    },
+    "de": {
+        "label.hardware": "Hardware",
+        "readiness.ready": "Die aktuelle Konfiguration ist für die geprüften Installationsbedingungen bereit.",
+        "readiness.review": "Einige Installationsbedingungen müssen geprüft werden.",
+        "readiness.unknown": "Einige Installationsbedingungen konnten nicht überprüft werden.",
+        "readiness.not_ready": "Eine oder mehrere verpflichtende Installationsbedingungen sind nicht erfüllt."
+    },
+    "fr": {
+        "label.hardware": "matériel",
+        "readiness.ready": "La configuration actuelle est prête pour les conditions d’installation vérifiées.",
+        "readiness.review": "Certaines conditions d’installation doivent être vérifiées.",
+        "readiness.unknown": "Certaines conditions d’installation n’ont pas pu être vérifiées.",
+        "readiness.not_ready": "Une ou plusieurs conditions d’installation obligatoires ne sont pas remplies."
+    }
+}
+
 _PREFERENCE_LABELS = {
     "en": {"beginner_friendly":"Beginner friendly","low_resource":"Older / lower-spec hardware","gaming":"Gaming","development":"Software development","privacy":"Privacy","stability":"Stability / conservative updates","long_term_support":"Long-term support","rolling":"Rolling / latest software","windows_like":"Windows-like desktop experience"},
     "it": {"beginner_friendly":"Facilità per principianti","low_resource":"Hardware vecchio / meno potente","gaming":"Gaming","development":"Sviluppo software","privacy":"Privacy","stability":"Stabilità / aggiornamenti conservativi","long_term_support":"Supporto a lungo termine","rolling":"Rolling / software più recente","windows_like":"Desktop simile a Windows"},
@@ -261,7 +299,7 @@ def _load(code: str) -> dict[str, str]:
     if code not in _CACHE:
         try:
             data = json.loads(Path(__file__).with_name("locales").joinpath(f"{code}.json").read_text(encoding="utf-8"))
-            _CACHE[code] = {**(data if isinstance(data, dict) else {}), **_RECOMMEND_TRANSLATIONS.get(code, {}), **_BATCH5_TRANSLATIONS.get(code, {})}
+            _CACHE[code] = {**(data if isinstance(data, dict) else {}), **_RECOMMEND_TRANSLATIONS.get(code, {}), **_BATCH5_TRANSLATIONS.get(code, {}), **_BATCH6_TRANSLATIONS.get(code, {})}
         except (OSError, json.JSONDecodeError):
             _CACHE[code] = {}
     return _CACHE[code]
@@ -319,7 +357,11 @@ def suitability_label(value: str, language: str = "en") -> str:
     return t("status." + value.lower().replace(" ", "_"), language)
 
 
-def suitability_explanation(category: str, original: str, language: str = "en") -> str:
-    keys = {"Not compatible": "suitability.not_compatible", "Marginal": "suitability.unknown", "Excellent fit": "suitability.excellent", "Good fit": "suitability.good", "Meets minimum": "suitability.minimum"}
+def suitability_explanation(category: str, original: str, language: str = "en", limiting: str = "hardware") -> str:
+    keys = {"Not compatible": "suitability.not_compatible", "Marginal": "suitability.marginal", "Excellent fit": "suitability.excellent", "Good fit": "suitability.good", "Meets minimum": "suitability.minimum"}
     key = keys.get(category)
-    return t(key, language) if key else original
+    return t(key, language, limiting=t("label.hardware", language) if limiting == "hardware" else limiting) if key else original
+
+
+def readiness_explanation(status: str, language: str = "en") -> str:
+    return t("readiness." + str(status), language)
