@@ -225,24 +225,28 @@ class ReadinessApp(tk.Tk):
         analysis_cards.grid_rowconfigure(1, weight=1)
 
         columns = ("result", "detected", "required")
-        table_card = FluentCard(body, tokens=self.ui_tokens, padding=(1, 1))
-        table_card.pack(fill="both", expand=True)
-        self.table = ttk.Treeview(table_card, columns=columns, show="tree headings", style="Fluent.Treeview")
+        self.overview_columns = ("#0",) + columns
+        table_card = FluentCard(body, tokens=self.ui_tokens, padding=(7, 7))
+        table_card.pack(fill="both", expand=True, pady=(0, 12))
+        table_body = table_card.content()
+        table_holder = tk.Frame(table_body, bg=UI["surface"])
+        table_holder.pack(fill="both", expand=True)
+        self.table = ttk.Treeview(table_holder, columns=columns, show="tree headings", style="Fluent.Treeview", selectmode="browse")
         self.table.heading("#0", text=t("label.check", self.language))
         self.table.heading("result", text=t("label.result", self.language))
         self.table.heading("detected", text=t("label.detected", self.language))
         self.table.heading("required", text=t("label.required", self.language))
-        self.table.column("#0", width=190)
-        self.table.column("result", width=90, anchor="center")
-        self.table.column("detected", width=190)
-        self.table.column("required", width=190)
+        self._configure_table_columns()
         self.table.pack(fill="both", expand=True)
+        self.table_empty = tk.Label(table_holder, text=t("empty.no_machine", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 10), justify="center", anchor="center")
+        self.table_empty.place(relx=0.5, rely=0.5, anchor="center")
         self.table.tag_configure("pass", foreground=COLORS["pass"])
         self.table.tag_configure("fail", foreground=COLORS["fail"])
         self.table.tag_configure("unknown", foreground=COLORS["unknown"])
         self.table.bind("<<TreeviewSelect>>", self.show_selected_check)
         self.table.bind("<Double-1>", self._open_selected_os)
         self.table.bind("<Return>", self._open_selected_os)
+        self.table.bind("<Configure>", self._resize_table_columns, add="+")
 
         footer = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
         footer.pack(fill="x")
@@ -317,6 +321,38 @@ class ReadinessApp(tk.Tk):
         save_settings(self.settings)
         self.welcome_card.pack_forget()
         self._sync_overview_actions()
+
+    def _configure_table_columns(self, *, overview: bool = True) -> None:
+        """Keep the native table readable while allowing the workspace to breathe."""
+        if overview:
+            specs = (("#0", 250, 170, True, "w"), ("result", 112, 96, False, "center"), ("detected", 150, 120, True, "center"), ("required", 150, 120, True, "center"))
+        else:
+            specs = (("#0", 205, 150, True, "w"), ("result", 100, 88, False, "center"), ("detected", 205, 130, True, "w"), ("required", 205, 130, True, "w"))
+        for column, width, minimum, stretch, anchor in specs:
+            self.table.column(column, width=width, minwidth=minimum, stretch=stretch, anchor=anchor)
+
+    def _resize_table_columns(self, _event=None) -> None:
+        """Give the name column priority at normal widths without hardcoding a layout."""
+        if not hasattr(self, "table") or not self.table.winfo_exists() or getattr(self, "active_page", "overview") != "overview":
+            return
+        width = self.table.winfo_width()
+        if width <= 0:
+            return
+        result = 112
+        remaining = max(250, width - result - 8)
+        name = min(310, max(170, int(remaining * 0.36)))
+        each = max(120, (remaining - name) // 2)
+        self.table.column("#0", width=name)
+        self.table.column("result", width=result)
+        self.table.column("detected", width=each)
+        self.table.column("required", width=max(120, remaining - name - each))
+
+    def _set_table_empty(self, visible: bool) -> None:
+        if hasattr(self, "table_empty"):
+            if visible:
+                self.table_empty.place(relx=0.5, rely=0.5, anchor="center")
+            else:
+                self.table_empty.place_forget()
     def _show_welcome(self) -> None:
         self.settings["onboarding_dismissed"] = False
         save_settings(self.settings)
@@ -671,14 +707,12 @@ class ReadinessApp(tk.Tk):
             self.choice.current(0)
         self.results = all_results.get(self.choice.get(), [])
         self._clear_table()
+        self._set_table_empty(not bool(ranked))
         self.table.heading("#0", text=t("label.operating_system", self.language))
         self.table.heading("result", text=t("label.status", self.language))
         self.table.heading("detected", text=t("label.compatibility_short", self.language))
         self.table.heading("required", text=t("label.suitability_short", self.language))
-        self.table.column("#0", width=270)
-        self.table.column("result", width=110, anchor="center")
-        self.table.column("detected", width=120, anchor="center")
-        self.table.column("required", width=110, anchor="center")
+        self._configure_table_columns()
         for item in ranked:
             status = item["status"]
             profile = self.requirements.get(item["name"], {})
@@ -703,6 +737,7 @@ class ReadinessApp(tk.Tk):
             return
         self._set_active_nav("overview")
         self.analysis_frame.pack_forget()
+        self._set_table_empty(True)
         self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
         self.status_badge.config(text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"])
         self.details.config(text=t("help.concepts_text", self.language))
@@ -724,10 +759,7 @@ class ReadinessApp(tk.Tk):
         self.table.heading("result", text=t("label.result", self.language))
         self.table.heading("detected", text=t("label.detected", self.language))
         self.table.heading("required", text=t("label.required", self.language))
-        self.table.column("#0", width=190)
-        self.table.column("result", width=90, anchor="center")
-        self.table.column("detected", width=190)
-        self.table.column("required", width=190)
+        self._configure_table_columns(overview=False)
         status = overall_status(results)
         suitability = suitability_dict(assess_suitability(self.machine, self.requirements[name], results))
         messages = {

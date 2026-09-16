@@ -20,6 +20,8 @@ THEMES = {
         "accent_dark": "#1d4ed8",
         "heading": "#f8fafc",
         "badge": "#e2e8f0",
+        "selection": "#dbeafe",
+        "selection_text": "#1e3a5f",
     },
     "Dark": {
         # Neutral graphite surfaces; blue is reserved for interaction and focus.
@@ -34,6 +36,8 @@ THEMES = {
         "accent_dark": "#2f80ed",
         "heading": "#262626",
         "badge": "#2a2a2a",
+        "selection": "#244a73",
+        "selection_text": "#f3f3f3",
     },
 }
 
