@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from checker import MachineInfo, html_report
-from localization import detect_system_language, resolve_language, t
+from localization import _BATCH5_TRANSLATIONS, detect_system_language, resolve_language, t
 
 
 class LocalizationTests(unittest.TestCase):
@@ -38,6 +38,25 @@ class LocalizationTests(unittest.TestCase):
             self.assertEqual(detect_system_language(), "de")
         with patch("localization.locale.getlocale", return_value=("fr_FR", "UTF-8")):
             self.assertEqual(detect_system_language(), "fr")
+
+    def test_batch5_translations_are_complete_and_localized(self):
+        keys = (
+            "welcome.title", "welcome.text", "welcome.hint1", "welcome.hint2",
+            "welcome.hint3", "welcome.hint4", "empty.no_machine", "empty.no_report",
+            "settings.title", "settings.appearance", "settings.data",
+            "settings.onboarding", "settings.onboarding_text", "help.title",
+            "help.intro", "help.workflow_text", "help.concepts_text", "help.privacy_text",
+            "planner.no_required", "error.scan", "error.requirements_offline",
+            "feedback.saved", "feedback.copied", "feedback.updated",
+            "label.external_source", "overview.requirements_note", "label.next_step",
+        )
+        english_keys = set(_BATCH5_TRANSLATIONS["en"])
+        for code in ("it", "es", "de", "fr"):
+            self.assertEqual(set(_BATCH5_TRANSLATIONS[code]), english_keys)
+            for key in keys:
+                value = t(key, code)
+                self.assertTrue(value and value != key, f"missing {code}:{key}")
+                self.assertNotEqual(value, t(key, "en"), f"English fallback {code}:{key}")
 
     def test_html_report_localizes_labels_without_changing_data(self):
         machine = MachineInfo("Linux", "X86_64", "CPU", 4, 2.0, 8, 100, 50)
