@@ -8,8 +8,33 @@ from pathlib import Path
 
 
 THEMES = {
-    "Light": {"background": "#f5f7fb", "surface": "#ffffff", "elevated": "#ffffff", "border": "#dfe5ef", "subtle_border": "#e8edf5", "text": "#1f2937", "muted": "#64748b", "accent": "#2563eb", "accent_dark": "#1d4ed8", "heading": "#f8fafc"},
-    "Dark": {"background": "#111827", "surface": "#1f2937", "elevated": "#243247", "border": "#374151", "subtle_border": "#2d3a4d", "text": "#f3f4f6", "muted": "#cbd5e1", "accent": "#60a5fa", "accent_dark": "#3b82f6", "heading": "#273449"},
+    "Light": {
+        "background": "#f5f7fb",
+        "surface": "#ffffff",
+        "elevated": "#ffffff",
+        "border": "#dfe5ef",
+        "subtle_border": "#e8edf5",
+        "text": "#1f2937",
+        "muted": "#64748b",
+        "accent": "#2563eb",
+        "accent_dark": "#1d4ed8",
+        "heading": "#f8fafc",
+        "badge": "#e2e8f0",
+    },
+    "Dark": {
+        # Neutral graphite surfaces; blue is reserved for interaction and focus.
+        "background": "#141414",
+        "surface": "#1c1c1c",
+        "elevated": "#242424",
+        "border": "#363636",
+        "subtle_border": "#2a2a2a",
+        "text": "#f3f3f3",
+        "muted": "#b8b8b8",
+        "accent": "#5aa9ff",
+        "accent_dark": "#2f80ed",
+        "heading": "#262626",
+        "badge": "#2a2a2a",
+    },
 }
 
 

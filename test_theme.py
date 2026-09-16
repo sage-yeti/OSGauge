@@ -3,7 +3,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from theme import colors_for, load_settings, load_theme_mode, save_settings, save_theme_mode, system_prefers_dark
+from theme import THEMES, colors_for, load_settings, load_theme_mode, save_settings, save_theme_mode, system_prefers_dark
 
 
 class _FakeRegistryKey:
@@ -29,9 +29,18 @@ def _fake_winreg(value=None, open_error=None):
 
 class ThemeTests(unittest.TestCase):
     def test_theme_modes_always_return_complete_colors(self):
+        required = {"background", "surface", "elevated", "border", "subtle_border", "text", "muted", "accent", "accent_dark", "heading", "badge"}
         for mode in ("System", "Light", "Dark"):
-            self.assertIn("background", colors_for(mode))
-            self.assertIn("text", colors_for(mode))
+            self.assertTrue(required.issubset(colors_for(mode)))
+
+    def test_dark_theme_is_neutral_graphite_with_blue_accent(self):
+        dark = THEMES["Dark"]
+        self.assertEqual(dark["background"], "#141414")
+        self.assertEqual(dark["surface"], "#1c1c1c")
+        self.assertNotEqual(dark["background"], "#000000")
+        self.assertNotIn(dark["background"], {"#111827", "#1f2937", "#243247", "#273449"})
+        self.assertTrue(dark["accent"].lower().startswith("#5a"))
+        self.assertGreater(int(dark["surface"][1:3], 16), int(dark["background"][1:3], 16))
 
     def test_system_detection_failure_falls_back(self):
         if sys.platform == "win32":

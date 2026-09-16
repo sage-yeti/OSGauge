@@ -35,15 +35,7 @@ from ui_foundation import FluentCard, NAV_DESTINATIONS, configure_styles, tokens
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
 ICONS = {"pass": "✓", "fail": "✕", "unknown": "?"}
-UI = {
-    "background": "#f5f7fb",
-    "surface": "#ffffff",
-    "border": "#dfe5ef",
-    "text": "#1f2937",
-    "muted": "#64748b",
-    "accent": "#2563eb",
-    "accent_dark": "#1d4ed8",
-}
+UI = colors_for("Light")
 
 
 class ReadinessApp(tk.Tk):
@@ -52,7 +44,7 @@ class ReadinessApp(tk.Tk):
         self.title(f"OS Readiness Checker {APP_VERSION}")
         self.geometry("820x620")
         self.minsize(700, 500)
-        self.configure(bg="#f4f6f8")
+        self.configure(bg=UI["background"])
         self.settings = load_settings()
         self.language_selection = self.settings.get("language") if self.settings.get("language") in LANGUAGES else "System"
         self.language = resolve_language(self.language_selection)
@@ -195,7 +187,7 @@ class ReadinessApp(tk.Tk):
         summary_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
         self.summary_card = summary_card
         summary_card.pack(fill="x", pady=(0, 14))
-        self.status_badge = tk.Label(summary_card, text="  READY  ", bg="#e2e8f0", fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
+        self.status_badge = tk.Label(summary_card, text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
         self.status_badge.pack(side="left", padx=(0, 12))
         self.summary = tk.Label(summary_card, text=t("empty.no_machine", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), wraplength=620, justify="left", anchor="w")
         self.summary.pack(side="left", anchor="w")
@@ -412,7 +404,7 @@ class ReadinessApp(tk.Tk):
         self.profile_metadata = {}
         self.scan_in_progress = True
         self.check_button.config(state="disabled")
-        self.summary.config(text=t("overview.scanning", self.language), fg="#374151")
+        self.summary.config(text=t("overview.scanning", self.language), fg=UI["muted"])
         screen = (self.winfo_screenwidth(), self.winfo_screenheight())
         threading.Thread(target=self._scan, args=(screen,), daemon=True).start()
 
@@ -695,7 +687,7 @@ class ReadinessApp(tk.Tk):
         self._set_active_nav("overview")
         self.analysis_frame.pack_forget()
         self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
-        self.status_badge.config(text="  READY  ", bg="#e2e8f0", fg=UI["muted"])
+        self.status_badge.config(text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"])
         self.details.config(text=t("help.concepts_text", self.language))
         self._sync_overview_actions()
     def show_detail(self) -> None:
