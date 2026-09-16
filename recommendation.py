@@ -45,9 +45,11 @@ def recommend(requirements: dict[str, dict[str, Any]], results_by_os: dict[str, 
         selected = [(key, weight) for key, weight in weights.items() if weight]
         preference_score = round(100 * (sum(traits.get(key, 2.5) * weight for key, weight in selected) / (5 * sum(weight for _, weight in selected))) if selected else 50)
         category = "Excellent match" if preference_score >= 80 else "Strong match" if preference_score >= 60 else "Moderate match" if preference_score >= 40 else "Weak match"
-        matched = [PREFERENCE_LABELS[key] for key, weight in selected if traits.get(key, 2.5) >= 4]
-        tradeoffs = [PREFERENCE_LABELS[key] for key, weight in selected if traits.get(key, 2.5) <= 2]
-        ranked.append({"os_family": family, "release": profile.get("release", profile.get("version", name)), "name": name, "compatibility_status": status, "suitability": suitability_by_os.get(name) if suitability_by_os else None, "preference_score": preference_score, "preference_match_category": category, "matched_preferences": matched, "strengths": matched[:], "tradeoffs": tradeoffs, "lifecycle_status": profile.get("support_status", "unknown"), "readiness_status": (readiness_by_os or {}).get(name, {}).get("status", "unknown")})
+        matched_keys = [key for key, weight in selected if traits.get(key, 2.5) >= 4]
+        tradeoff_keys = [key for key, weight in selected if traits.get(key, 2.5) <= 2]
+        matched = [PREFERENCE_LABELS[key] for key in matched_keys]
+        tradeoffs = [PREFERENCE_LABELS[key] for key in tradeoff_keys]
+        ranked.append({"os_family": family, "release": profile.get("release", profile.get("version", name)), "name": name, "compatibility_status": status, "suitability": suitability_by_os.get(name) if suitability_by_os else None, "preference_score": preference_score, "preference_match_category": category, "matched_preferences": matched, "matched_preference_keys": matched_keys, "strengths": matched[:], "strength_keys": matched_keys[:], "tradeoffs": tradeoffs, "tradeoff_keys": tradeoff_keys, "lifecycle_status": profile.get("support_status", "unknown"), "readiness_status": (readiness_by_os or {}).get(name, {}).get("status", "unknown")})
     status_order = {"pass": 0, "review": 1, "fail": 2}
     return sorted(ranked, key=lambda item: (status_order[item["compatibility_status"]], -item["preference_score"], -_suitability_score(item["suitability"]), item["name"]))
 
