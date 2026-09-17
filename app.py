@@ -128,8 +128,6 @@ class ReadinessApp(tk.Tk):
         body = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         body._ui_role = "workspace"
         body.pack(fill="both", expand=True)
-        content_area = tk.Frame(body, bg=UI["background"])
-        content_area.pack(fill="both", expand=True, pady=(0, 12))
         controls = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         controls.pack(fill="x", pady=(0, 14))
         self.os_label = tk.Label(controls, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
@@ -202,6 +200,7 @@ class ReadinessApp(tk.Tk):
         self.analysis_frame = tk.Frame(content_area, bg=UI["background"])
         self.analysis_frame._ui_role = "workspace"
         self.analysis_frame.pack_forget()
+        self.table_card.pack_configure(fill="both", expand=True)
         context_row = tk.Frame(self.analysis_frame, bg=UI["background"])
         context_row._ui_role = "workspace"
         context_row.pack(fill="x", pady=(0, 8))
@@ -232,17 +231,21 @@ class ReadinessApp(tk.Tk):
         columns = ("result", "detected", "required")
         self.overview_columns = ("#0",) + columns
         table_card = FluentCard(content_area, tokens=self.ui_tokens, padding=(7, 7))
+        self.table_card = table_card
         table_card.pack(fill="both", expand=True)
         table_body = table_card.content()
         table_holder = tk.Frame(table_body, bg=UI["surface"])
         table_holder.pack(fill="both", expand=True)
         self.table = ttk.Treeview(table_holder, columns=columns, show="tree headings", style="Fluent.Treeview", selectmode="browse")
+        self.table_scrollbar = ttk.Scrollbar(table_holder, orient="vertical", command=self.table.yview)
+        self.table.configure(yscrollcommand=self.table_scrollbar.set)
         self.table.heading("#0", text=t("label.check", self.language))
         self.table.heading("result", text=t("label.result", self.language))
         self.table.heading("detected", text=t("label.detected", self.language))
         self.table.heading("required", text=t("label.required", self.language))
         self._configure_table_columns()
-        self.table.pack(fill="both", expand=True)
+        self.table.pack(side="left", fill="both", expand=True)
+        self.table_scrollbar.pack(side="right", fill="y")
         self.table_empty = tk.Label(table_holder, text=t("empty.no_machine", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 10), justify="center", anchor="center")
         self.table_empty.place(relx=0.5, rely=0.5, anchor="center")
         self.table.tag_configure("pass", foreground=COLORS["pass"])
@@ -649,6 +652,7 @@ class ReadinessApp(tk.Tk):
         visible = [item for item in results if not self.issues_only.get() or item.status != "pass"]
         for item in visible:
             self.table.insert("", "end", text=item.name, values=(ICONS[item.status] + " " + status_label(item.status, self.language), item.detected, item.required), tags=(item.status,))
+        self.table.configure(height=min(max(len(visible), 1), 8))
 
     def _refresh_detail_rows(self) -> None:
         if self.machine and self.choice.get() in self.all_results:
@@ -758,7 +762,8 @@ class ReadinessApp(tk.Tk):
         name = self.choice.get()
         self._set_active_nav("analysis")
         self.analysis_logo.configure(image=self._logo_for(name, self.requirements[name]))
-        self.analysis_frame.pack(fill="x", pady=(0, 8))
+        self.table_card.pack_configure(fill="x", expand=False)
+        self.analysis_frame.pack(fill="x", pady=(8, 8), after=self.table_card)
         self.settings["last_os"] = name
         save_settings(self.settings)
         results = self.all_results[name]
