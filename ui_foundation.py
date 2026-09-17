@@ -67,6 +67,92 @@ class FluentCard(tk.Frame):
         return body
 
 
+class ScrollableWorkspace(tk.Frame):
+    """Single vertical scroll container for the main content workspace."""
+    def __init__(self, master: tk.Misc, *, background: str, **kwargs):
+        super().__init__(master, bg=background, **kwargs)
+        self._wheel_tag = f"ScrollableWorkspaceWheel{id(self)}"
+        self.canvas = tk.Canvas(self, bg=background, highlightthickness=0, bd=0)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.content = tk.Frame(self.canvas, bg=background)
+        self._window_id = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+        self.content.bind("<Configure>", self._on_content_configure, add="+")
+        self.canvas.bind("<Configure>", self._on_canvas_configure, add="+")
+        self._bind_class()
+        self._bind_widget_tree(self.canvas)
+        self._bind_widget_tree(self.content)
+
+    def _bind_class(self) -> None:
+        self.bind_class(self._wheel_tag, "<MouseWheel>", self._on_wheel)
+        self.bind_class(self._wheel_tag, "<Button-4>", self._on_wheel)
+        self.bind_class(self._wheel_tag, "<Button-5>", self._on_wheel)
+
+    def _bind_widget_tree(self, widget: tk.Misc) -> None:
+        tags = list(widget.bindtags())
+        if self._wheel_tag not in tags:
+            widget.bindtags((self._wheel_tag, *tags))
+        for child in widget.winfo_children():
+            self._bind_widget_tree(child)
+
+    def _update_scrollregion(self) -> None:
+        self.canvas.configure(scrollregion=self.canvas.bbox("all") or (0, 0, 1, 1))
+
+    def _on_content_configure(self, _event=None) -> None:
+        self._bind_widget_tree(self.content)
+        self._update_scrollregion()
+
+    def _on_canvas_configure(self, event) -> None:
+        self.canvas.itemconfigure(self._window_id, width=max(1, event.width))
+        self._sync_content_height(event.height)
+        self._update_scrollregion()
+
+    def _sync_content_height(self, viewport_height: int) -> None:
+        if getattr(self, "_syncing_height", False):
+            return
+        self._syncing_height = True
+        try:
+            self.content.configure(height=0)
+            self.update_idletasks()
+            natural_height = self.content.winfo_reqheight()
+            self.content.configure(height=max(int(viewport_height), natural_height, 1))
+        finally:
+            self._syncing_height = False
+
+    def _treeview_ancestor(self, widget) -> bool:
+        current = widget
+        while current is not None:
+            if isinstance(current, ttk.Treeview):
+                return True
+            current = getattr(current, "master", None)
+        return False
+
+    def _on_wheel(self, event):
+        if self._treeview_ancestor(event.widget):
+            return None
+        if getattr(event, "num", None) == 4:
+            units = -1
+        elif getattr(event, "num", None) == 5:
+            units = 1
+        else:
+            delta = getattr(event, "delta", 0)
+            if not delta:
+                return None
+            units = -int(delta / 120) if abs(delta) >= 120 else (-1 if delta > 0 else 1)
+        self.canvas.yview_scroll(units, "units")
+        return "break"
+
+    def reset(self) -> None:
+        self.canvas.yview_moveto(0.0)
+
+    def refresh(self) -> None:
+        self._bind_widget_tree(self.content)
+        self.update_idletasks()
+        self._sync_content_height(self.canvas.winfo_height())
+        self._update_scrollregion()
+
 def configure_styles(style: ttk.Style, colors: Mapping[str, str], font: str) -> None:
     surface = colors["surface"]
     heading = colors.get("heading", surface)
