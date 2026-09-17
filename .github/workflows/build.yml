@@ -10,6 +10,30 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    name: Validate Python, CLI, and source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run pytest
+        run: python -m pytest
+      - name: Compile Python sources
+        run: python -m compileall .
+      - name: Check source diff
+        run: git diff --check
+      - name: Smoke-test CLI
+        run: |
+          python cli.py --version
+          python cli.py --help
+          python cli.py --list
+
   build:
     name: Build ${{ matrix.os }} binary
     runs-on: ${{ matrix.os }}
@@ -32,7 +56,6 @@ jobs:
             artifact_name: OS-Readiness-Checker-CLI-Linux-x64
             executable: OS-Readiness-Checker-CLI
             spec: os_readiness_checker_cli.spec
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -61,7 +84,7 @@ jobs:
   release:
     name: Publish GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, appimage, flatpak]
+    needs: [validate, build, appimage, flatpak]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -115,7 +138,7 @@ jobs:
       - name: Build and validate bundle
         run: |
           flatpak-builder --user --force-clean --repo=repo build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml
-          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sageyeti.OSReadinessChecker
+          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sage-yeti.OSReadinessChecker
           test -s OS-Readiness-Checker-Linux-x86_64.flatpak
           python -m unittest -q
       - uses: actions/upload-artifact@v4
