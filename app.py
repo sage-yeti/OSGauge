@@ -31,7 +31,7 @@ from machine_comparison import compare_machines, html_comparison_report, plain_t
 from localization import LANGUAGES, preference_label, readiness_explanation, recommendation_match_label, resolve_language, status_label, suitability_explanation, t
 from os_icons import load_logo
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
-from ui_foundation import CARD_PADDING, CONTROL_GAP, DIALOG_PADDING, FluentCard, NAV_DESTINATIONS, PAGE_PADDING, configure_styles, tokens_for
+from ui_foundation import CARD_PADDING, CONTROL_GAP, DIALOG_PADDING, FluentCard, NAV_DESTINATIONS, PAGE_PADDING, ScrollableWorkspace, configure_styles, tokens_for
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -98,9 +98,12 @@ class ReadinessApp(tk.Tk):
             self.nav_buttons[page] = button
             if page == "settings":
                 tk.Frame(self.nav, bg=UI["subtle_border"], height=1).pack(fill="x", pady=8)
-        workspace = tk.Frame(shell, bg=UI["background"])
+        workspace_scroll = ScrollableWorkspace(shell, background=UI["background"])
+        workspace_scroll._ui_role = "workspace"
+        workspace_scroll.pack(side="left", fill="both", expand=True)
+        self.workspace_scroll = workspace_scroll
+        workspace = workspace_scroll.content
         workspace._ui_role = "workspace"
-        workspace.pack(side="left", fill="both", expand=True)
         header = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         header._ui_role = "workspace"
         header.pack(fill="x")
@@ -262,7 +265,10 @@ class ReadinessApp(tk.Tk):
         self._set_active_nav("overview")
         self._sync_overview_actions()
     def _set_active_nav(self, page: str) -> None:
+        changed = getattr(self, "active_page", None) != page
         self.active_page = page
+        if changed and hasattr(self, "workspace_scroll"):
+            self.workspace_scroll.reset()
         for key, button in self.nav_buttons.items():
             active = key == page
             button.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], font=(self.font, 9, "bold" if active else "normal"))
@@ -490,6 +496,8 @@ class ReadinessApp(tk.Tk):
             self.table.heading(column, text=t(key, self.language))
         if self.machine and self.choice.get() in self.all_results:
             self.show_detail()
+        if hasattr(self, "workspace_scroll"):
+            self.workspace_scroll.refresh()
 
     def show_about(self) -> None:
         window = tk.Toplevel(self)
@@ -603,6 +611,8 @@ class ReadinessApp(tk.Tk):
         self.table.update_idletasks()
         self._resize_table_columns()
         self.update_idletasks()
+        if hasattr(self, "workspace_scroll"):
+            self.workspace_scroll.refresh()
 
     def _apply_theme(self, widget) -> None:
         try:
