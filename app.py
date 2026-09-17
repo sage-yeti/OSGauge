@@ -261,6 +261,9 @@ class ReadinessApp(tk.Tk):
 
         self.details = tk.Label(self.analysis_frame, text=t("help.concepts_text", self.language), justify="left", anchor="w", bg=UI["background"], fg=UI["muted"], wraplength=640, font=(font, 9))
         self.details.pack(fill="x", pady=(4, 0))
+        self.details_sections = tk.Frame(self.analysis_frame, bg=UI["background"])
+        self.details_sections._ui_role = "workspace"
+        self.details_sections.pack_forget()
         self._apply_theme(self)
         self._set_active_nav("overview")
         self._sync_overview_actions()
@@ -561,8 +564,8 @@ class ReadinessApp(tk.Tk):
                 lines.append(t("empty.no_candidate", self.language))
             for item in primary:
                 rank = primary.index(item) + 1
-                result = FluentCard(result_cards, tokens=self.ui_tokens, padding=CARD_PADDING)
-                result.pack(fill="x", pady=4)
+                result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(12, 10))
+                result.pack(fill="x", pady=(3, 0))
                 result_body = result.content()
                 identity = tk.Frame(result_body, bg=UI["surface"])
                 identity.pack(fill="x")
@@ -570,7 +573,7 @@ class ReadinessApp(tk.Tk):
                 if logo is not None:
                     tk.Label(identity, image=logo, bg=UI["surface"], bd=0).pack(side="left", padx=(0, 8))
                 tk.Label(identity, text=f"#{rank}  {item['name']}", bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(side="left")
-                tk.Label(result_body, text=f"{t('recommend.preference_match', self.language)}: {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)", bg=UI["surface"], fg=UI["accent"], font=(self.font, 9, "bold")).pack(anchor="w")
+                tk.Label(identity, text=f"{t('recommend.preference_match', self.language)}: {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)", bg=UI["surface"], fg=UI["accent"], font=(self.font, 9, "bold")).pack(side="left", padx=(10, 0))
                 strength_keys = item.get("strength_keys", item["strengths"])
                 tradeoff_keys = item.get("tradeoff_keys", item["tradeoffs"])
                 strengths = ", ".join(preference_label(key, self.language) for key in strength_keys) or "—"
@@ -655,12 +658,29 @@ class ReadinessApp(tk.Tk):
         except Exception as exc:
             self.after(0, lambda error=exc: self._scan_failed(error))
 
+    def _set_details_message(self, text: str) -> None:
+        self.details_sections.pack_forget()
+        self.details.pack(fill="x", pady=(4, 0))
+        self.details.config(text=text)
+
+    def _render_analysis_details(self, sections: tuple[tuple[str, tuple[str, ...]], ...]) -> None:
+        self.details.pack_forget()
+        for child in self.details_sections.winfo_children():
+            child.destroy()
+        for index, (title, lines) in enumerate(sections):
+            if index:
+                tk.Frame(self.details_sections, bg=UI["subtle_border"], height=1).pack(fill="x", pady=(8, 6))
+            tk.Label(self.details_sections, text=title, bg=UI["background"], fg=UI["text"], font=(self.font, 9, "bold"), anchor="w").pack(fill="x")
+            for line in lines:
+                tk.Label(self.details_sections, text="• " + line, bg=UI["background"], fg=UI["muted"], font=(self.font, 9), anchor="w", justify="left", wraplength=640).pack(fill="x", pady=(2, 0))
+        self.details_sections.pack(fill="x", pady=(4, 0))
+
     def _scan_failed(self, error: Exception) -> None:
         self.scan_in_progress = False
         self.check_button.config(state="normal")
         self.summary.config(text=t("error.scan", self.language), fg=UI["text"])
         self.status_badge.config(text="  REVIEW  ", bg=COLORS["review"], fg="white")
-        self.details.config(text=f"{t('error.scan', self.language)}\n\n{t('error.profile_details', self.language)}\nTechnical details: {error}")
+        self._set_details_message(text=f"{t('error.scan', self.language)}\n\n{t('error.profile_details', self.language)}\nTechnical details: {error}")
 
     def _clear_table(self) -> None:
         for item in self.table.get_children():
@@ -727,7 +747,7 @@ class ReadinessApp(tk.Tk):
         text = f"{check.name}: {info['explanation']}"
         if info["remediation"]:
             text += f"\n{t('label.next_step', self.language)}: {info['remediation']}"
-        self.details.config(text=text)
+        self._set_details_message(text=text)
 
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
@@ -756,7 +776,7 @@ class ReadinessApp(tk.Tk):
         if self.machine_source == "Imported profile":
             captured = self.profile_metadata.get("created_at", "")
             source_note = t("overview.imported_note", self.language, captured=captured)
-        self.details.config(text=t("overview.requirements_note", self.language, version=self.requirements_info.data_version, source=self.requirements_info.source, source_note=source_note))
+        self._set_details_message(text=t("overview.requirements_note", self.language, version=self.requirements_info.data_version, source=self.requirements_info.source, source_note=source_note))
         self.check_button.config(state="normal")
         self.scan_in_progress = False
         self.machine_compare_button.config(state="normal")
@@ -770,7 +790,7 @@ class ReadinessApp(tk.Tk):
         self._set_table_empty(True)
         self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
         self.status_badge.config(text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"])
-        self.details.config(text=t("help.concepts_text", self.language))
+        self._set_details_message(text=t("help.concepts_text", self.language))
         self._sync_overview_actions()
     def show_detail(self) -> None:
         if not self.machine or self.choice.get() not in self.all_results:
@@ -809,7 +829,7 @@ class ReadinessApp(tk.Tk):
             gpu += f" ({self.machine.gpu_vram_mb} MB VRAM)"
         lifecycle_line = f"Release: {lifecycle['release']} • {t('label.lifecycle', self.language)}: {lifecycle['lifecycle_type']} • Status: {status_label(lifecycle['support_status'], self.language)}"
         readiness_line = f"{t('label.installation_readiness', self.language)}: {status_label(readiness['status'], self.language)} — {readiness_explanation(readiness['status'], self.language)}"
-        readiness_items = [f"  {status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
+        readiness_items = [f"{status_label(item['status'], self.language).upper()}: {item['name']} — {item['detected']} / {item['required']}" for item in readiness["checks"]]
         machine_details = [
             f"Architecture: {architecture_label(self.machine.architecture)}",
             f"{t('machine.processor', self.language)}: {self.machine.cpu_name}",
@@ -826,7 +846,23 @@ class ReadinessApp(tk.Tk):
         lifecycle_warning = ""
         if lifecycle["support_status"] in {"nearing_eol", "eol"}:
             lifecycle_warning = f"\n{t('analysis.release_notice', self.language)}: {lifecycle_line}\n"
-        self.details.config(text=f"{context_note}Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})\n{lifecycle_warning}{readiness_line}\n" + "\n".join(readiness_items + [f"{t('label.suitability', self.language)}: {suitability_label} — {suitability_explanation(suitability['category'], suitability['explanation'], self.language)}"] + machine_details + ["• " + note for note in notes]))
+        database_lines = context_note.strip().splitlines() if context_note.strip() else []
+        database_lines.append(f"Requirements database v{self.requirements_info.data_version} ({self.requirements_info.source})")
+        if lifecycle_warning.strip():
+            database_lines.append(lifecycle_warning.strip())
+        self._render_analysis_details(
+            tuple(
+                (title, tuple(lines))
+                for title, lines in (
+                    (t("analysis.details_requirements", self.language), database_lines),
+                    (t("analysis.details_readiness", self.language), [readiness_line, *readiness_items]),
+                    (t("analysis.details_suitability", self.language), [f"{suitability_label} — {suitability_explanation(suitability['category'], suitability['explanation'], self.language)}"]),
+                    (t("analysis.details_hardware", self.language), machine_details),
+                    (t("analysis.details_notes", self.language), notes),
+                )
+                if lines
+            )
+        )
 
     def show_compare(self) -> None:
         if not self.machine or not self.all_results:
@@ -850,17 +886,17 @@ class ReadinessApp(tk.Tk):
         card = FluentCard(window, tokens=self.ui_tokens, padding=(1, 1))
         card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=(0, PAGE_PADDING[1]))
         table = ttk.Treeview(card, columns=("detected", "left", "right"), show="tree headings", style="Fluent.Treeview")
-        table.heading("#0", text="Check")
-        table.heading("detected", text="Detected")
-        table.heading("left", text="Requirement")
-        table.heading("right", text="Requirement")
-        table.column("#0", width=170)
-        table.column("detected", width=170)
-        table.column("left", width=170)
-        table.column("right", width=170)
+        table.column("#0", width=190, minwidth=150, stretch=True, anchor="w")
+        table.column("detected", width=150, minwidth=120, stretch=True, anchor="center")
+        table.column("left", width=205, minwidth=150, stretch=True, anchor="center")
+        table.column("right", width=205, minwidth=150, stretch=True, anchor="center")
         table.pack(fill="both", expand=True)
 
         def refresh(*_args) -> None:
+            table.heading("#0", text=t("label.check", self.language), anchor="w")
+            table.heading("detected", text=t("label.detected", self.language), anchor="center")
+            table.heading("left", text=left.get(), anchor="center")
+            table.heading("right", text=right.get(), anchor="center")
             table.delete(*table.get_children())
             left_checks = {item.name: item for item in self.all_results[left.get()]}
             right_checks = {item.name: item for item in self.all_results[right.get()]}
@@ -927,7 +963,7 @@ class ReadinessApp(tk.Tk):
             warning_body = warning.content()
             tk.Label(warning_body, text=t("planner.lifecycle", self.language), bg=UI["surface"], fg=COLORS["review"], font=(self.font, 10, "bold")).pack(anchor="w")
             tk.Label(warning_body, text=plan["lifecycle_warning"], bg=UI["surface"], fg=UI["muted"], wraplength=650, justify="left").pack(anchor="w", pady=(4, 0))
-        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(12, 0))
+        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Accent.TButton").pack(anchor="center", pady=(12, 0))
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
 
