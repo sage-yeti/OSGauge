@@ -1,7 +1,6 @@
 """Optional, resource-relative OS identity icons for the Tk UI."""
 from __future__ import annotations
 
-from collections import deque
 import re
 import sys
 from pathlib import Path
@@ -14,27 +13,27 @@ FALLBACK_KEY = "generic-os"
 _CACHE: dict[tuple[int, str], tk.PhotoImage] = {}
 
 LOGO_REGISTRY = {
-    "windows-11": {"asset": "windows-11.gif", "color": "#0078D4"},
-    "ubuntu-desktop": {"asset": "ubuntu-desktop.gif", "color": "#E95420"},
-    "fedora-workstation": {"asset": "fedora-workstation.gif", "color": "#51A2DA"},
-    "arch-linux": {"asset": "arch-linux.gif", "color": "#1793D1"},
-    "linux-mint": {"asset": "linux-mint.gif", "color": "#87CF3E"},
-    "opensuse-leap": {"asset": "opensuse-leap.gif", "color": "#73BA25"},
-    "pop-os": {"asset": "pop-os.gif", "color": "#48B9C7"},
-    "debian": {"asset": "debian.gif", "color": "#D70A53"},
-    "chromeos-flex": {"asset": "chromeos-flex.gif", "color": "#4285F4"},
-    "zorin-os": {"asset": "zorin-os.gif", "color": "#15A6F0"},
-    "elementary-os": {"asset": "elementary-os.gif", "color": "#64BAFF"},
-    "manjaro": {"asset": "manjaro.gif", "color": "#35BF5C"},
-    "kali-linux": {"asset": "kali-linux.gif", "color": "#557C94"},
-    "tails": {"asset": "tails.gif", "color": "#56347C"},
-    "mx-linux": {"asset": "mx-linux.gif", "color": "#3C6E71"},
-    "rocky-linux": {"asset": "rocky-linux.gif", "color": "#10B981"},
-    "almalinux": {"asset": "almalinux.gif", "color": "#0F4C81"},
-    "nixos": {"asset": "nixos.gif", "color": "#5277C3"},
-    "endeavouros": {"asset": "endeavouros.gif", "color": "#7F7FFF"},
-    "cachyos": {"asset": "cachyos.gif", "color": "#3B82F6"},
-    FALLBACK_KEY: {"asset": "generic-os.gif", "color": "#6B7280"},
+    "windows-11": {"asset": "windows-11.png", "color": "#0078D4"},
+    "ubuntu-desktop": {"asset": "ubuntu-desktop.png", "color": "#E95420"},
+    "fedora-workstation": {"asset": "fedora-workstation.png", "color": "#51A2DA"},
+    "arch-linux": {"asset": "arch-linux.png", "color": "#1793D1"},
+    "linux-mint": {"asset": "linux-mint.png", "color": "#87CF3E"},
+    "opensuse-leap": {"asset": "opensuse-leap.png", "color": "#73BA25"},
+    "pop-os": {"asset": "pop-os.png", "color": "#48B9C7"},
+    "debian": {"asset": "debian.png", "color": "#D70A53"},
+    "chromeos-flex": {"asset": "chromeos-flex.png", "color": "#4285F4"},
+    "zorin-os": {"asset": "zorin-os.png", "color": "#15A6F0"},
+    "elementary-os": {"asset": "elementary-os.png", "color": "#64BAFF"},
+    "manjaro": {"asset": "manjaro.png", "color": "#35BF5C"},
+    "kali-linux": {"asset": "kali-linux.png", "color": "#557C94"},
+    "tails": {"asset": "tails.png", "color": "#56347C"},
+    "mx-linux": {"asset": "mx-linux.png", "color": "#3C6E71"},
+    "rocky-linux": {"asset": "rocky-linux.png", "color": "#10B981"},
+    "almalinux": {"asset": "almalinux.png", "color": "#0F4C81"},
+    "nixos": {"asset": "nixos.png", "color": "#5277C3"},
+    "endeavouros": {"asset": "endeavouros.png", "color": "#7F7FFF"},
+    "cachyos": {"asset": "cachyos.png", "color": "#3B82F6"},
+    FALLBACK_KEY: {"asset": "generic-os.png", "color": "#6B7280"},
 }
 
 
@@ -66,34 +65,6 @@ def logo_asset_path(os_name: str, profile: Mapping[str, object] | None = None) -
     return root / _LOGO_DIR / logo_metadata(os_name, profile)["asset"]
 
 
-def _remove_edge_background(image: tk.PhotoImage) -> tk.PhotoImage:
-    """Make the contiguous outer palette color transparent.
-
-    The shipped GIF marks its outer canvas with a palette color rather than
-    reliable GIF transparency. Flood-filling only from the edges preserves
-    the circular identity mark and its anti-aliased interior.
-    """
-    try:
-        width, height = image.width(), image.height()
-        if width < 1 or height < 1:
-            return image
-        edge_color = image.get(0, 0)
-        pending = deque([(0, 0)])
-        seen: set[tuple[int, int]] = set()
-        while pending:
-            x, y = pending.popleft()
-            if (x, y) in seen or not (0 <= x < width and 0 <= y < height):
-                continue
-            seen.add((x, y))
-            if image.get(x, y) != edge_color:
-                continue
-            image.transparency_set(x, y, True)
-            pending.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
-    except (AttributeError, tk.TclError):
-        pass
-    return image
-
-
 def load_logo(master: tk.Misc, os_name: str, profile: Mapping[str, object] | None = None) -> tk.PhotoImage | None:
     metadata = logo_metadata(os_name, profile)
     cache_key = (id(master.winfo_toplevel()), metadata["key"])
@@ -104,7 +75,6 @@ def load_logo(master: tk.Misc, os_name: str, profile: Mapping[str, object] | Non
         path = logo_asset_path("unknown")
     try:
         image = tk.PhotoImage(master=master, file=str(path))
-        image = _remove_edge_background(image)
     except (OSError, tk.TclError):
         return None
     _CACHE[cache_key] = image
