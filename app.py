@@ -581,6 +581,9 @@ class ReadinessApp(tk.Tk):
         if not hasattr(self, "table") or not self.table.winfo_exists():
             return
         self.update_idletasks()
+        self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
+        self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
+        self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
         self.table.pack_configure(fill="both", expand=True)
         self.table_scrollbar.pack_configure(fill="y")
         if getattr(self, "active_page", "overview") == "analysis":
