@@ -117,5 +117,50 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn("self.workspace_scroll.reset()", self.app)
         self.assertIn("self.workspace_scroll.refresh()", self.app)
         self.assertLess(self.app.index("self.nav.pack(side"), self.app.index("workspace_scroll = ScrollableWorkspace(shell"))
+    def test_compare_os_headers_follow_selected_operating_systems(self):
+        self.assertIn('table.heading("#0", text=t("label.check", self.language), anchor="w")', self.app)
+        self.assertIn('table.heading("left", text=left.get(), anchor="center")', self.app)
+        self.assertIn('table.heading("right", text=right.get(), anchor="center")', self.app)
+        self.assertIn('left.bind("<<ComboboxSelected>>", refresh)', self.app)
+        self.assertIn('right.bind("<<ComboboxSelected>>", refresh)', self.app)
+        self.assertIn('table.column("left", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
+        self.assertIn('table.column("right", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
+
+    def test_recommendation_results_are_distinct_compact_groups(self):
+        self.assertIn('result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(12, 10))', self.app)
+        self.assertIn('result.pack(fill="x", pady=(3, 0))', self.app)
+        self.assertIn('identity.pack(fill="x")', self.app)
+        self.assertIn('recommend.preference_match', self.app)
+        self.assertIn('recommend.strengths', self.app)
+        self.assertIn('fg=UI["muted"]', self.app)
+
+    def test_analysis_details_use_localized_logical_sections(self):
+        for key in (
+            "analysis.details_requirements",
+            "analysis.details_readiness",
+            "analysis.details_suitability",
+            "analysis.details_hardware",
+            "analysis.details_notes",
+        ):
+            self.assertIn(f't("{key}"', self.app)
+        self.assertIn("def _render_analysis_details", self.app)
+        self.assertIn("self.details_sections", self.app)
+        for required in ("readiness_items", "machine_details", "notes"):
+            self.assertIn(required, self.app)
+        for code in ("en", "it", "es", "de", "fr"):
+            locale = (ROOT / "locales" / f"{code}.json").read_text(encoding="utf-8")
+            for key in (
+                "analysis.details_requirements",
+                "analysis.details_readiness",
+                "analysis.details_suitability",
+                "analysis.details_hardware",
+                "analysis.details_notes",
+            ):
+                self.assertIn(f'"{key}"', locale)
+
+    def test_upgrade_plan_close_uses_primary_button_style(self):
+        planner = self.app[self.app.index("def show_upgrade_plan"):self.app.index("def show_machine_compare")]
+        self.assertIn('ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Accent.TButton").pack(anchor="center"', planner)
+
 if __name__ == "__main__":
     unittest.main()
