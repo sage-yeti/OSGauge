@@ -102,5 +102,20 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('self.analysis_cards = {}', self.app)
 
 
+    def test_main_workspace_uses_fixed_sidebar_and_single_vertical_scroll_container(self):
+        self.assertIn("workspace_scroll = ScrollableWorkspace(shell", self.app)
+        self.assertIn("workspace = workspace_scroll.content", self.app)
+        self.assertIn("self.workspace_scroll = workspace_scroll", self.app)
+        self.assertIn("class ScrollableWorkspace", self.foundation)
+        self.assertIn("self.canvas.configure(yscrollcommand=self.scrollbar.set)", self.foundation)
+        self.assertIn("self.canvas.itemconfigure(self._window_id, width=max(1, event.width))", self.foundation)
+        self.assertIn('self.canvas.configure(scrollregion=self.canvas.bbox("all") or (0, 0, 1, 1))', self.foundation)
+        self.assertIn('self.bind_class(self._wheel_tag, "<Button-4>", self._on_wheel)', self.foundation)
+        self.assertIn('self.bind_class(self._wheel_tag, "<Button-5>", self._on_wheel)', self.foundation)
+        self.assertIn("def _treeview_ancestor", self.foundation)
+        self.assertIn("if self._treeview_ancestor(event.widget)", self.foundation)
+        self.assertIn("self.workspace_scroll.reset()", self.app)
+        self.assertIn("self.workspace_scroll.refresh()", self.app)
+        self.assertLess(self.app.index("self.nav.pack(side"), self.app.index("workspace_scroll = ScrollableWorkspace(shell"))
 if __name__ == "__main__":
     unittest.main()
