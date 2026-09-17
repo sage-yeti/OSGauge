@@ -49,6 +49,7 @@ class UiPolishRegressionTests(unittest.TestCase):
 
     def test_analysis_layout_uses_one_structural_content_region(self):
         self.assertIn("content_area = tk.Frame(body", self.app)
+        self.assertEqual(self.app.count("content_area = tk.Frame(body"), 1)
         self.assertIn("self.analysis_frame = tk.Frame(content_area", self.app)
         self.assertIn("table_card = FluentCard(content_area", self.app)
         self.assertNotIn("before=self.table.master", self.app)
@@ -63,6 +64,21 @@ class UiPolishRegressionTests(unittest.TestCase):
             locale = (ROOT / "locales" / f"{code}.json").read_text(encoding="utf-8")
             for key in ("action.export_report", "action.save_json", "action.save_html"):
                 self.assertIn(f"\"{key}\"", locale)
+
+
+    def test_overview_keeps_footer_outside_flexible_table_region(self):
+        self.assertIn('content_area.pack(fill="both", expand=True, pady=(0, 12))', self.app)
+        self.assertIn('self.table.pack(side="left", fill="both", expand=True)', self.app)
+        self.assertIn('self.table_scrollbar = ttk.Scrollbar(table_holder', self.app)
+        self.assertIn('footer = FluentCard(body', self.app)
+        self.assertLess(self.app.index('content_area = tk.Frame(body'), self.app.index('footer = FluentCard(body'))
+
+    def test_analysis_table_is_bounded_and_result_cards_follow_it(self):
+        self.assertIn('self.table.configure(height=min(max(len(visible), 1), 8))', self.app)
+        self.assertIn('self.table_card.pack_configure(fill="x", expand=False)', self.app)
+        self.assertIn('self.analysis_frame.pack(fill="x", pady=(8, 8), after=self.table_card)', self.app)
+        self.assertIn('self.table_card.pack_configure(fill="both", expand=True)', self.app)
+        self.assertIn('self.analysis_cards = {}', self.app)
 
 
 if __name__ == "__main__":
