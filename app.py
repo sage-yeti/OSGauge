@@ -255,23 +255,8 @@ class ReadinessApp(tk.Tk):
         self.table.bind("<Return>", self._open_selected_os)
         self.table.bind("<Configure>", self._resize_table_columns, add="+")
 
-        footer = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
-        footer.pack(fill="x")
-        self.details = tk.Label(footer, text=t("help.concepts_text", self.language), justify="left", anchor="w", bg=UI["surface"], fg=UI["muted"], wraplength=570, font=(font, 9))
-        self.details.pack(side="left", fill="x", expand=True)
-        self.source_button = ttk.Button(footer, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton")
-        self.source_button.pack(side="right", padx=(8, 0))
-        self.report_export_menu = tk.Menu(self, tearoff=False)
-        self.report_export_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
-        self.report_export_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
-        self.report_export_button = ttk.Menubutton(footer, text=t("action.export_report", self.language), menu=self.report_export_menu, style="Secondary.TButton")
-        self.report_export_button.pack(side="right")
-        self.copy_button = ttk.Button(footer, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton")
-        self.copy_button.pack(side="right", padx=(8, 0))
-        self.compare_button = ttk.Button(footer, text=t("action.compare", self.language), command=self.show_compare, style="Secondary.TButton", state="disabled")
-        self.compare_button.pack(side="right", padx=(8, 0))
-        self.plan_button = ttk.Button(footer, text=t("action.upgrade_plan", self.language), command=self.show_upgrade_plan, style="Secondary.TButton", state="disabled")
-        self.plan_button.pack(side="right", padx=(8, 0))
+        self.details = tk.Label(self.analysis_frame, text=t("help.concepts_text", self.language), justify="left", anchor="w", bg=UI["background"], fg=UI["muted"], wraplength=640, font=(font, 9))
+        self.details.pack(fill="x", pady=(4, 0))
         self._apply_theme(self)
         self._set_active_nav("overview")
         self._sync_overview_actions()
@@ -317,10 +302,7 @@ class ReadinessApp(tk.Tk):
         self.check_button.configure(style="Secondary.TButton" if has_machine else "Accent.TButton")
         self.recommend_button.configure(state="normal" if has_machine else "disabled")
         self.export_button.configure(state="normal" if has_machine else "disabled")
-        self.report_export_button.configure(state="normal" if has_machine else "disabled")
         self.machine_compare_button.configure(state="normal" if has_machine else "disabled")
-        self.compare_button.configure(state="normal" if has_machine else "disabled")
-        self.plan_button.configure(state="normal" if has_machine else "disabled")
         if welcome_visible and not has_machine:
             self.profile_actions.pack_forget()
         elif not self.profile_actions.winfo_manager():
@@ -471,6 +453,7 @@ class ReadinessApp(tk.Tk):
         UI.update(colors_for(self.theme_mode))
         self.ui_tokens = tokens_for(UI)
         self._apply_theme(self)
+        self._refresh_theme_layout()
 
     def change_language(self) -> None:
         self.language_selection = self.language_choice.get() if self.language_choice.get() in LANGUAGES else "System"
@@ -487,15 +470,7 @@ class ReadinessApp(tk.Tk):
         self.update_button.config(text=t("action.updates", self.language))
         self.import_button.config(text=t("action.import_profile", self.language))
         self.export_button.config(text=t("action.export_profile", self.language))
-        self.report_export_button.config(text=t("action.export_report", self.language))
-        self.report_export_menu.delete(0, "end")
-        self.report_export_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
-        self.report_export_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
         self.machine_compare_button.config(text=t("action.compare_machines", self.language))
-        self.source_button.config(text=t("action.source", self.language))
-        self.copy_button.config(text=t("action.copy_results", self.language))
-        self.compare_button.config(text=t("action.compare", self.language))
-        self.plan_button.config(text=t("action.upgrade_plan", self.language))
         self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t('profile.source_imported' if self.machine_source == 'Imported profile' else 'profile.source_local', self.language)}")
         self.subtitle_label.config(text=t("app.subtitle", self.language))
         self.theme_label.config(text=t("label.theme", self.language))
@@ -601,29 +576,52 @@ class ReadinessApp(tk.Tk):
         ttk.Button(body, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
 
+    def _refresh_theme_layout(self) -> None:
+        """Restore flexible table geometry after changing the active theme."""
+        if not hasattr(self, "table") or not self.table.winfo_exists():
+            return
+        self.update_idletasks()
+        self.table.pack_configure(fill="both", expand=True)
+        self.table_scrollbar.pack_configure(fill="y")
+        if getattr(self, "active_page", "overview") == "analysis":
+            self.table_card.pack_configure(fill="x", expand=False)
+            self.analysis_frame.pack_configure(fill="x", expand=False)
+        else:
+            self.table_card.pack_configure(fill="both", expand=True)
+        self.table.update_idletasks()
+        self._resize_table_columns()
+        self.update_idletasks()
+
     def _apply_theme(self, widget) -> None:
         try:
-            if isinstance(widget, tk.Toplevel):
+            if isinstance(widget, FluentCard):
+                widget.apply_theme(self.ui_tokens)
+                widget.configure(bg=UI["surface"], highlightbackground=UI.get("subtle_border", UI["border"]))
+            elif isinstance(widget, (tk.Toplevel, tk.Tk)):
                 widget.configure(bg=UI["background"])
             elif isinstance(widget, tk.Frame):
                 role = getattr(widget, "_ui_role", "surface")
                 widget.configure(bg=UI["background"] if role in {"root", "workspace", "nav"} else UI["surface"])
-                if isinstance(widget, FluentCard):
-                    widget.configure(bg=UI["surface"], highlightbackground=UI.get("subtle_border", UI["border"]))
             elif isinstance(widget, tk.Label):
                 parent_role = getattr(widget.master, "_ui_role", "surface")
                 widget.configure(bg=UI["background"] if parent_role == "workspace" else UI["surface"], fg=UI["text"])
-            elif isinstance(widget, tk.Button) and widget.master is self.nav:
-                active = getattr(self, "active_page", "overview") == next((key for key, value in self.nav_buttons.items() if value is widget), "")
-                widget.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
+            elif isinstance(widget, tk.Button):
+                if widget.master is self.nav:
+                    active = getattr(self, "active_page", "overview") == next((key for key, value in self.nav_buttons.items() if value is widget), "")
+                    widget.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
+                else:
+                    widget.configure(bg=UI["surface"], fg=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
+            elif isinstance(widget, (tk.Checkbutton, tk.Radiobutton)):
+                widget.configure(bg=UI["surface"], fg=UI["text"], activebackground=UI["surface"], activeforeground=UI["text"], selectcolor=UI["background"])
+            elif isinstance(widget, tk.Canvas):
+                widget.configure(bg=UI["background"])
+            elif isinstance(widget, tk.Menu):
+                widget.configure(background=UI["surface"], foreground=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
         except tk.TclError:
             pass
         for child in widget.winfo_children():
             self._apply_theme(child)
         configure_styles(self.style, UI, self.font)
-        self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
-        self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
-        self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
 
     def _scan(self, screen: tuple[int, int]) -> None:
         try:
@@ -739,8 +737,6 @@ class ReadinessApp(tk.Tk):
         self.details.config(text=t("overview.requirements_note", self.language, version=self.requirements_info.data_version, source=self.requirements_info.source, source_note=source_note))
         self.check_button.config(state="normal")
         self.scan_in_progress = False
-        self.compare_button.config(state="normal")
-        self.plan_button.config(state="normal")
         self.machine_compare_button.config(state="normal")
         self._sync_overview_actions()
     def show_overview(self) -> None:
@@ -1182,15 +1178,15 @@ class Batch6ReadinessApp(ReadinessApp):
         tk.Label(body, text=t("action.save_report", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
         actions = tk.Frame(body, bg=UI["surface"])
         actions.pack(fill="x", pady=(5, 0))
+        for column in range(3):
+            actions.grid_columnconfigure(column, weight=1, uniform="report-actions")
         report_menu = tk.Menu(window, tearoff=False)
         report_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
         report_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
-        ttk.Menubutton(actions, text=t("action.export_report", self.language), menu=report_menu, style="Accent.TButton", state=state).pack(side="left")
-        secondary = tk.Frame(body, bg=UI["surface"])
-        secondary.pack(fill="x", pady=(16, 0))
-        ttk.Button(secondary, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton", state=state).pack(side="left")
-        ttk.Button(secondary, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton", state="normal" if self._report_available() else "disabled").pack(side="left", padx=(8, 0))
-        ttk.Button(secondary, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
+        ttk.Menubutton(actions, text=t("action.export_report", self.language), menu=report_menu, style="Accent.TButton", state=state).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        ttk.Button(actions, text=t("action.copy_results", self.language), command=self.copy_results, style="Accent.TButton", state=state).grid(row=0, column=1, sticky="ew", padx=4)
+        ttk.Button(actions, text=t("action.source", self.language), command=self.open_source, style="Accent.TButton", state="normal" if self._report_available() else "disabled").grid(row=0, column=2, sticky="ew", padx=(4, 0))
+        ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(14, 0))
         tk.Label(body, text=f"{t('label.external_source', self.language)} • {context['database']} • {t('app.title', self.language)} {APP_VERSION}", bg=UI["surface"], fg=UI["muted"], wraplength=640, justify="left", anchor="w").pack(fill="x", pady=(18, 0))
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
