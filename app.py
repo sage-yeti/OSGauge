@@ -236,6 +236,7 @@ class ReadinessApp(tk.Tk):
         table_holder = tk.Frame(table_body, bg=UI["surface"])
         table_holder.pack(fill="both", expand=True)
         self.table = ttk.Treeview(table_holder, columns=columns, show="tree headings", style="Fluent.Treeview", selectmode="browse")
+        self._overview_table_height = int(self.table.cget("height"))
         self.table_scrollbar = ttk.Scrollbar(table_holder, orient="vertical", command=self.table.yview)
         self.table.configure(yscrollcommand=self.table_scrollbar.set)
         self.table.heading("#0", text=t("label.check", self.language))
@@ -576,6 +577,20 @@ class ReadinessApp(tk.Tk):
         ttk.Button(body, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
 
+    def _set_table_layout(self, *, overview: bool) -> None:
+        """Keep the shared table in the correct layout mode for each workspace."""
+        if not hasattr(self, "table") or not self.table.winfo_exists():
+            return
+        self.table.pack_configure(fill="both", expand=True)
+        self.table_scrollbar.pack_configure(fill="y")
+        if overview:
+            self.analysis_frame.pack_forget()
+            self.table_card.pack_configure(fill="both", expand=True)
+            self.table.configure(height=self._overview_table_height)
+        else:
+            self.table_card.pack_configure(fill="x", expand=False)
+            self.analysis_frame.pack(fill="x", pady=(8, 8), after=self.table_card)
+
     def _refresh_theme_layout(self) -> None:
         """Restore flexible table geometry after changing the active theme."""
         if not hasattr(self, "table") or not self.table.winfo_exists():
@@ -584,13 +599,7 @@ class ReadinessApp(tk.Tk):
         self.table.tag_configure("pass", foreground="#4ade80" if self.theme_mode == "Dark" else COLORS["pass"])
         self.table.tag_configure("fail", foreground="#f87171" if self.theme_mode == "Dark" else COLORS["fail"])
         self.table.tag_configure("unknown", foreground="#facc15" if self.theme_mode == "Dark" else COLORS["unknown"])
-        self.table.pack_configure(fill="both", expand=True)
-        self.table_scrollbar.pack_configure(fill="y")
-        if getattr(self, "active_page", "overview") == "analysis":
-            self.table_card.pack_configure(fill="x", expand=False)
-            self.analysis_frame.pack_configure(fill="x", expand=False)
-        else:
-            self.table_card.pack_configure(fill="both", expand=True)
+        self._set_table_layout(overview=getattr(self, "active_page", "overview") != "analysis")
         self.table.update_idletasks()
         self._resize_table_columns()
         self.update_idletasks()
@@ -713,7 +722,7 @@ class ReadinessApp(tk.Tk):
     def _show_overview(self, machine, all_results, ranked) -> None:
         self.machine, self.all_results, self.ranked_results = machine, all_results, ranked
         self._set_active_nav("overview")
-        self.analysis_frame.pack_forget()
+        self._set_table_layout(overview=True)
         source_key = "profile.source_imported" if self.machine_source == "Imported profile" else "profile.source_local"
         self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t(source_key, self.language)}")
         if self.choice.get() not in all_results and all_results:
@@ -747,7 +756,7 @@ class ReadinessApp(tk.Tk):
             self._show_overview(self.machine, self.all_results, self.ranked_results)
             return
         self._set_active_nav("overview")
-        self.analysis_frame.pack_forget()
+        self._set_table_layout(overview=True)
         self._set_table_empty(True)
         self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
         self.status_badge.config(text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"])
@@ -760,8 +769,7 @@ class ReadinessApp(tk.Tk):
         name = self.choice.get()
         self._set_active_nav("analysis")
         self.analysis_logo.configure(image=self._logo_for(name, self.requirements[name]))
-        self.table_card.pack_configure(fill="x", expand=False)
-        self.analysis_frame.pack(fill="x", pady=(8, 8), after=self.table_card)
+        self._set_table_layout(overview=False)
         self.settings["last_os"] = name
         save_settings(self.settings)
         results = self.all_results[name]
