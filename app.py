@@ -128,6 +128,8 @@ class ReadinessApp(tk.Tk):
         body = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         body._ui_role = "workspace"
         body.pack(fill="both", expand=True)
+        content_area = tk.Frame(body, bg=UI["background"])
+        content_area.pack(fill="both", expand=True, pady=(0, 12))
         controls = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         controls.pack(fill="x", pady=(0, 14))
         self.os_label = tk.Label(controls, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
@@ -194,7 +196,10 @@ class ReadinessApp(tk.Tk):
         self.summary = tk.Label(summary_card, text=t("empty.no_machine", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), wraplength=620, justify="left", anchor="w")
         self.summary.pack(side="left", anchor="w")
 
-        self.analysis_frame = tk.Frame(body, bg=UI["background"])
+        content_area = tk.Frame(body, bg=UI["background"])
+        content_area.pack(fill="both", expand=True, pady=(0, 12))
+
+        self.analysis_frame = tk.Frame(content_area, bg=UI["background"])
         self.analysis_frame._ui_role = "workspace"
         self.analysis_frame.pack_forget()
         context_row = tk.Frame(self.analysis_frame, bg=UI["background"])
@@ -226,8 +231,8 @@ class ReadinessApp(tk.Tk):
 
         columns = ("result", "detected", "required")
         self.overview_columns = ("#0",) + columns
-        table_card = FluentCard(body, tokens=self.ui_tokens, padding=(7, 7))
-        table_card.pack(fill="both", expand=True, pady=(0, 12))
+        table_card = FluentCard(content_area, tokens=self.ui_tokens, padding=(7, 7))
+        table_card.pack(fill="both", expand=True)
         table_body = table_card.content()
         table_holder = tk.Frame(table_body, bg=UI["surface"])
         table_holder.pack(fill="both", expand=True)
@@ -254,10 +259,11 @@ class ReadinessApp(tk.Tk):
         self.details.pack(side="left", fill="x", expand=True)
         self.source_button = ttk.Button(footer, text=t("action.source", self.language), command=self.open_source, style="Secondary.TButton")
         self.source_button.pack(side="right", padx=(8, 0))
-        self.save_button = ttk.Button(footer, text=t("action.save_report", self.language), command=self.save_report, style="Secondary.TButton")
-        self.save_button.pack(side="right")
-        self.html_button = ttk.Button(footer, text=t("action.save_html", self.language), command=self.save_html_report, style="Secondary.TButton")
-        self.html_button.pack(side="right", padx=(8, 0))
+        self.report_export_menu = tk.Menu(self, tearoff=False)
+        self.report_export_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
+        self.report_export_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
+        self.report_export_button = ttk.Menubutton(footer, text=t("action.export_report", self.language), menu=self.report_export_menu, style="Secondary.TButton")
+        self.report_export_button.pack(side="right")
         self.copy_button = ttk.Button(footer, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton")
         self.copy_button.pack(side="right", padx=(8, 0))
         self.compare_button = ttk.Button(footer, text=t("action.compare", self.language), command=self.show_compare, style="Secondary.TButton", state="disabled")
@@ -309,6 +315,7 @@ class ReadinessApp(tk.Tk):
         self.check_button.configure(style="Secondary.TButton" if has_machine else "Accent.TButton")
         self.recommend_button.configure(state="normal" if has_machine else "disabled")
         self.export_button.configure(state="normal" if has_machine else "disabled")
+        self.report_export_button.configure(state="normal" if has_machine else "disabled")
         self.machine_compare_button.configure(state="normal" if has_machine else "disabled")
         self.compare_button.configure(state="normal" if has_machine else "disabled")
         self.plan_button.configure(state="normal" if has_machine else "disabled")
@@ -368,7 +375,7 @@ class ReadinessApp(tk.Tk):
     def show_settings(self) -> None:
         window = tk.Toplevel(self)
         window.title(t("settings.title", self.language))
-        self._size_dialog(window, 520, 390, 440, 320)
+        self._size_dialog(window, 520, 300, 440, 260)
         window.configure(bg=UI["background"])
         card = self._page_card(window)
         body = card.content()
@@ -377,9 +384,6 @@ class ReadinessApp(tk.Tk):
         tk.Label(body, text=f"{t('label.theme', self.language)}: {t(f'theme.{self.theme_mode.lower()}', self.language)}", bg=UI["surface"], fg=UI["muted"], anchor="w").pack(fill="x")
         tk.Label(body, text=t("settings.data", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
         tk.Label(body, text=f"{t('label.external_source', self.language)}: {self.requirements_info.source}; v{self.requirements_info.data_version}", bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=440).pack(fill="x")
-        tk.Label(body, text=t("settings.onboarding", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
-        tk.Label(body, text=t("settings.onboarding_text", self.language), bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=440, justify="left").pack(fill="x")
-        ttk.Button(body, text=t("action.show_welcome", self.language), command=lambda: (self._show_welcome(), window.destroy()), style="Secondary.TButton").pack(anchor="w", pady=(8, 0))
         ttk.Button(body, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(anchor="e", pady=(18, 0))
         window.bind("<Escape>", lambda _event: window.destroy())
         self._apply_theme(window)
@@ -481,10 +485,12 @@ class ReadinessApp(tk.Tk):
         self.update_button.config(text=t("action.updates", self.language))
         self.import_button.config(text=t("action.import_profile", self.language))
         self.export_button.config(text=t("action.export_profile", self.language))
+        self.report_export_button.config(text=t("action.export_report", self.language))
+        self.report_export_menu.delete(0, "end")
+        self.report_export_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
+        self.report_export_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
         self.machine_compare_button.config(text=t("action.compare_machines", self.language))
         self.source_button.config(text=t("action.source", self.language))
-        self.save_button.config(text=t("action.save_report", self.language))
-        self.html_button.config(text=t("action.save_html", self.language))
         self.copy_button.config(text=t("action.copy_results", self.language))
         self.compare_button.config(text=t("action.compare", self.language))
         self.plan_button.config(text=t("action.upgrade_plan", self.language))
@@ -752,7 +758,7 @@ class ReadinessApp(tk.Tk):
         name = self.choice.get()
         self._set_active_nav("analysis")
         self.analysis_logo.configure(image=self._logo_for(name, self.requirements[name]))
-        self.analysis_frame.pack(fill="x", pady=(0, 4), before=self.table.master)
+        self.analysis_frame.pack(fill="x", pady=(0, 8))
         self.settings["last_os"] = name
         save_settings(self.settings)
         results = self.all_results[name]
@@ -1172,8 +1178,10 @@ class Batch6ReadinessApp(ReadinessApp):
         tk.Label(body, text=t("action.save_report", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
         actions = tk.Frame(body, bg=UI["surface"])
         actions.pack(fill="x", pady=(5, 0))
-        ttk.Button(actions, text=t("action.save_report", self.language), command=self.save_report, style="Accent.TButton", state=state).pack(side="left")
-        ttk.Button(actions, text=t("action.save_html", self.language), command=self.save_html_report, style="Accent.TButton", state=state).pack(side="left", padx=(8, 0))
+        report_menu = tk.Menu(window, tearoff=False)
+        report_menu.add_command(label=t("action.save_json", self.language), command=self.save_report)
+        report_menu.add_command(label=t("action.save_html", self.language), command=self.save_html_report)
+        ttk.Menubutton(actions, text=t("action.export_report", self.language), menu=report_menu, style="Accent.TButton", state=state).pack(side="left")
         secondary = tk.Frame(body, bg=UI["surface"])
         secondary.pack(fill="x", pady=(16, 0))
         ttk.Button(secondary, text=t("action.copy_results", self.language), command=self.copy_results, style="Secondary.TButton", state=state).pack(side="left")
@@ -1245,4 +1253,3 @@ ReadinessApp = Batch6ReadinessApp
 
 if __name__ == "__main__":
     ReadinessApp().mainloop()
-
