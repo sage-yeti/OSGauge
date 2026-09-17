@@ -55,8 +55,8 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertNotIn("before=self.table.master", self.app)
 
     def test_report_export_menu_and_settings_cleanup_are_localized(self):
-        self.assertIn("self.report_export_menu", self.app)
-        self.assertIn("ttk.Menubutton", self.app)
+        self.assertIn("report_menu = tk.Menu(window, tearoff=False)", self.app)
+        self.assertIn("ttk.Menubutton(actions, text=t(\"action.export_report\"", self.app)
         self.assertNotIn("settings.onboarding", self.app)
         self.assertNotIn("action.show_welcome", self.app)
         self.assertIn("self.welcome_card", self.app)
@@ -70,8 +70,19 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('content_area.pack(fill="both", expand=True, pady=(0, 12))', self.app)
         self.assertIn('self.table.pack(side="left", fill="both", expand=True)', self.app)
         self.assertIn('self.table_scrollbar = ttk.Scrollbar(table_holder', self.app)
-        self.assertIn('footer = FluentCard(body', self.app)
-        self.assertLess(self.app.index('content_area = tk.Frame(body'), self.app.index('footer = FluentCard(body'))
+        self.assertNotIn('footer = FluentCard(body', self.app)
+        self.assertNotIn('self.report_export_button', self.app)
+        self.assertNotIn('self.source_button', self.app)
+        self.assertIn('self.details = tk.Label(self.analysis_frame', self.app)
+
+    def test_live_theme_refresh_updates_cards_and_table_geometry(self):
+        self.assertIn("def apply_theme", self.foundation)
+        self.assertIn("widget.apply_theme(self.ui_tokens)", self.app)
+        self.assertIn("def _refresh_theme_layout", self.app)
+        self.assertIn('self.table.pack_configure(fill="both", expand=True)', self.app)
+        self.assertIn('self.table_scrollbar.pack_configure(fill="y")', self.app)
+        self.assertIn("configure_styles(self.style, UI, self.font)", self.app)
+
 
     def test_analysis_table_is_bounded_and_result_cards_follow_it(self):
         self.assertIn('self.table.configure(height=min(max(len(visible), 1), 8))', self.app)
