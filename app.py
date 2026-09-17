@@ -200,7 +200,6 @@ class ReadinessApp(tk.Tk):
         self.analysis_frame = tk.Frame(content_area, bg=UI["background"])
         self.analysis_frame._ui_role = "workspace"
         self.analysis_frame.pack_forget()
-        self.table_card.pack_configure(fill="both", expand=True)
         context_row = tk.Frame(self.analysis_frame, bg=UI["background"])
         context_row._ui_role = "workspace"
         context_row.pack(fill="x", pady=(0, 8))
