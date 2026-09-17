@@ -84,6 +84,15 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn("configure_styles(self.style, UI, self.font)", self.app)
 
 
+    def test_shared_table_layout_restores_overview_after_analysis(self):
+        self.assertIn("def _set_table_layout(self, *, overview: bool)", self.app)
+        self.assertIn('self.table_card.pack_configure(fill="x", expand=False)', self.app)
+        self.assertIn('self.table_card.pack_configure(fill="both", expand=True)', self.app)
+        self.assertIn('self.table.configure(height=self._overview_table_height)', self.app)
+        self.assertIn('self._set_table_layout(overview=False)', self.app)
+        self.assertGreaterEqual(self.app.count('self._set_table_layout(overview=True)'), 2)
+
+
     def test_analysis_table_is_bounded_and_result_cards_follow_it(self):
         self.assertIn('self.table.configure(height=min(max(len(visible), 1), 8))', self.app)
         self.assertIn('self.table_card.pack_configure(fill="x", expand=False)', self.app)
