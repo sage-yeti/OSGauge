@@ -71,7 +71,7 @@ jobs:
       - name: Smoke test CLI artifact
         if: contains(matrix.artifact_name, 'CLI')
         shell: bash
-        run: |
+        run: |io.github.sage-yeti.OSReadinessChecker
           chmod +x "dist/${{ matrix.artifact_name }}" || true
           "dist/${{ matrix.artifact_name }}" --version
           "dist/${{ matrix.artifact_name }}" --help >/dev/null
