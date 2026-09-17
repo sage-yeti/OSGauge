@@ -28,6 +28,19 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('"selected_text"', self.foundation)
         self.assertIn('selection_text', self.foundation)
 
+    def test_secondary_workspaces_reuse_page_surface_and_table_style(self):
+        for method_name in ("show_settings", "show_help", "show_about", "show_recommendations", "show_upgrade_plan", "show_machine_compare", "show_reports"):
+            self.assertIn(f"def {method_name}", self.app)
+        self.assertIn("def _page_card", self.app)
+        self.assertGreaterEqual(self.app.count("self._page_card(window)"), 5)
+        self.assertGreaterEqual(self.app.count('style="Fluent.Treeview"'), 2)
+        self.assertIn("padding=CARD_PADDING", self.app)
+
+    def test_secondary_page_text_and_empty_states_remain_localized(self):
+        for key in ("empty.no_machine", "empty.no_compare", "empty.no_plan", "empty.no_recommendations", "empty.no_report"):
+            self.assertIn(f't("{key}"', self.app)
+        self.assertNotIn('text="Scan"', self.app)
+
 
 if __name__ == "__main__":
     unittest.main()

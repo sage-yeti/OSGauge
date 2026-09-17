@@ -212,7 +212,7 @@ class ReadinessApp(tk.Tk):
         self.analysis_cards = {}
         card_specs = (("compatibility", t("label.compatibility", self.language)), ("suitability", t("label.suitability", self.language)), ("lifecycle", t("label.lifecycle", self.language)), ("readiness", t("label.installation_readiness", self.language)))
         for index, (key, title) in enumerate(card_specs):
-            card = FluentCard(analysis_cards, tokens=self.ui_tokens, padding=(14, 11))
+            card = FluentCard(analysis_cards, tokens=self.ui_tokens, padding=CARD_PADDING)
             card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 6, 6 if index % 2 == 0 else 0), pady=(0, 8))
             analysis_cards.grid_columnconfigure(index % 2, weight=1, uniform="analysis-card")
             tk.Label(card, text=title, bg=UI["surface"], fg=UI["muted"], font=(font, 9, "bold"), anchor="w").pack(fill="x")
@@ -370,8 +370,7 @@ class ReadinessApp(tk.Tk):
         window.title(t("settings.title", self.language))
         self._size_dialog(window, 520, 390, 440, 320)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
-        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
+        card = self._page_card(window)
         body = card.content()
         tk.Label(body, text=t("settings.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
         tk.Label(body, text=t("settings.appearance", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
@@ -390,8 +389,7 @@ class ReadinessApp(tk.Tk):
         window.title(t("help.title", self.language))
         self._size_dialog(window, 700, 650, 540, 440)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
-        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
+        card = self._page_card(window)
         body = card.content()
         tk.Label(body, text=t("help.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
         tk.Label(body, text=t("help.intro", self.language), bg=UI["surface"], fg=UI["muted"], wraplength=620, justify="left", anchor="w").pack(fill="x", pady=(4, 12))
@@ -429,6 +427,12 @@ class ReadinessApp(tk.Tk):
         window.geometry(f"{width}x{height}")
         window.minsize(min_width, min_height)
         window.transient(self)
+
+    def _page_card(self, window: tk.Toplevel, padding=DIALOG_PADDING) -> FluentCard:
+        """Create the shared surface used by secondary workspace dialogs."""
+        card = FluentCard(window, tokens=self.ui_tokens, padding=padding)
+        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
+        return card
 
     def _on_close(self) -> None:
         self.update_idletasks()
@@ -509,8 +513,7 @@ class ReadinessApp(tk.Tk):
         self._size_dialog(window, 430, 330, 380, 280)
         window.resizable(False, False)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(24, 22))
-        card.pack(fill="both", expand=True, padx=18, pady=18)
+        card = self._page_card(window, padding=(24, 22))
         tk.Label(card, text=t("app.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 17, "bold")).pack(anchor="w")
         tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT\n\n{t('about.privacy', self.language)}", justify="left", anchor="w", wraplength=370, bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
         actions = tk.Frame(card, bg=UI["surface"])
@@ -529,13 +532,12 @@ class ReadinessApp(tk.Tk):
         window.title(t("recommend.title", self.language))
         self._size_dialog(window, 700, 680, 560, 480)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
-        card.pack(fill="both", expand=True, padx=18, pady=18)
+        card = self._page_card(window)
         body = card.content()
         tk.Label(body, text=t("recommend.step_preferences", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold")).pack(anchor="w")
         tk.Label(body, text=t("recommend.prompt", self.language), bg=UI["surface"], fg=UI["muted"], font=(self.font, 9), wraplength=620, justify="left").pack(anchor="w", pady=(3, 0))
         vars_by_key = {key: tk.IntVar(value=int(self.settings.get("preferences", {}).get(key, 0))) for key in PREFERENCES}
-        choices = FluentCard(body, tokens=self.ui_tokens, padding=(12, 10))
+        choices = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         choices.pack(fill="x", pady=(12, 8))
         choices_body = choices.content()
         for key in PREFERENCES:
@@ -544,7 +546,7 @@ class ReadinessApp(tk.Tk):
             tk.Label(row, text=preference_label(key, self.language), bg=UI["surface"], fg=UI["text"], width=34, anchor="w", font=(self.font, 9)).pack(side="left")
             for value, label in ((0, "—"), (1, "Somewhat"), (2, "Important")):
                 tk.Radiobutton(row, text=label, value=value, variable=vars_by_key[key], bg=UI["surface"], fg=UI["text"], activebackground=UI["surface"], selectcolor=UI["background"], font=(self.font, 8)).pack(side="left")
-        results_card = FluentCard(body, tokens=self.ui_tokens, padding=(14, 12))
+        results_card = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         results_card.pack(fill="both", expand=True, pady=(8, 8))
         results_body = results_card.content()
         tk.Label(results_body, text=t("recommend.step_results", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold")).pack(anchor="w")
@@ -567,7 +569,7 @@ class ReadinessApp(tk.Tk):
                 lines.append(t("empty.no_candidate", self.language))
             for item in primary:
                 rank = primary.index(item) + 1
-                result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(10, 8))
+                result = FluentCard(result_cards, tokens=self.ui_tokens, padding=CARD_PADDING)
                 result.pack(fill="x", pady=4)
                 result_body = result.content()
                 identity = tk.Frame(result_body, bg=UI["surface"])
@@ -809,8 +811,8 @@ class ReadinessApp(tk.Tk):
         window.configure(bg=UI["background"])
         font = "Segoe UI" if sys.platform == "win32" else "DejaVu Sans"
         names = list(self.requirements)
-        controls = tk.Frame(window, bg=UI["surface"], padx=16, pady=12, highlightbackground=UI["border"], highlightthickness=1)
-        controls.pack(fill="x", padx=20, pady=20)
+        controls = FluentCard(window, tokens=self.ui_tokens, padding=CARD_PADDING)
+        controls.pack(fill="x", padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
         tk.Label(controls, text=t("comparison.label", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(side="left")
         left = ttk.Combobox(controls, state="readonly", values=names, width=23, style="Fluent.TCombobox")
         right = ttk.Combobox(controls, state="readonly", values=names, width=23, style="Fluent.TCombobox")
@@ -819,7 +821,7 @@ class ReadinessApp(tk.Tk):
         left.pack(side="left", padx=(12, 8))
         right.pack(side="left")
         card = FluentCard(window, tokens=self.ui_tokens, padding=(1, 1))
-        card.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=(0, PAGE_PADDING[1]))
         table = ttk.Treeview(card, columns=("detected", "left", "right"), show="tree headings", style="Fluent.Treeview")
         table.heading("#0", text="Check")
         table.heading("detected", text="Detected")
@@ -859,8 +861,7 @@ class ReadinessApp(tk.Tk):
         window.title(t("action.upgrade_plan", self.language))
         self._size_dialog(window, 760, 680, 600, 480)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 18))
-        card.pack(fill="both", expand=True, padx=20, pady=20)
+        card = self._page_card(window)
         body = card.content()
         identity = tk.Frame(body, bg=UI["surface"])
         identity.pack(fill="x")
@@ -882,7 +883,7 @@ class ReadinessApp(tk.Tk):
             items = plan[key]
             if not items:
                 continue
-            section_card = FluentCard(sections, tokens=self.ui_tokens, padding=(12, 10))
+            section_card = FluentCard(sections, tokens=self.ui_tokens, padding=CARD_PADDING)
             section_card.pack(fill="x", pady=4)
             section_body = section_card.content()
             tk.Label(section_body, text=t(label_key, self.language), bg=UI["surface"], fg=UI["accent"] if key.startswith("required") or key == "storage_actions" else UI["text"], font=(self.font, 10, "bold")).pack(anchor="w")
@@ -894,7 +895,7 @@ class ReadinessApp(tk.Tk):
                     line = f"{item['check']}\n  {item['current']} / {item['target']}{gap}\n  {item['explanation']}"
                 tk.Label(section_body, text="• " + line, bg=UI["surface"], fg=UI["muted"], justify="left", anchor="w", wraplength=650, font=(self.font, 9)).pack(anchor="w", pady=(5, 0))
         if plan["lifecycle_warning"]:
-            warning = FluentCard(sections, tokens=self.ui_tokens, padding=(12, 10))
+            warning = FluentCard(sections, tokens=self.ui_tokens, padding=CARD_PADDING)
             warning.pack(fill="x", pady=4)
             warning_body = warning.content()
             tk.Label(warning_body, text=t("planner.lifecycle", self.language), bg=UI["surface"], fg=COLORS["review"], font=(self.font, 10, "bold")).pack(anchor="w")
@@ -917,7 +918,7 @@ class ReadinessApp(tk.Tk):
         metadata = [{}, {}]
         font = self.font
         source_row = tk.Frame(window, bg=UI["background"])
-        source_row.pack(fill="x", padx=20, pady=(20, 10))
+        source_row.pack(fill="x", padx=PAGE_PADDING[0], pady=(PAGE_PADDING[1], 10))
         source_cards = []
         for index, title in enumerate(machine_names):
             source_card = FluentCard(source_row, tokens=self.ui_tokens, padding=(12, 10))
@@ -927,8 +928,8 @@ class ReadinessApp(tk.Tk):
             source_label = tk.Label(source_body, text=labels[index], bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=360, font=(font, 9))
             source_label.pack(anchor="w", pady=(4, 0))
             source_cards.append(source_label)
-        controls = FluentCard(window, tokens=self.ui_tokens, padding=(12, 10))
-        controls.pack(fill="x", padx=20, pady=(0, 12))
+        controls = FluentCard(window, tokens=self.ui_tokens, padding=CARD_PADDING)
+        controls.pack(fill="x", padx=PAGE_PADDING[0], pady=(0, 12))
         controls_body = controls.content()
         tk.Label(controls_body, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9)).pack(side="left")
         target = ttk.Combobox(controls_body, state="readonly", values=list(self.requirements), width=25, style="Fluent.TCombobox")
@@ -940,13 +941,13 @@ class ReadinessApp(tk.Tk):
             tk.Label(controls_body, textvariable=labels_vars[index], bg=UI["surface"], fg=UI["muted"], width=18, anchor="w", font=(font, 9)).pack(side="left")
 
         card = FluentCard(window, tokens=self.ui_tokens, padding=(1, 1))
-        card.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=(0, 12))
         table = ttk.Treeview(card, columns=("a", "b", "difference"), show="tree headings", style="Fluent.Treeview")
         table.heading("#0", text=t("comparison.attribute", self.language)); table.heading("a", text=machine_names[0]); table.heading("b", text=machine_names[1]); table.heading("difference", text=t("comparison.difference", self.language))
         table.column("#0", width=190); table.column("a", width=210); table.column("b", width=210); table.column("difference", width=130)
         table.pack(fill="both", expand=True)
-        summary_card = FluentCard(window, tokens=self.ui_tokens, padding=(14, 10))
-        summary_card.pack(fill="x", padx=20, pady=(0, 10))
+        summary_card = FluentCard(window, tokens=self.ui_tokens, padding=CARD_PADDING)
+        summary_card.pack(fill="x", padx=PAGE_PADDING[0], pady=(0, 10))
         summary = tk.Label(summary_card.content(), text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["text"], wraplength=820, font=(font, 9))
         summary.pack(fill="x")
         result_holder = {"value": None}
@@ -994,7 +995,7 @@ class ReadinessApp(tk.Tk):
         target.bind("<<ComboboxSelected>>", refresh)
         refresh()
         actions = tk.Frame(window, bg=UI["background"])
-        actions.pack(fill="x", padx=20, pady=(0, 18))
+        actions.pack(fill="x", padx=PAGE_PADDING[0], pady=(0, PAGE_PADDING[1] - 2))
         def save_comparison_html() -> None:
             if not result_holder["value"]: return
             path = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML report", "*.html")], initialfile="machine-comparison.html")
@@ -1145,8 +1146,7 @@ class Batch6ReadinessApp(ReadinessApp):
         window.title(t("nav.reports", self.language))
         self._size_dialog(window, 720, 620, 560, 460)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
-        card.pack(fill="both", expand=True, padx=18, pady=18)
+        card = self._page_card(window)
         body = card.content()
         identity = tk.Frame(body, bg=UI["surface"])
         identity.pack(fill="x")
