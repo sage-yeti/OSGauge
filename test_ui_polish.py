@@ -77,7 +77,7 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('self.table.configure(height=min(max(len(visible), 1), 8))', self.app)
         self.assertIn('self.table_card.pack_configure(fill="x", expand=False)', self.app)
         self.assertIn('self.analysis_frame.pack(fill="x", pady=(8, 8), after=self.table_card)', self.app)
-        self.assertIn('self.table_card.pack_configure(fill="both", expand=True)', self.app)
+        self.assertNotIn('self.table_card.pack_configure(fill="both", expand=True)', self.app)
         self.assertIn('self.analysis_cards = {}', self.app)
 
 
