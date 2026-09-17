@@ -32,5 +32,12 @@ class OsIconTests(unittest.TestCase):
         self.assertIn("os_logos", path.parts)
 
 
+    def test_loader_removes_contiguous_edge_palette_background(self):
+        source = (Path(__file__).parent / "os_icons.py").read_text(encoding="utf-8")
+        self.assertIn("def _remove_edge_background", source)
+        self.assertIn("image.transparency_set", source)
+        self.assertIn("image = _remove_edge_background(image)", source)
+
+
 if __name__ == "__main__":
     unittest.main()
