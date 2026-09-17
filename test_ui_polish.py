@@ -38,7 +38,7 @@ class UiPolishRegressionTests(unittest.TestCase):
 
     def test_secondary_page_text_and_empty_states_remain_localized(self):
         for key in ("empty.no_machine", "empty.no_compare", "empty.no_plan", "empty.no_recommendations", "empty.no_report"):
-            self.assertIn(f't("{key}"', self.app)
+            self.assertTrue(f't("{key}"' in self.app or f"t('{key}'" in self.app)
         self.assertNotIn('text="Scan"', self.app)
 
 

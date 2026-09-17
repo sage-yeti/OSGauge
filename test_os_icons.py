@@ -28,7 +28,8 @@ class OsIconTests(unittest.TestCase):
     def test_paths_are_resource_relative(self):
         path = logo_asset_path("Windows 11")
         self.assertEqual(path.name, "windows-11.gif")
-        self.assertIn(Path("assets") / "os_logos", path.parts)
+        self.assertIn("assets", path.parts)
+        self.assertIn("os_logos", path.parts)
 
 
 if __name__ == "__main__":
