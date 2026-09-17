@@ -1,4 +1,4 @@
-self.language =from __future__ import annotations
+from __future__ import annotations
 
 import json
 import sys
@@ -31,7 +31,7 @@ from machine_comparison import compare_machines, html_comparison_report, plain_t
 from localization import LANGUAGES, preference_label, readiness_explanation, recommendation_match_label, resolve_language, status_label, suitability_explanation, t
 from os_icons import load_logo
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
-from ui_foundation import FluentCard, NAV_DESTINATIONS, configure_styles, tokens_for
+from ui_foundation import CARD_PADDING, CONTROL_GAP, DIALOG_PADDING, FluentCard, NAV_DESTINATIONS, PAGE_PADDING, configure_styles, tokens_for
 
 
 COLORS = {"pass": "#15803d", "fail": "#b91c1c", "unknown": "#a16207", "review": "#a16207"}
@@ -128,14 +128,14 @@ class ReadinessApp(tk.Tk):
         body = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         body._ui_role = "workspace"
         body.pack(fill="both", expand=True)
-        controls = FluentCard(body, tokens=self.ui_tokens, padding=(18, 16))
+        controls = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         controls.pack(fill="x", pady=(0, 14))
         self.os_label = tk.Label(controls, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
         self.os_label.pack(side="left")
         self.choice = ttk.Combobox(controls, state="readonly", width=31, values=list(self.requirements), style="Fluent.TCombobox")
         last_os = self.settings.get("last_os")
         self.choice.current(list(self.requirements).index(last_os) if last_os in self.requirements else 0)
-        self.choice.pack(side="left", padx=(14, 12))
+        self.choice.pack(side="left", padx=(CONTROL_GAP + 6, CONTROL_GAP + 4))
         self.choice.bind("<<ComboboxSelected>>", lambda _event: self.show_detail())
         self.check_button = ttk.Button(controls, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton")
         self.check_button.pack(side="right")
@@ -162,7 +162,7 @@ class ReadinessApp(tk.Tk):
         self.feedback = tk.Label(profile_actions, text="", bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.feedback.pack(side="right", padx=(0, 14))
 
-        self.welcome_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
+        self.welcome_card = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         welcome_body = self.welcome_card.content()
         welcome_head = tk.Frame(welcome_body, bg=UI["surface"])
         welcome_head.pack(fill="x")
@@ -186,7 +186,7 @@ class ReadinessApp(tk.Tk):
         else:
             self.welcome_card.pack(fill="x", pady=(0, 14), before=summary_card if "summary_card" in locals() else None)
 
-        summary_card = FluentCard(body, tokens=self.ui_tokens, padding=(18, 14))
+        summary_card = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         self.summary_card = summary_card
         summary_card.pack(fill="x", pady=(0, 14))
         self.status_badge = tk.Label(summary_card, text="  READY  ", bg=UI.get("badge", UI["heading"]), fg=UI["muted"], font=(font, 9, "bold"), padx=8, pady=5)
@@ -370,8 +370,8 @@ class ReadinessApp(tk.Tk):
         window.title(t("settings.title", self.language))
         self._size_dialog(window, 520, 390, 440, 320)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
-        card.pack(fill="both", expand=True, padx=18, pady=18)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
+        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
         body = card.content()
         tk.Label(body, text=t("settings.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
         tk.Label(body, text=t("settings.appearance", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 10, "bold")).pack(anchor="w", pady=(16, 3))
@@ -390,8 +390,8 @@ class ReadinessApp(tk.Tk):
         window.title(t("help.title", self.language))
         self._size_dialog(window, 700, 650, 540, 440)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
-        card.pack(fill="both", expand=True, padx=18, pady=18)
+        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
+        card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
         body = card.content()
         tk.Label(body, text=t("help.title", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 16, "bold")).pack(anchor="w")
         tk.Label(body, text=t("help.intro", self.language), bg=UI["surface"], fg=UI["muted"], wraplength=620, justify="left", anchor="w").pack(fill="x", pady=(4, 12))
@@ -489,6 +489,7 @@ class ReadinessApp(tk.Tk):
         self.theme_label.config(text=t("label.theme", self.language))
         self.language_label.config(text=t("label.language", self.language))
         self.os_label.config(text=t("label.operating_system", self.language))
+        self.table_empty.config(text=t("empty.no_machine", self.language))
         self.welcome_title.config(text=t("welcome.title", self.language))
         self.welcome_text.config(text=t("welcome.text", self.language))
         self.welcome_dismiss.config(text=t("action.dismiss", self.language))
@@ -528,7 +529,7 @@ class ReadinessApp(tk.Tk):
         window.title(t("recommend.title", self.language))
         self._size_dialog(window, 700, 680, 560, 480)
         window.configure(bg=UI["background"])
-        card = FluentCard(window, tokens=self.ui_tokens, padding=(20, 16))
+        card = FluentCard(window, tokens=self.ui_tokens, padding=DIALOG_PADDING)
         card.pack(fill="both", expand=True, padx=18, pady=18)
         body = card.content()
         tk.Label(body, text=t("recommend.step_preferences", self.language), bg=UI["surface"], fg=UI["text"], font=(self.font, 11, "bold")).pack(anchor="w")

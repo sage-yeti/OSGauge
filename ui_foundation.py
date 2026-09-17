@@ -8,6 +8,11 @@ from typing import Mapping
 
 SPACING = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32}
 RADII = {"control": 8, "card": 10, "small": 6}
+PAGE_PADDING = (20, 20)
+CARD_PADDING = (16, 14)
+DIALOG_PADDING = (20, 18)
+CONTROL_GAP = 8
+BUTTON_MIN_WIDTH = 92
 
 
 def _draw_rounded_surface(canvas: tk.Canvas, width: int, height: int, radius: int, fill: str, outline: str) -> None:
@@ -32,7 +37,8 @@ def tokens_for(colors: Mapping[str, str]) -> dict[str, object]:
         "secondary_text": colors["muted"], "accent": colors["accent"], "accent_dark": colors["accent_dark"],
         "success": colors.get("success", "#15803d"), "warning": colors.get("warning", "#a16207"), "error": colors.get("error", "#b91c1c"),
         "hover": colors.get("heading", colors["surface"]), "pressed": colors.get("heading", colors["surface"]),
-        "selected": colors.get("selection", colors["accent"]), "spacing": SPACING, "radii": RADII,
+        "selected": colors.get("selection", colors["accent"]), "selected_text": colors.get("selection_text", colors["text"]),
+        "spacing": SPACING, "radii": RADII,
     }
 
 
@@ -65,12 +71,14 @@ def configure_styles(style: ttk.Style, colors: Mapping[str, str], font: str) -> 
     selection = colors.get("selection", accent)
     selected_text = colors.get("selection_text", text)
     style.theme_use("clam")
-    style.configure("Fluent.TCombobox", padding=(8, 6), fieldbackground=surface, background=surface, foreground=text, bordercolor=colors["border"], lightcolor=colors["border"], darkcolor=colors["border"], focuscolor=accent, font=(font, 10))
+    style.configure("Fluent.TCombobox", padding=(10, 7), fieldbackground=surface, background=surface, foreground=text, bordercolor=colors["border"], lightcolor=colors["border"], darkcolor=colors["border"], focuscolor=accent, font=(font, 10))
     style.map("Fluent.TCombobox", fieldbackground=[("disabled", heading), ("readonly", surface), ("focus", surface), ("active", surface)], foreground=[("disabled", muted), ("readonly", text), ("focus", text), ("active", text)])
-    style.configure("Accent.TButton", padding=(16, 9), font=(font, 10, "bold"), foreground="white", background=accent, borderwidth=0, focuscolor=accent_dark)
+    style.configure("Accent.TButton", padding=(16, 9), width=BUTTON_MIN_WIDTH, font=(font, 10, "bold"), foreground="white", background=accent, borderwidth=0, focuscolor=accent_dark)
     style.map("Accent.TButton", background=[("disabled", heading), ("active", accent_dark), ("pressed", accent_dark)], foreground=[("disabled", muted), ("!disabled", "white")])
-    style.configure("Secondary.TButton", padding=(12, 8), font=(font, 9), foreground=text, background=surface, borderwidth=0, focuscolor=accent)
+    style.configure("Secondary.TButton", padding=(13, 8), width=BUTTON_MIN_WIDTH, font=(font, 9), foreground=text, background=surface, borderwidth=0, focuscolor=accent)
     style.map("Secondary.TButton", background=[("disabled", heading), ("active", heading), ("pressed", heading)], foreground=[("disabled", muted), ("!disabled", text)])
+    style.configure("Tertiary.TButton", padding=(10, 7), width=BUTTON_MIN_WIDTH, font=(font, 9), foreground=accent, background=surface, borderwidth=0, focuscolor=accent)
+    style.map("Tertiary.TButton", background=[("disabled", heading), ("active", heading), ("pressed", heading)], foreground=[("disabled", muted), ("!disabled", accent)])
     style.configure("Fluent.Treeview", rowheight=40, font=(font, 10), background=surface, fieldbackground=surface, foreground=text, borderwidth=0, focuscolor=accent)
     style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background=heading, foreground=muted, relief="flat", padding=(10, 10))
     style.map("Fluent.Treeview", background=[("selected", selection)], foreground=[("selected", selected_text)])
