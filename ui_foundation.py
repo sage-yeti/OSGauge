@@ -51,6 +51,12 @@ class FluentCard(tk.Frame):
         self._surface.place(relx=0, rely=0, relwidth=1, relheight=1)
         self.bind("<Configure>", self._redraw_surface, add="+")
 
+    def apply_theme(self, tokens: Mapping[str, object]) -> None:
+        """Refresh the card surface and retain the new runtime theme tokens."""
+        self.tokens = tokens
+        self._surface.configure(bg=str(tokens["background"]))
+        self._redraw_surface()
+
     def _redraw_surface(self, _event=None) -> None:
         _draw_rounded_surface(self._surface, self.winfo_width(), self.winfo_height(), int(self.tokens["radii"]["card"]), str(self.tokens["surface"]), str(self.tokens["subtle_border"]))
         self._surface.lower()
@@ -79,6 +85,9 @@ def configure_styles(style: ttk.Style, colors: Mapping[str, str], font: str) -> 
     style.map("Secondary.TButton", background=[("disabled", heading), ("active", heading), ("pressed", heading)], foreground=[("disabled", muted), ("!disabled", text)])
     style.configure("Tertiary.TButton", padding=(10, 7), width=BUTTON_MIN_WIDTH, font=(font, 9), foreground=accent, background=surface, borderwidth=0, focuscolor=accent)
     style.map("Tertiary.TButton", background=[("disabled", heading), ("active", heading), ("pressed", heading)], foreground=[("disabled", muted), ("!disabled", accent)])
+    style.configure("TCheckbutton", background=surface, foreground=text, font=(font, 9))
+    style.map("TCheckbutton", background=[("disabled", heading), ("active", heading)], foreground=[("disabled", muted), ("!disabled", text)])
+    style.configure("TScrollbar", troughcolor=surface, background=heading, arrowcolor=muted, bordercolor=colors["border"])
     style.configure("Fluent.Treeview", rowheight=40, font=(font, 10), background=surface, fieldbackground=surface, foreground=text, borderwidth=0, focuscolor=accent)
     style.configure("Fluent.Treeview.Heading", font=(font, 9, "bold"), background=heading, foreground=muted, relief="flat", padding=(10, 10))
     style.map("Fluent.Treeview", background=[("selected", selection)], foreground=[("selected", selected_text)])
