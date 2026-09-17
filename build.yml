@@ -10,6 +10,30 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    name: Validate Python, CLI, and source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run pytest
+        run: python -m pytest
+      - name: Compile Python sources
+        run: python -m compileall .
+      - name: Check source diff
+        run: git diff --check
+      - name: Smoke-test CLI
+        run: |
+          python cli.py --version
+          python cli.py --help
+          python cli.py --list
+
   build:
     name: Build ${{ matrix.os }} binary
     runs-on: ${{ matrix.os }}
@@ -53,7 +77,7 @@ jobs:
   release:
     name: Publish GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, appimage]
+    needs: [validate, build, appimage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
