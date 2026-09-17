@@ -1,6 +1,7 @@
 """Optional, resource-relative OS identity icons for the Tk UI."""
 from __future__ import annotations
 
+from collections import deque
 import re
 import sys
 from pathlib import Path
@@ -65,6 +66,34 @@ def logo_asset_path(os_name: str, profile: Mapping[str, object] | None = None) -
     return root / _LOGO_DIR / logo_metadata(os_name, profile)["asset"]
 
 
+def _remove_edge_background(image: tk.PhotoImage) -> tk.PhotoImage:
+    """Make the contiguous outer palette color transparent.
+
+    The shipped GIF marks its outer canvas with a palette color rather than
+    reliable GIF transparency. Flood-filling only from the edges preserves
+    the circular identity mark and its anti-aliased interior.
+    """
+    try:
+        width, height = image.width(), image.height()
+        if width < 1 or height < 1:
+            return image
+        edge_color = image.get(0, 0)
+        pending = deque([(0, 0)])
+        seen: set[tuple[int, int]] = set()
+        while pending:
+            x, y = pending.popleft()
+            if (x, y) in seen or not (0 <= x < width and 0 <= y < height):
+                continue
+            seen.add((x, y))
+            if image.get(x, y) != edge_color:
+                continue
+            image.transparency_set(x, y, True)
+            pending.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+    except (AttributeError, tk.TclError):
+        pass
+    return image
+
+
 def load_logo(master: tk.Misc, os_name: str, profile: Mapping[str, object] | None = None) -> tk.PhotoImage | None:
     metadata = logo_metadata(os_name, profile)
     cache_key = (id(master.winfo_toplevel()), metadata["key"])
@@ -75,6 +104,7 @@ def load_logo(master: tk.Misc, os_name: str, profile: Mapping[str, object] | Non
         path = logo_asset_path("unknown")
     try:
         image = tk.PhotoImage(master=master, file=str(path))
+        image = _remove_edge_background(image)
     except (OSError, tk.TclError):
         return None
     _CACHE[cache_key] = image
