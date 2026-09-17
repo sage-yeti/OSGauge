@@ -47,5 +47,23 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertNotIn('text="Scan"', self.app)
 
 
+    def test_analysis_layout_uses_one_structural_content_region(self):
+        self.assertIn("content_area = tk.Frame(body", self.app)
+        self.assertIn("self.analysis_frame = tk.Frame(content_area", self.app)
+        self.assertIn("table_card = FluentCard(content_area", self.app)
+        self.assertNotIn("before=self.table.master", self.app)
+
+    def test_report_export_menu_and_settings_cleanup_are_localized(self):
+        self.assertIn("self.report_export_menu", self.app)
+        self.assertIn("ttk.Menubutton", self.app)
+        self.assertNotIn("settings.onboarding", self.app)
+        self.assertNotIn("action.show_welcome", self.app)
+        self.assertIn("self.welcome_card", self.app)
+        for code in ("en", "it", "es", "de", "fr"):
+            locale = (ROOT / "locales" / f"{code}.json").read_text(encoding="utf-8")
+            for key in ("action.export_report", "action.save_json", "action.save_html"):
+                self.assertIn(f"\"{key}\"", locale)
+
+
 if __name__ == "__main__":
     unittest.main()
