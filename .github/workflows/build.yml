@@ -69,7 +69,7 @@ jobs:
         shell: bash
         run: mv "dist/${{ matrix.executable }}" "dist/${{ matrix.artifact_name }}"
       - name: Smoke test CLI artifact
-        if: contains(${{ matrix.artifact_name }}, 'CLI')
+        if: contains(matrix.artifact_name, 'CLI')
         shell: bash
         run: |
           chmod +x "dist/${{ matrix.artifact_name }}" || true
