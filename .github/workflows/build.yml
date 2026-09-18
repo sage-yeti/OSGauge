@@ -30,6 +30,7 @@ jobs:
         run: git diff --check
       - name: Smoke-test CLI
         run: |
+          python cli.py
           python cli.py --version
           python cli.py --help
           python cli.py --list
@@ -73,6 +74,7 @@ jobs:
         shell: bash
         run: |
           chmod +x "dist/${{ matrix.artifact_name }}" || true
+          "dist/${{ matrix.artifact_name }}"
           "dist/${{ matrix.artifact_name }}" --version
           "dist/${{ matrix.artifact_name }}" --help >/dev/null
           "dist/${{ matrix.artifact_name }}" --list >/dev/null
