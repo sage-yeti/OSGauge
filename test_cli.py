@@ -9,6 +9,25 @@ from checker import MachineInfo
 
 
 class CliTests(unittest.TestCase):
+    def test_bare_invocation_prints_help_and_succeeds(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(cli.main([]), 0)
+        self.assertIn("usage:", output.getvalue())
+        self.assertIn("--check", output.getvalue())
+
+    def test_help_invocation_remains_argparse_help(self):
+        output = io.StringIO()
+        with self.assertRaises(SystemExit) as raised, redirect_stdout(output):
+            cli.main(["--help"])
+        self.assertEqual(raised.exception.code, 0)
+        self.assertIn("usage:", output.getvalue())
+
+    def test_invalid_option_combination_remains_nonzero(self):
+        with self.assertRaises(SystemExit) as raised:
+            cli.main(["--all", "--check", "Windows 11"])
+        self.assertEqual(raised.exception.code, 2)
+
     def test_list_json_does_not_scan(self):
         output = io.StringIO()
         with patch("cli.collect_machine_info", side_effect=AssertionError("scan")), redirect_stdout(output):
