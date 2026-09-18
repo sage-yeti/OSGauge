@@ -126,13 +126,24 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('table.column("left", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
         self.assertIn('table.column("right", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
 
-    def test_recommendation_results_are_distinct_compact_groups(self):
-        self.assertIn('result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(12, 10))', self.app)
-        self.assertIn('result.pack(fill="x", pady=(3, 0))', self.app)
+    def test_machine_compare_assigns_profile_sources_independently(self):
+        self.assertIn('window.title(t("comparison.title", self.language))', self.app)
+        self.assertIn("sources = [self.machine, None]", self.app)
+        self.assertIn("source_actions = []", self.app)
+        self.assertIn("source_actions.append(actions)", self.app)
+        self.assertIn('command=lambda i=index: choose_profile(i)', self.app)
+        self.assertIn('style="Accent.TButton"', self.app)
+        self.assertIn("sources[index], metadata[index] = machine, meta", self.app)
+        self.assertIn("sources[index], metadata[index] = self.machine, {}", self.app)
+
+    def test_recommendation_results_have_separate_spaced_sections(self):
+        self.assertIn('result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(14, 12))', self.app)
+        self.assertIn('result.pack(fill="x", pady=(8, 0))', self.app)
         self.assertIn('identity.pack(fill="x")', self.app)
         self.assertIn('recommend.preference_match', self.app)
-        self.assertIn('recommend.strengths', self.app)
-        self.assertIn('fg=UI["muted"]', self.app)
+        self.assertIn('text=f"{t(\'recommend.strengths\', self.language)}: {strengths}"', self.app)
+        self.assertIn('text=f"{t(\'recommend.tradeoffs\', self.language)}: {tradeoffs}"', self.app)
+        self.assertIn('pady=(3, 0)', self.app)
 
     def test_analysis_details_use_localized_logical_sections(self):
         for key in (
@@ -145,6 +156,10 @@ class UiPolishRegressionTests(unittest.TestCase):
             self.assertIn(f't("{key}"', self.app)
         self.assertIn("def _render_analysis_details", self.app)
         self.assertIn("self.details_sections", self.app)
+        self.assertIn('pady=(14, 8)', self.app)
+        self.assertIn('pady=(8, 0)', self.app)
+        self.assertIn('padx=(10, 0)', self.app)
+        self.assertIn('font=(self.font, 9, "bold")', self.app)
         for required in ("readiness_items", "machine_details", "notes"):
             self.assertIn(required, self.app)
         for code in ("en", "it", "es", "de", "fr"):
