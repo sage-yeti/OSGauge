@@ -72,7 +72,11 @@ def main(argv=None) -> int:
     parser.add_argument("--lang", choices=("en", "it", "es", "de", "fr"), default="en", help="language for human-readable output")
     parser.add_argument("--recommend", action="store_true", help="rank operating systems for selected priorities")
     parser.add_argument("--prefer", action="append", default=[], metavar="KEY=0|1|2", help="recommendation priority (repeatable)")
-    args = parser.parse_args(argv)
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(raw_args)
+    if not raw_args:
+        parser.print_help()
+        return 0
     try:
         info = load_requirements_info()
         requirements = info.profiles
