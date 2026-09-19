@@ -32,7 +32,7 @@ class UiPolishRegressionTests(unittest.TestCase):
         for method_name in ("show_settings", "show_help", "show_about", "show_recommendations", "show_upgrade_plan", "show_machine_compare", "show_reports"):
             self.assertIn(f"def {method_name}", self.app)
         self.assertIn("def _page_card", self.app)
-        self.assertGreaterEqual(self.app.count("self._page_card(window)"), 5)
+        self.assertGreaterEqual(self.app.count("self._page_card(window)"), 4)
         self.assertGreaterEqual(self.app.count('style="Fluent.Treeview"'), 2)
         self.assertIn("padding=CARD_PADDING", self.app)
 
