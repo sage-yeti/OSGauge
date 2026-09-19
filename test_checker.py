@@ -72,7 +72,7 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(lifecycle_status(requirements["Arch Linux"]), "rolling")
         self.assertEqual(resolve_profile("ubuntu", requirements), "Ubuntu Desktop 26.04 LTS")
         self.assertEqual(resolve_profile("ubuntu@26.04-lts", requirements), "Ubuntu Desktop 26.04 LTS")
-        self.assertEqual(len(default_profiles(requirements)), 20)
+        self.assertEqual(len(default_profiles(requirements)), 28)
 
     def test_installation_readiness_is_separate_and_read_only(self):
         machine = self.machine(architecture="AMD64", storage_free_gb=100, uefi=True, secure_boot=False,
