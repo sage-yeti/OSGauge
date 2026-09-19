@@ -56,7 +56,7 @@ def _key_for(value: str) -> str:
         "mx linux": "mx-linux", "rocky linux": "rocky-linux", "almalinux": "almalinux", "nixos": "nixos",
         "endeavouros": "endeavouros", "cachyos": "cachyos",
         "void linux": "void-linux", "antix": "antix", "q4os": "q4os",
-        "bodhi linux": "bodhi-linux", "sparky linux": "sparky-linux",
+        "bodhi linux": "bodhi-linux", "sparky linux": "sparky-linux", "sparkylinux": "sparky-linux",
         "slax": "slax", "alpine linux": "alpine-linux",
         "tiny core linux": "tiny-core-linux",
     }
