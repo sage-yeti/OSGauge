@@ -28,7 +28,7 @@ def _png_header(path):
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         raise AssertionError(f"not a PNG: {path}")
     width, height, depth, color_type, _compression, _filter, interlace = struct.unpack(
-        ">IIBBBBB", data[24:37]
+        ">IIBBBBB", data[16:29]
     )
     return width, height, depth, color_type, interlace
 
