@@ -3,7 +3,7 @@
   "app.subtitle": "Verifica questo computer rispetto ai requisiti pubblicati dei sistemi operativi.",
   "label.theme": "Tema",
   "label.language": "Lingua",
-  "label.operating_system": "Sistema operativo",
+  "label.operating_system": "Sistema operativo","label.search_os":"Cerca sistema operativo","empty.no_os_matches":"Nessun sistema operativo corrisponde alla ricerca.",
   "label.check": "Controllo",
   "label.result": "Risultato",
   "label.detected": "Rilevato",
