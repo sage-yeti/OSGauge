@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from checker import MachineInfo, html_report
-from localization import LANG_CODES, _BATCH5_TRANSLATIONS, _load, detect_system_language, preference_label, readiness_explanation, resolve_language, suitability_explanation, t
+from localization import LANGUAGES, LANG_CODES, _BATCH5_TRANSLATIONS, _BATCH6_TRANSLATIONS, _RECOMMEND_TRANSLATIONS, _load, detect_system_language, language_label, preference_label, readiness_explanation, recommendation_match_label, resolve_language, suitability_explanation, t
 from recommendation import PREFERENCES
 
 
@@ -57,15 +57,40 @@ class LocalizationTests(unittest.TestCase):
         self.assertEqual(resolve_language("Español"), "es")
         self.assertEqual(resolve_language("Deutsch"), "de")
         self.assertEqual(resolve_language("Français"), "fr")
+        self.assertEqual(resolve_language("简体中文"), "zh-CN")
+        self.assertEqual(resolve_language("Русский"), "ru")
+        self.assertEqual(resolve_language("Türkçe"), "tr")
+        self.assertEqual(resolve_language("Português (Brasil)"), "pt-BR")
+        self.assertEqual(resolve_language("Ελληνικά"), "el")
+        self.assertEqual(resolve_language("zh-CN"), "zh-CN")
+        self.assertEqual(resolve_language("pt-BR"), "pt-BR")
         self.assertEqual(resolve_language("invalid"), detect_system_language())
 
     def test_system_locale_variants(self):
-        with patch("localization.locale.getlocale", return_value=("es_ES", "UTF-8")):
-            self.assertEqual(detect_system_language(), "es")
-        with patch("localization.locale.getlocale", return_value=("de-DE", "UTF-8")):
-            self.assertEqual(detect_system_language(), "de")
-        with patch("localization.locale.getlocale", return_value=("fr_FR", "UTF-8")):
-            self.assertEqual(detect_system_language(), "fr")
+        variants = (("es_ES", "es"), ("de-DE", "de"), ("fr_FR", "fr"), ("zh_CN", "zh-CN"), ("zh-Hans", "zh-CN"), ("zh_TW", "en"), ("ru_RU", "ru"), ("tr_TR", "tr"), ("pt_BR", "pt-BR"), ("el_GR", "el"))
+        for locale_name, expected in variants:
+            with self.subTest(locale=locale_name), patch("localization.locale.getlocale", return_value=(locale_name, "UTF-8")):
+                self.assertEqual(detect_system_language(), expected)
+
+    def test_expanded_language_registry_and_unicode_labels(self):
+        expected = {"简体中文": "zh-CN", "Русский": "ru", "Türkçe": "tr", "Português (Brasil)": "pt-BR", "Ελληνικά": "el"}
+        for display, code in expected.items():
+            self.assertIn(display, LANGUAGES)
+            self.assertEqual(LANG_CODES[display], code)
+            self.assertEqual(language_label(code), display)
+        self.assertEqual(t("label.operating_system", "zh-CN"), "操作系统")
+        self.assertIn("Рекомендовать", t("recommend.action", "ru"))
+        self.assertIn("öner", t("recommend.action", "tr"))
+        self.assertIn("Recomendar", t("recommend.action", "pt-BR"))
+        self.assertIn("Πρόταση", t("recommend.action", "el"))
+        self.assertIn("优秀", recommendation_match_label("Excellent match", "zh-CN"))
+
+    def test_expanded_overlay_sets_are_complete(self):
+        for overlay in (_RECOMMEND_TRANSLATIONS, _BATCH5_TRANSLATIONS, _BATCH6_TRANSLATIONS):
+            expected_keys = set(overlay["en"])
+            for code in sorted({code for code in LANG_CODES.values() if code}):
+                with self.subTest(overlay=id(overlay), language=code):
+                    self.assertEqual(set(overlay[code]), expected_keys)
 
     def test_batch5_translations_are_complete_and_localized(self):
         keys = (
