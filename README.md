@@ -1,6 +1,6 @@
 # OS Readiness Checker
 
-A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, Manjaro, Kali Linux, Tails, MX Linux, Rocky Linux, AlmaLinux, NixOS, EndeavourOS, and CachyOS.
+A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, Manjaro, Kali Linux, Tails, MX Linux, Rocky Linux, AlmaLinux, NixOS, EndeavourOS, CachyOS, Void Linux, antiX, Q4OS Trinity, Bodhi Linux, SparkyLinux MinimalGUI, Slax, Alpine Linux, and Tiny Core Linux.
 
 ## Features
 
@@ -130,6 +130,14 @@ python -m unittest -v
 - [Zorin OS system requirements](https://help.zorin.com/docs/getting-started/system-requirements/)
 - [elementary OS installation requirements](https://elementary.io/docs/installation)
 - [Manjaro recommended system requirements](https://wiki.manjaro.org/index.php?title=About_Manjaro/en)
+- [Void Linux installation requirements](https://docs.voidlinux.org/installation/)
+- [antiX 26 release and requirements](https://antixlinux.com/about/)
+- [Q4OS downloads and Trinity requirements](https://q4os.org/downloads1.html)
+- [Bodhi Linux installation requirements](https://www.bodhilinux.com/w/installation-instructions/)
+- [SparkyLinux stable downloads](https://sparkylinux.org/download/stable/)
+- [Slax introduction and hardware requirements](https://www.slax.org/introduction.php)
+- [Alpine Linux requirements](https://wiki.alpinelinux.org/wiki/Requirements)
+- [Tiny Core Linux FAQ](https://www.tinycorelinux.net/faq.html)
 
 ## License
 
