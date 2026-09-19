@@ -312,7 +312,7 @@ _BATCH5_TRANSLATIONS = {
     "comparison.label": "Comparer",
     "label.detected": "Détecté",
     "label.requirement": "Exigence"
-}
+},
     "zh-CN": {
         "action.help": "帮助和指南",
         "action.show_welcome": "显示欢迎指南",
@@ -670,7 +670,7 @@ _BATCH6_TRANSLATIONS = {
         "readiness.review": "Certaines conditions d’installation doivent être vérifiées.",
         "readiness.unknown": "Certaines conditions d’installation n’ont pas pu être vérifiées.",
         "readiness.not_ready": "Une ou plusieurs conditions d’installation obligatoires ne sont pas remplies."
-    }
+    },
     "zh-CN": {
         "label.hardware": "硬件",
         "readiness.ready": "当前配置满足已检查的安装条件。",
