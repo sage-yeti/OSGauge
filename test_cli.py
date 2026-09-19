@@ -16,6 +16,16 @@ class CliTests(unittest.TestCase):
         self.assertIn("usage:", output.getvalue())
         self.assertIn("--check", output.getvalue())
 
+    def test_windows_standalone_console_requests_pause(self):
+        self.assertTrue(cli._should_pause_on_exit([], platform="win32", console_process_count=1))
+
+    def test_windows_existing_terminal_does_not_pause(self):
+        self.assertFalse(cli._should_pause_on_exit([], platform="win32", console_process_count=2))
+
+    def test_pause_requires_bare_windows_invocation(self):
+        self.assertFalse(cli._should_pause_on_exit(["--help"], platform="win32", console_process_count=1))
+        self.assertFalse(cli._should_pause_on_exit([], platform="linux", console_process_count=1))
+
     def test_help_invocation_remains_argparse_help(self):
         output = io.StringIO()
         with self.assertRaises(SystemExit) as raised, redirect_stdout(output):
