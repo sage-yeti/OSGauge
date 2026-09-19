@@ -26,7 +26,7 @@ class OSSelectorTests(unittest.TestCase):
         self.assertIn('self.os_search.bind("<KeyRelease>", self._filter_os_choices)', source)
         self.assertIn('self.os_search.bind("<Escape>", self._clear_os_search)', source)
         self.assertIn("self.choice.configure(values=matches)", source)
-        self.assertIn("self.choice.set("")", source)
+        self.assertIn('self.choice.set("")', source)
         self.assertIn("self.os_no_matches.config", source)
         self.assertIn('"empty.no_os_matches"', source)
 
