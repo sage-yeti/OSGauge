@@ -559,9 +559,8 @@ class ReadinessApp(tk.Tk):
             primary = primary_recommendations(ranked)[:5]
             for child in result_cards.winfo_children():
                 child.destroy()
-            lines = [t("recommend.disclaimer", self.language), ""]
             if not primary:
-                lines.append(t("empty.no_candidate", self.language))
+                tk.Label(result_cards, text=t("empty.no_candidate", self.language), bg=UI["surface"], fg=UI["muted"], font=(self.font, 9), anchor="w").pack(fill="x", pady=(8, 0))
             for item in primary:
                 rank = primary.index(item) + 1
                 result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(14, 12))
@@ -580,12 +579,6 @@ class ReadinessApp(tk.Tk):
                 tradeoffs = ", ".join(preference_label(key, self.language) for key in tradeoff_keys) or "—"
                 tk.Label(result_body, text=f"{t('recommend.strengths', self.language)}: {strengths}", bg=UI["surface"], fg=UI["text"], justify="left", anchor="w", wraplength=590, font=(self.font, 9)).pack(fill="x", anchor="w", pady=(8, 0))
                 tk.Label(result_body, text=f"{t('recommend.tradeoffs', self.language)}: {tradeoffs}", bg=UI["surface"], fg=UI["muted"], justify="left", anchor="w", wraplength=590, font=(self.font, 9)).pack(fill="x", anchor="w", pady=(3, 0))
-                lines.append(f"{item['name']} — {recommendation_match_label(item['preference_match_category'], self.language)} ({item['preference_score']}/100)")
-                if item["strengths"]:
-                    lines.append("  " + t("recommend.strengths", self.language) + ": " + ", ".join(preference_label(key, self.language) for key in item.get("strength_keys", item["strengths"])))
-                if item["tradeoffs"]:
-                    lines.append("  " + t("recommend.tradeoffs", self.language) + ": " + ", ".join(preference_label(key, self.language) for key in item.get("tradeoff_keys", item["tradeoffs"])))
-            output.config(text="\n".join(lines))
         ttk.Button(body, text=t("recommend.analyze", self.language), command=analyze, style="Accent.TButton").pack(anchor="e")
         self._apply_theme(window)
 
@@ -973,7 +966,7 @@ class ReadinessApp(tk.Tk):
             self._unavailable("empty.no_compare", t("action.scan", self.language))
             return
         window = tk.Toplevel(self)
-        window.title(t("comparison.title", self.language))
+        window.title(t("comparison.machine_title", self.language))
         self._size_dialog(window, 900, 650, 640, 480)
         window.configure(bg=UI["background"])
         sources = [self.machine, None]
@@ -984,10 +977,27 @@ class ReadinessApp(tk.Tk):
         source_row = tk.Frame(window, bg=UI["background"])
         source_row.pack(fill="x", padx=PAGE_PADDING[0], pady=(PAGE_PADDING[1], 10))
         source_cards = []
+        source_card_widgets = []
         source_actions = []
+        source_row.grid_columnconfigure(0, weight=1, uniform="source-card")
+        source_row.grid_columnconfigure(1, weight=1, uniform="source-card")
+
+        def layout_source_cards(_event=None) -> None:
+            columns = 2 if source_row.winfo_width() >= 760 else 1
+            for index, card_widget in enumerate(source_card_widgets):
+                card_widget.grid_configure(
+                    row=index // columns,
+                    column=index % columns,
+                    padx=(0, 8) if columns == 2 and index % 2 == 0 else (8, 0) if columns == 2 else (0, 0),
+                    pady=(0, 8) if columns == 1 and index == 0 else (0, 0),
+                )
+            for column in range(2):
+                source_row.grid_columnconfigure(column, weight=1 if column < columns else 0)
+
         for index, title in enumerate(machine_names):
             source_card = FluentCard(source_row, tokens=self.ui_tokens, padding=(12, 10))
-            source_card.pack(side="left", fill="both", expand=True, padx=(0, 8) if index == 0 else (8, 0))
+            source_card.grid(sticky="nsew")
+            source_card_widgets.append(source_card)
             source_body = source_card.content()
             tk.Label(source_body, text=title, bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold")).pack(anchor="w")
             source_label = tk.Label(source_body, text=labels[index], bg=UI["surface"], fg=UI["muted"], anchor="w", wraplength=360, font=(font, 9))
@@ -996,6 +1006,8 @@ class ReadinessApp(tk.Tk):
             actions.pack(fill="x", pady=(10, 0))
             source_actions.append(actions)
             source_cards.append(source_label)
+        source_row.bind("<Configure>", layout_source_cards)
+        layout_source_cards()
         controls = FluentCard(window, tokens=self.ui_tokens, padding=CARD_PADDING)
         controls.pack(fill="x", padx=PAGE_PADDING[0], pady=(0, 12))
         controls_body = controls.content()
@@ -1019,6 +1031,7 @@ class ReadinessApp(tk.Tk):
         summary = tk.Label(summary_card.content(), text="", justify="left", anchor="w", bg=UI["surface"], fg=UI["text"], wraplength=820, font=(font, 9))
         summary.pack(fill="x")
         result_holder = {"value": None}
+        use_current_buttons = []
 
         def choose_profile(index: int) -> None:
             path = filedialog.askopenfilename(filetypes=[("Machine profile", "*.osrprofile"), ("JSON", "*.json")])
@@ -1034,6 +1047,7 @@ class ReadinessApp(tk.Tk):
             labels[index] = f"{t('comparison.imported_profile', self.language)} ({Path(path).name}; {captured})"
             labels_vars[index].set(labels[index])
             source_cards[index].config(text=labels[index])
+            use_current_buttons[index].configure(state="normal")
             refresh()
 
         def use_current(index: int) -> None:
@@ -1041,11 +1055,14 @@ class ReadinessApp(tk.Tk):
             labels[index] = t("comparison.this_computer", self.language)
             labels_vars[index].set(labels[index])
             source_cards[index].config(text=labels[index])
+            use_current_buttons[index].configure(state="disabled")
             refresh()
 
         for index in range(2):
-            ttk.Button(source_actions[index], text=f"{t("comparison.import", self.language)} {machine_names[index]}", command=lambda i=index: choose_profile(i), style="Accent.TButton").pack(side="left")
-            ttk.Button(source_actions[index], text=t("comparison.use_current", self.language), command=lambda i=index: use_current(i), style="Secondary.TButton").pack(side="left", padx=(8, 0))
+            ttk.Button(source_actions[index], text=t("comparison.import", self.language), command=lambda i=index: choose_profile(i), style="Accent.TButton").pack(side="left")
+            use_current_button = ttk.Button(source_actions[index], text=t("comparison.use_current", self.language), command=lambda i=index: use_current(i), style="Secondary.TButton", state="disabled" if index == 0 else "normal")
+            use_current_button.pack(side="left", padx=(8, 0))
+            use_current_buttons.append(use_current_button)
 
         def refresh(*_args) -> None:
             if sources[0] is None or sources[1] is None:
