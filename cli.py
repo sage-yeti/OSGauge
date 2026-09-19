@@ -19,6 +19,42 @@ from localization import recommendation_match_label, resolve_language, status_la
 from recommendation import recommend, primary_recommendations, PREFERENCES, PREFERENCE_LABELS
 
 
+def _windows_console_process_count() -> int | None:
+    """Return the number of processes attached to this Windows console."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        get_processes = kernel32.GetConsoleProcessList
+        get_processes.argtypes = [ctypes.POINTER(ctypes.c_uint), ctypes.c_uint]
+        get_processes.restype = ctypes.c_uint
+        process_ids = (ctypes.c_uint * 64)()
+        count = get_processes(process_ids, len(process_ids))
+        return int(count) if count else None
+    except (AttributeError, ImportError, OSError):
+        return None
+
+
+def _should_pause_on_exit(argv=None, platform=None, console_process_count=None) -> bool:
+    """Pause only for a bare Windows CLI launched in its own console."""
+    effective_platform = sys.platform if platform is None else platform
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if effective_platform != "win32" or arguments:
+        return False
+    process_count = _windows_console_process_count() if console_process_count is None else console_process_count
+    return process_count == 1
+
+
+def _pause_for_standalone_console() -> None:
+    print("Press Enter to close...", flush=True)
+    try:
+        input()
+    except EOFError:
+        pass
+
+
 def _key(value: str) -> str:
     return "".join(char.lower() for char in value if char.isalnum())
 
@@ -191,4 +227,7 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    exit_code = main()
+    if exit_code == 0 and _should_pause_on_exit():
+        _pause_for_standalone_console()
+    raise SystemExit(exit_code)
