@@ -127,7 +127,7 @@ class ReadinessApp(tk.Tk):
         self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
         self.theme_choice.pack(side="left")
         self.theme_choice.bind("<<ComboboxSelected>>", lambda _event: self.change_theme())
-        self.language_choice = ttk.Combobox(theme_box, state="readonly", width=11, values=("System", "English", "Italiano", "Español", "Deutsch", "Français"), style="Fluent.TCombobox")
+        self.language_choice = ttk.Combobox(theme_box, state="readonly", width=18, values=("System", "English", "Italiano", "Español", "Deutsch", "Français", "简体中文", "Русский", "Türkçe", "Português (Brasil)", "Ελληνικά"), style="Fluent.TCombobox")
         self.language_label = tk.Label(theme_box, text=t("label.language", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 9))
         self.language_label.pack(side="left", padx=(8, 4))
         self.language_choice.pack_forget()
