@@ -149,16 +149,36 @@ class ReadinessApp(tk.Tk):
         self.os_search_label = tk.Label(selector_row, text=t("label.search_os", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9))
         self.os_search_label.pack(side="left")
         self.os_search_var = tk.StringVar()
-        self.os_search = ttk.Entry(selector_row, textvariable=self.os_search_var, width=16, style="Fluent.TEntry")
-        self.os_search.pack(side="left", padx=(6, CONTROL_GAP))
+        self.choice = tk.StringVar(value=self._active_os_name if self._active_os_name in self.requirements else next(iter(self.requirements), ""))
+        self._search_matches = []
+        self._os_results_open = False
+        self.os_search_shell = tk.Frame(selector_row, bg=UI["surface"])
+        self.os_search_shell._ui_role = "surface"
+        self.os_search_shell.pack(side="left", fill="x", expand=True, padx=(6, CONTROL_GAP))
+        self.os_search = ttk.Entry(self.os_search_shell, textvariable=self.os_search_var, style="Fluent.TEntry")
+        self.os_search.pack(fill="x", expand=True)
+        self.os_search.bind("<FocusIn>", self._show_os_results)
+        self.os_search.bind("<FocusOut>", self._schedule_os_results_close)
         self.os_search.bind("<KeyRelease>", self._filter_os_choices)
         self.os_search.bind("<Escape>", self._clear_os_search)
-        self.choice = ttk.Combobox(selector_row, state="readonly", width=26, values=list(self.requirements), style="Fluent.TCombobox")
-        self.choice.set(self._active_os_name if self._active_os_name in self.requirements else next(iter(self.requirements), ""))
-        self.choice.pack(side="left")
-        self.choice.bind("<<ComboboxSelected>>", self._on_os_selected)
-        self.os_no_matches = tk.Label(controls, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
-        self.os_no_matches.pack(side="left", padx=(CONTROL_GAP, 0))
+        self.os_search.bind("<Down>", self._focus_os_results)
+        self.os_search.bind("<Return>", self._select_highlighted_os)
+        self.os_results_frame = tk.Frame(self.os_search_shell, bg=UI["surface"], highlightbackground=UI["subtle_border"], highlightthickness=1)
+        self.os_results_frame._ui_role = "surface"
+        self.os_results = tk.Listbox(self.os_results_frame, height=8, activestyle="none", exportselection=False, relief="flat", borderwidth=0, highlightthickness=0, bg=UI["surface"], fg=UI["text"], selectbackground=UI.get("selection", UI["accent"]), selectforeground=UI.get("selection_text", UI["text"]), font=(font, 10))
+        self.os_results.pack(side="left", fill="both", expand=True)
+        self.os_results_scrollbar = ttk.Scrollbar(self.os_results_frame, orient="vertical", command=self.os_results.yview)
+        self.os_results.configure(yscrollcommand=self.os_results_scrollbar.set)
+        self.os_results_scrollbar.pack_forget()
+        self.os_no_matches = tk.Label(self.os_results_frame, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w")
+        self.os_no_matches.pack_forget()
+        self.os_results_frame.pack_forget()
+        self.os_results.bind("<FocusOut>", self._schedule_os_results_close)
+        self.os_results.bind("<Escape>", self._clear_os_search)
+        self.os_results.bind("<Up>", self._navigate_os_results)
+        self.os_results.bind("<Down>", self._navigate_os_results)
+        self.os_results.bind("<Return>", self._select_highlighted_os)
+        self.os_results.bind("<ButtonRelease-1>", self._select_highlighted_os)
         self.check_button = ttk.Button(controls, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton")
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
@@ -287,6 +307,8 @@ class ReadinessApp(tk.Tk):
         self._set_active_nav("overview")
         self._sync_overview_actions()
     def _set_active_nav(self, page: str) -> None:
+        if hasattr(self, "_close_os_results"):
+            self._close_os_results()
         changed = getattr(self, "active_page", None) != page
         self.active_page = page
         if changed and hasattr(self, "workspace_scroll"):
@@ -451,35 +473,133 @@ class ReadinessApp(tk.Tk):
         card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
         return card
 
-    def _sync_os_selector(self) -> None:
+    def _render_os_results(self, matches, show=True) -> None:
+        self._search_matches = list(matches)
+        self.os_results.delete(0, "end")
+        for name in self._search_matches:
+            self.os_results.insert("end", name)
+        self.os_results.selection_clear(0, "end")
+        if self._search_matches:
+            self.os_results.pack(side="left", fill="both", expand=True)
+            self.os_no_matches.pack_forget()
+            if len(self._search_matches) > 8:
+                self.os_results_scrollbar.pack(side="right", fill="y")
+            else:
+                self.os_results_scrollbar.pack_forget()
+            self.os_results.selection_set(0)
+            self.os_results.activate(0)
+        else:
+            self.os_results.pack_forget()
+            self.os_results_scrollbar.pack_forget()
+            self.os_no_matches.config(text=t("empty.no_os_matches", self.language))
+            self.os_no_matches.pack(fill="x", padx=8, pady=8)
+        if show:
+            self.os_results_frame.pack(fill="x", pady=(2, 0))
+            self._os_results_open = True
+        else:
+            self._close_os_results()
+
+    def _sync_os_selector(self, show=None) -> None:
         if not hasattr(self, "choice"):
             return
         matches = filter_os_names(self.requirements, self.os_search_var.get())
-        self.choice.configure(values=matches)
         active = getattr(self, "_active_os_name", "")
-        if active in matches:
+        if self.choice.get() not in self.requirements and active in self.requirements:
             self.choice.set(active)
-        elif not self.os_search_var.get().strip() and matches:
-            self._active_os_name = matches[0]
-            self.choice.set(matches[0])
-        else:
-            self.choice.set("")
-        self.os_no_matches.config(text="" if matches else t("empty.no_os_matches", self.language))
+        if show is None:
+            show = getattr(self, "_os_results_open", False)
+        self._render_os_results(matches, show=show)
+
+    def _show_os_results(self, _event=None) -> None:
+        self._sync_os_selector(show=True)
 
     def _filter_os_choices(self, _event=None) -> None:
-        self._sync_os_selector()
-
-    def _clear_os_search(self, _event=None):
-        self.os_search_var.set("")
-        self._sync_os_selector()
+        if _event is not None and getattr(_event, "keysym", "") in {"Up", "Down", "Return", "Escape"}:
+            return "break"
+        self._sync_os_selector(show=True)
         return "break"
 
-    def _on_os_selected(self, _event=None) -> None:
-        name = self.choice.get()
+    def _os_search_has_focus(self) -> bool:
+        focus = self.focus_get()
+        widget = focus
+        while widget is not None:
+            if widget is self.os_search_shell:
+                return True
+            widget = getattr(widget, "master", None)
+        return False
+
+    def _schedule_os_results_close(self, _event=None) -> None:
+        self.after_idle(self._close_os_results_if_unfocused)
+
+    def _close_os_results_if_unfocused(self) -> None:
+        if not self._os_search_has_focus():
+            self._close_os_results()
+
+    def _close_os_results(self) -> None:
+        if hasattr(self, "os_results_frame"):
+            self.os_results_frame.pack_forget()
+        self._os_results_open = False
+
+    def _clear_os_search(self, _event=None):
+        if getattr(self, "_os_results_open", False):
+            self._close_os_results()
+            self.os_search.focus_set()
+            return "break"
+        self.os_search_var.set("")
+        self._sync_os_selector(show=False)
+        return "break"
+
+    def _focus_os_results(self, _event=None):
+        if not self._search_matches:
+            return "break"
+        if not self._os_results_open:
+            self._sync_os_selector(show=True)
+        self.os_results.focus_set()
+        self.os_results.selection_clear(0, "end")
+        self.os_results.selection_set(0)
+        self.os_results.activate(0)
+        return "break"
+
+    def _navigate_os_results(self, event=None):
+        if not self._search_matches:
+            return "break"
+        current_selection = self.os_results.curselection()
+        current = current_selection[0] if current_selection else 0
+        if getattr(event, "keysym", "") == "Up":
+            if current <= 0:
+                self.os_search.focus_set()
+                self.os_search.icursor("end")
+                return "break"
+            current -= 1
+        elif getattr(event, "keysym", "") == "Down":
+            if current >= len(self._search_matches) - 1:
+                return "break"
+            current += 1
+        self.os_results.selection_clear(0, "end")
+        self.os_results.selection_set(current)
+        self.os_results.activate(current)
+        self.os_results.see(current)
+        return "break"
+
+    def _select_highlighted_os(self, _event=None):
+        if not self._search_matches:
+            return "break"
+        selected = self.os_results.curselection()
+        index = selected[0] if selected else 0
+        self._select_os_name(self._search_matches[index])
+        return "break"
+
+    def _select_os_name(self, name: str) -> None:
         if name not in self.requirements:
             return
         self._active_os_name = name
+        self.choice.set(name)
+        self.os_search_var.set(name)
+        self._close_os_results()
         self.show_detail()
+
+    def _on_os_selected(self, _event=None) -> None:
+        self._select_os_name(self.choice.get())
 
     def _on_close(self) -> None:
         self.update_idletasks()
@@ -512,6 +632,7 @@ class ReadinessApp(tk.Tk):
         UI.update(colors_for(self.theme_mode))
         self.ui_tokens = tokens_for(UI)
         self._apply_theme(self)
+        self._refresh_os_results_theme()
         self._refresh_theme_layout()
 
     def change_language(self) -> None:
@@ -665,6 +786,15 @@ class ReadinessApp(tk.Tk):
         if hasattr(self, "workspace_scroll"):
             self.workspace_scroll.refresh()
 
+    def _refresh_os_results_theme(self) -> None:
+        if not hasattr(self, "os_results"):
+            return
+        self.os_results_frame.configure(bg=UI["surface"], highlightbackground=UI.get("subtle_border", UI["border"]))
+        self.os_results.configure(bg=UI["surface"], fg=UI["text"], selectbackground=UI.get("selection", UI["accent"]), selectforeground=UI.get("selection_text", UI["text"]))
+        self.os_no_matches.configure(bg=UI["surface"], fg=UI["muted"])
+        if self._os_results_open:
+            self._sync_os_selector(show=True)
+
     def _apply_theme(self, widget) -> None:
         try:
             if isinstance(widget, FluentCard):
@@ -684,6 +814,8 @@ class ReadinessApp(tk.Tk):
                     widget.configure(bg=UI["heading"] if active else UI["surface"], fg=UI["accent"] if active else UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
                 else:
                     widget.configure(bg=UI["surface"], fg=UI["text"], activebackground=UI["heading"], activeforeground=UI["text"])
+            elif isinstance(widget, tk.Listbox):
+                widget.configure(bg=UI["surface"], fg=UI["text"], selectbackground=UI.get("selection", UI["accent"]), selectforeground=UI.get("selection_text", UI["text"]), highlightbackground=UI.get("subtle_border", UI["border"]), highlightcolor=UI["accent"])
             elif isinstance(widget, (tk.Checkbutton, tk.Radiobutton)):
                 widget.configure(bg=UI["surface"], fg=UI["text"], activebackground=UI["surface"], activeforeground=UI["text"], selectcolor=UI["background"])
             elif isinstance(widget, tk.Canvas):
