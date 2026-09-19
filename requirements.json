@@ -1,44 +1,277 @@
 {
   "_database": {
     "schema_version": 1,
-    "data_version": 1
+    "data_version": 2
   },
   "_lifecycle": {
-    "Windows 11": {"os_family": "Windows 11", "release": "Windows 11", "release_id": "windows-11", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro"},
-    "Ubuntu Desktop 26.04 LTS": {"os_family": "Ubuntu Desktop", "release": "26.04 LTS", "release_id": "26.04-lts", "lifecycle_type": "lts", "support_status": "current", "is_default": true, "lifecycle_source": "https://ubuntu.com/about/release-cycle"},
-    "Fedora Workstation 44": {"os_family": "Fedora Workstation", "release": "44", "release_id": "44", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://docs.fedoraproject.org/en-US/releases/lifecycle/"},
-    "Arch Linux": {"os_family": "Arch Linux", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://wiki.archlinux.org/title/Arch_Linux"},
-    "Linux Mint": {"os_family": "Linux Mint", "release": "Linux Mint", "release_id": "current", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://linuxmint.com/download.php"},
-    "openSUSE Leap 15.6": {"os_family": "openSUSE Leap", "release": "15.6", "release_id": "15.6", "lifecycle_type": "fixed", "support_status": "supported", "lifecycle_source": "https://en.opensuse.org/Lifetime"},
-    "Pop!_OS": {"os_family": "Pop!_OS", "release": "Pop!_OS", "release_id": "current", "lifecycle_type": "fixed", "support_status": "current", "lifecycle_source": "https://support.system76.com/support/install-pop"},
-    "Debian 13 (trixie)": {"os_family": "Debian", "release": "13 (trixie)", "release_id": "13", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "release_date": "2025-08-09", "lifecycle_source": "https://www.debian.org/releases/"},
-    "ChromeOS Flex": {"os_family": "ChromeOS Flex", "release": "Stable channel", "release_id": "stable", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://support.google.com/chromeosflex/answer/11552529"},
-    "Zorin OS 18.1": {"os_family": "Zorin OS", "release": "18.1", "release_id": "18.1", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://zorin.com/os/details/"},
-    "elementary OS 8.1": {"os_family": "elementary OS", "release": "8.1", "release_id": "8.1", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://elementary.io/support"},
-    "Manjaro": {"os_family": "Manjaro", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://wiki.manjaro.org/index.php?title=Manjaro:Developers"},
-    "Kali Linux": {"os_family": "Kali Linux", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://www.kali.org/docs/policy/kali-branching/"},
-    "Tails": {"os_family": "Tails", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://tails.net/doc/about/releases/"},
-    "MX Linux": {"os_family": "MX Linux", "release": "25", "release_id": "25", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://mxlinux.org/wiki/releases/"},
-    "Rocky Linux 10": {"os_family": "Rocky Linux", "release": "10", "release_id": "10", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://wiki.rockylinux.org/rocky/version/"},
-    "AlmaLinux 9": {"os_family": "AlmaLinux", "release": "9", "release_id": "9", "lifecycle_type": "fixed", "support_status": "current", "is_default": true, "lifecycle_source": "https://wiki.almalinux.org/release-notes/"},
-    "NixOS": {"os_family": "NixOS", "release": "Rolling stable channel", "release_id": "stable", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://nixos.org/manual/nixos/stable/"},
-    "EndeavourOS": {"os_family": "EndeavourOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://endeavouros.com/"},
-    "CachyOS": {"os_family": "CachyOS", "release": "Rolling", "release_id": "rolling", "lifecycle_type": "rolling", "support_status": "rolling", "lifecycle_source": "https://cachyos.org/"}
+    "Windows 11": {
+      "os_family": "Windows 11",
+      "release": "Windows 11",
+      "release_id": "windows-11",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "lifecycle_source": "https://learn.microsoft.com/en-us/lifecycle/products/windows-11-home-and-pro"
+    },
+    "Ubuntu Desktop 26.04 LTS": {
+      "os_family": "Ubuntu Desktop",
+      "release": "26.04 LTS",
+      "release_id": "26.04-lts",
+      "lifecycle_type": "lts",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://ubuntu.com/about/release-cycle"
+    },
+    "Fedora Workstation 44": {
+      "os_family": "Fedora Workstation",
+      "release": "44",
+      "release_id": "44",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://docs.fedoraproject.org/en-US/releases/lifecycle/"
+    },
+    "Arch Linux": {
+      "os_family": "Arch Linux",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://wiki.archlinux.org/title/Arch_Linux"
+    },
+    "Linux Mint": {
+      "os_family": "Linux Mint",
+      "release": "Linux Mint",
+      "release_id": "current",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "lifecycle_source": "https://linuxmint.com/download.php"
+    },
+    "openSUSE Leap 15.6": {
+      "os_family": "openSUSE Leap",
+      "release": "15.6",
+      "release_id": "15.6",
+      "lifecycle_type": "fixed",
+      "support_status": "supported",
+      "lifecycle_source": "https://en.opensuse.org/Lifetime"
+    },
+    "Pop!_OS": {
+      "os_family": "Pop!_OS",
+      "release": "Pop!_OS",
+      "release_id": "current",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "lifecycle_source": "https://support.system76.com/support/install-pop"
+    },
+    "Debian 13 (trixie)": {
+      "os_family": "Debian",
+      "release": "13 (trixie)",
+      "release_id": "13",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "release_date": "2025-08-09",
+      "lifecycle_source": "https://www.debian.org/releases/"
+    },
+    "ChromeOS Flex": {
+      "os_family": "ChromeOS Flex",
+      "release": "Stable channel",
+      "release_id": "stable",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://support.google.com/chromeosflex/answer/11552529"
+    },
+    "Zorin OS 18.1": {
+      "os_family": "Zorin OS",
+      "release": "18.1",
+      "release_id": "18.1",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://zorin.com/os/details/"
+    },
+    "elementary OS 8.1": {
+      "os_family": "elementary OS",
+      "release": "8.1",
+      "release_id": "8.1",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://elementary.io/support"
+    },
+    "Manjaro": {
+      "os_family": "Manjaro",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://wiki.manjaro.org/index.php?title=Manjaro:Developers"
+    },
+    "Kali Linux": {
+      "os_family": "Kali Linux",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://www.kali.org/docs/policy/kali-branching/"
+    },
+    "Tails": {
+      "os_family": "Tails",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://tails.net/doc/about/releases/"
+    },
+    "MX Linux": {
+      "os_family": "MX Linux",
+      "release": "25",
+      "release_id": "25",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://mxlinux.org/wiki/releases/"
+    },
+    "Rocky Linux 10": {
+      "os_family": "Rocky Linux",
+      "release": "10",
+      "release_id": "10",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://wiki.rockylinux.org/rocky/version/"
+    },
+    "AlmaLinux 9": {
+      "os_family": "AlmaLinux",
+      "release": "9",
+      "release_id": "9",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://wiki.almalinux.org/release-notes/"
+    },
+    "NixOS": {
+      "os_family": "NixOS",
+      "release": "Rolling stable channel",
+      "release_id": "stable",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://nixos.org/manual/nixos/stable/"
+    },
+    "EndeavourOS": {
+      "os_family": "EndeavourOS",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://endeavouros.com/"
+    },
+    "CachyOS": {
+      "os_family": "CachyOS",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "lifecycle_source": "https://cachyos.org/"
+    },
+    "Void Linux": {
+      "os_family": "Void Linux",
+      "release": "Rolling",
+      "release_id": "rolling",
+      "lifecycle_type": "rolling",
+      "support_status": "rolling",
+      "is_default": true,
+      "lifecycle_source": "https://docs.voidlinux.org/"
+    },
+    "antiX 26": {
+      "os_family": "antiX",
+      "release": "26",
+      "release_id": "26",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://antixlinux.com/about/"
+    },
+    "Q4OS 6.9 Andromeda Trinity": {
+      "os_family": "Q4OS",
+      "release": "6.9 Andromeda",
+      "release_id": "6.9-andromeda",
+      "lifecycle_type": "lts",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://q4os.org/downloads1.html"
+    },
+    "Bodhi Linux 7.0.0": {
+      "os_family": "Bodhi Linux",
+      "release": "7.0.0",
+      "release_id": "7.0.0",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://www.bodhilinux.com/download/"
+    },
+    "SparkyLinux 8.4 MinimalGUI": {
+      "os_family": "SparkyLinux",
+      "release": "8.4",
+      "release_id": "8.4",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://sparkylinux.org/download/stable/"
+    },
+    "Slax 12.2.0": {
+      "os_family": "Slax",
+      "release": "12.2.0",
+      "release_id": "12.2.0",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://www.slax.org/changelog.php"
+    },
+    "Alpine Linux 3.24": {
+      "os_family": "Alpine Linux",
+      "release": "3.24",
+      "release_id": "3.24",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://www.alpinelinux.org/releases/"
+    },
+    "Tiny Core Linux 17.1 TinyCore": {
+      "os_family": "Tiny Core Linux",
+      "release": "17.1",
+      "release_id": "17.1",
+      "lifecycle_type": "fixed",
+      "support_status": "current",
+      "is_default": true,
+      "lifecycle_source": "https://forum.tinycorelinux.net/index.php?topic=28211.0"
+    }
   },
   "_installation": {
-    "Windows 11": {"uefi": "required", "secure_boot": "required", "partition_style": "GPT", "tpm_version": 2.0},
-    "Kali Linux": {"secure_boot": "disabled"}
+    "Windows 11": {
+      "uefi": "required",
+      "secure_boot": "required",
+      "partition_style": "GPT",
+      "tpm_version": 2
+    },
+    "Kali Linux": {
+      "secure_boot": "disabled"
+    }
   },
   "Windows 11": {
     "version": "Windows 11",
     "cpu_cores": 2,
-    "cpu_ghz": 1.0,
+    "cpu_ghz": 1,
     "ram_gb": 4,
     "storage_gb": 64,
-    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "ARM64",
+      "X86_64",
+      "AARCH64"
+    ],
     "uefi": true,
     "secure_boot": true,
-    "tpm_version": 2.0,
+    "tpm_version": 2,
     "display_width": 1280,
     "display_height": 720,
     "notes": [
@@ -51,10 +284,15 @@
   "Ubuntu Desktop 26.04 LTS": {
     "version": "Ubuntu Desktop 26.04 LTS",
     "cpu_cores": 2,
-    "cpu_ghz": 2.0,
+    "cpu_ghz": 2,
     "ram_gb": 6,
     "storage_gb": 25,
-    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "ARM64",
+      "X86_64",
+      "AARCH64"
+    ],
     "notes": [
       "A USB port or DVD drive is needed for typical installer media.",
       "Trying the live USB first is the best way to confirm device and driver compatibility."
@@ -64,10 +302,15 @@
   "Fedora Workstation 44": {
     "version": "Fedora Workstation 44",
     "cpu_cores": 2,
-    "cpu_ghz": 2.0,
+    "cpu_ghz": 2,
     "ram_gb": 4,
     "storage_gb": 40,
-    "architecture": ["AMD64", "ARM64", "X86_64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "ARM64",
+      "X86_64",
+      "AARCH64"
+    ],
     "notes": [
       "Fedora publishes 4 GB RAM and 40 GB storage as recommendations; double these may provide a better experience.",
       "Trying the live USB first is the best way to confirm device and driver compatibility."
@@ -77,10 +320,12 @@
   "Arch Linux": {
     "version": "Arch Linux",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 0.5,
     "storage_gb": 2,
-    "architecture": ["X86_64"],
+    "architecture": [
+      "X86_64"
+    ],
     "notes": [
       "Arch's installation guide states a minimum of 512 MiB RAM and says a basic installation should take less than 2 GiB of disk space.",
       "The guide does not specify a CPU speed or core-count minimum; those checks are represented as no threshold.",
@@ -91,10 +336,13 @@
   "Linux Mint": {
     "version": "Linux Mint",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 2,
     "storage_gb": 20,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "display_width": 1024,
     "display_height": 768,
     "notes": [
@@ -107,10 +355,13 @@
   "openSUSE Leap 15.6": {
     "version": "openSUSE Leap 15.6",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 1,
     "storage_gb": 16,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "display_width": 1024,
     "display_height": 768,
     "notes": [
@@ -123,10 +374,15 @@
   "Pop!_OS": {
     "version": "Pop!_OS",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 4,
     "storage_gb": 20,
-    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "X86_64",
+      "ARM64",
+      "AARCH64"
+    ],
     "notes": [
       "System76 lists 4 GB RAM and 20 GB storage as requirements, with 8 GB RAM recommended.",
       "The supported CPU families are 64-bit x86 and ARM; no CPU speed or core-count minimum is stated.",
@@ -137,10 +393,13 @@
   "Debian 13 (trixie)": {
     "version": "Debian 13 (trixie)",
     "cpu_cores": 1,
-    "cpu_ghz": 1.0,
+    "cpu_ghz": 1,
     "ram_gb": 1,
     "storage_gb": 10,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "Debian lists these as minimum recommended values for a desktop installation on amd64: a 1 GHz Pentium 4-class processor, 1 GB RAM, and 10 GB disk space.",
       "The official guide also lists lower values for installations without a desktop environment; this profile uses the desktop values.",
@@ -151,10 +410,13 @@
   "ChromeOS Flex": {
     "version": "ChromeOS Flex",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 4,
     "storage_gb": 16,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "Google requires an Intel or AMD x86-64 compatible device, at least 4 GB RAM, and at least 16 GB internal storage.",
       "The device must be bootable from USB and provide full administrator access in its BIOS; the current hardware schema does not check those conditions.",
@@ -165,10 +427,13 @@
   "Zorin OS 18.1": {
     "version": "Zorin OS 18.1",
     "cpu_cores": 2,
-    "cpu_ghz": 1.0,
+    "cpu_ghz": 1,
     "ram_gb": 2,
     "storage_gb": 15,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "display_width": 800,
     "display_height": 600,
     "notes": [
@@ -180,10 +445,15 @@
   "elementary OS 8.1": {
     "version": "elementary OS 8.1",
     "cpu_cores": 2,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 4,
     "storage_gb": 32,
-    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "X86_64",
+      "ARM64",
+      "AARCH64"
+    ],
     "display_width": 1024,
     "display_height": 768,
     "notes": [
@@ -195,10 +465,13 @@
   "Manjaro": {
     "version": "Manjaro",
     "cpu_cores": 2,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 4,
     "storage_gb": 30,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "Manjaro lists these as recommended system requirements: a dual-core processor, 4 GB memory, and 30 GB disk space.",
       "The page also recommends HD graphics and a monitor plus broadband internet; the current schema does not turn those descriptions into extra hardware checks.",
@@ -209,10 +482,13 @@
   "Kali Linux": {
     "version": "Kali Linux",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 2,
     "storage_gb": 20,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "This profile targets Kali's default Xfce desktop and kali-linux-default metapackage.",
       "Kali documents 2 GB RAM and 20 GB disk space for that desktop installation; CPU speed and core minimums are not specified.",
@@ -223,10 +499,13 @@
   "Tails": {
     "version": "Tails",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 3,
     "storage_gb": 8,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "Tails is a live operating system intended to run from USB/DVD, not a conventional hard-disk desktop installation.",
       "Tails documents 3 GB RAM for smooth operation, a 64-bit x86-64 processor, and an 8 GB minimum USB stick.",
@@ -237,10 +516,14 @@
   "MX Linux": {
     "version": "MX Linux",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 1,
     "storage_gb": 6,
-    "architecture": ["I686", "AMD64", "X86_64"],
+    "architecture": [
+      "I686",
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "This profile uses the MX Linux desktop installation minimums from the official user manual: a modern i686-or-newer Intel/AMD processor, 1 GB RAM, and 6 GB free disk space.",
       "The manual recommends 2 GB RAM and 20 GB free space for general use; those are not strict compatibility minimums."
@@ -250,10 +533,15 @@
   "Rocky Linux 10": {
     "version": "Rocky Linux 10",
     "cpu_cores": 1,
-    "cpu_ghz": 1.0,
+    "cpu_ghz": 1,
     "ram_gb": 2,
     "storage_gb": 10,
-    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "architecture": [
+      "AMD64",
+      "X86_64",
+      "ARM64",
+      "AARCH64"
+    ],
     "notes": [
       "Rocky's minimum hardware guidance targets a minimal/server installation; graphical environments need more resources.",
       "Rocky documents 1 GHz 64-bit CPU, 2 GB RAM minimum for text-mode installation, and 10 GB disk space."
@@ -263,10 +551,17 @@
   "AlmaLinux 9": {
     "version": "AlmaLinux 9",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 1.5,
     "storage_gb": 10,
-    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64", "PPC64LE", "S390X"],
+    "architecture": [
+      "AMD64",
+      "X86_64",
+      "ARM64",
+      "AARCH64",
+      "PPC64LE",
+      "S390X"
+    ],
     "notes": [
       "AlmaLinux's installation guide lists 1.5 GB RAM and 10 GB disk as system requirements; CPU speed is not specified.",
       "The project supports several architectures; this checker can meaningfully compare only architectures reported by its generic detector."
@@ -276,10 +571,15 @@
   "NixOS": {
     "version": "NixOS",
     "cpu_cores": 0,
-    "cpu_ghz": 0.0,
-    "ram_gb": 0.0,
-    "storage_gb": 0.0,
-    "architecture": ["AMD64", "X86_64", "ARM64", "AARCH64"],
+    "cpu_ghz": 0,
+    "ram_gb": 0,
+    "storage_gb": 0,
+    "architecture": [
+      "AMD64",
+      "X86_64",
+      "ARM64",
+      "AARCH64"
+    ],
     "notes": [
       "NixOS does not publish a single conventional desktop minimum for its configurable installations, so RAM and storage thresholds are intentionally omitted.",
       "The official manual covers both graphical and manual installations and supports x86-64 and ARM graphical images."
@@ -289,10 +589,13 @@
   "EndeavourOS": {
     "version": "EndeavourOS",
     "cpu_cores": 2,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 2.5,
     "storage_gb": 15,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "This profile targets the standard x86-64 desktop installer. EndeavourOS lists 2.5 GB RAM, a dual-core 64-bit processor, and 15 GB disk space as minimums.",
       "The installer supports legacy BIOS, while modern UEFI is recommended."
@@ -302,14 +605,150 @@
   "CachyOS": {
     "version": "CachyOS",
     "cpu_cores": 1,
-    "cpu_ghz": 0.0,
+    "cpu_ghz": 0,
     "ram_gb": 3,
     "storage_gb": 30,
-    "architecture": ["AMD64", "X86_64"],
+    "architecture": [
+      "AMD64",
+      "X86_64"
+    ],
     "notes": [
       "This profile targets the CachyOS desktop edition on physical x86-64 hardware.",
       "CachyOS documents 3 GB RAM and 30 GB storage as minimums; its x86-64-v3 CPU and GPU guidance is listed as recommended, not a generic minimum."
     ],
     "source": "https://wiki.cachyos.org/installation/installation_prepare/"
+  },
+  "Void Linux": {
+    "version": "Rolling",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.52,
+    "storage_gb": 0.7,
+    "architecture": [
+      "X86",
+      "AMD64",
+      "ARM64",
+      "ARM32"
+    ],
+    "notes": [
+      "Void's official base-system table lists 520 MB RAM and 700 MB storage for x86_64-glibc, 520 MB RAM and 600 MB storage for x86_64-musl, and Pentium 4 SSE2 with 520 MB RAM and 700 MB storage for i686-glibc.",
+      "Desktop-environment requirements vary; this profile uses the documented base-system thresholds and does not invent desktop values. Void does not publish a CPU clock or core-count minimum."
+    ],
+    "source": "https://docs.voidlinux.org/installation/"
+  },
+  "antiX 26": {
+    "version": "26 (Stephen Kapos)",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.512,
+    "storage_gb": 7,
+    "architecture": [
+      "X86",
+      "AMD64"
+    ],
+    "notes": [
+      "antiX 26 is available in full and core editions for 32-bit and 64-bit Intel/AMD-compatible systems.",
+      "The official project describes 512 MB RAM as the recommended minimum, 256 MB with preconfigured swap as a lower starting point, and 7 GB of hard-disk space. No CPU clock or core-count threshold is published."
+    ],
+    "source": "https://antixlinux.com/about/"
+  },
+  "Q4OS 6.9 Andromeda Trinity": {
+    "version": "6.9 Andromeda Trinity",
+    "cpu_cores": 0,
+    "cpu_ghz": 0.5,
+    "ram_gb": 0.512,
+    "storage_gb": 6,
+    "architecture": [
+      "AMD64"
+    ],
+    "notes": [
+      "Q4OS 6.9 Andromeda is the current stable LTS line; the official downloads page lists Trinity minimal hardware at 500 MHz CPU, 512 MB RAM, and 6 GB disk.",
+      "Current Trinity x64 media is represented; older 32-bit media is a separate legacy line. The LTS support statement runs at least through August 2030."
+    ],
+    "source": "https://q4os.org/downloads1.html"
+  },
+  "Bodhi Linux 7.0.0": {
+    "version": "7.0.0",
+    "cpu_cores": 0,
+    "cpu_ghz": 0.5,
+    "ram_gb": 0.512,
+    "storage_gb": 5,
+    "architecture": [
+      "X86",
+      "AMD64"
+    ],
+    "notes": [
+      "Bodhi lists a 500 MHz processor, 512 MB RAM, and 5 GB drive as minimums; its recommended 64-bit target is 1.0 GHz, 768 MB RAM, and 10 GB.",
+      "The official download page identifies 7.0.0 as current; 32-bit legacy media is separate. The installer runs best above 512 MB, so the minimum is intentionally conservative."
+    ],
+    "source": "https://www.bodhilinux.com/w/installation-instructions/"
+  },
+  "SparkyLinux 8.4 MinimalGUI": {
+    "version": "8.4 MinimalGUI",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.256,
+    "storage_gb": 10,
+    "architecture": [
+      "X86",
+      "AMD64"
+    ],
+    "notes": [
+      "SparkyLinux 8.4 stable provides a MinimalGUI Openbox edition for amd64 and i686-pae.",
+      "The official lightweight requirements specify 256 MB RAM for Openbox-class desktops and 10 GB for the home editions; no CPU clock/core threshold is published. The Calamares installer needs more memory, while Advanced Installer is available below 1 GB."
+    ],
+    "source": "https://sparkylinux.org/download/stable/"
+  },
+  "Slax 12.2.0": {
+    "version": "12.2.0 (Debian)",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.128,
+    "storage_gb": 0,
+    "architecture": [
+      "X86",
+      "AMD64"
+    ],
+    "notes": [
+      "Slax is a live system designed to boot from CD or USB; its official introduction lists 128 MB RAM for the desktop and 512 MB for running a web browser.",
+      "No permanent-install storage threshold or CPU clock/core minimum is published, so those fields remain unasserted."
+    ],
+    "source": "https://www.slax.org/introduction.php"
+  },
+  "Alpine Linux 3.24": {
+    "version": "3.24",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.128,
+    "storage_gb": 1,
+    "architecture": [
+      "X86",
+      "AMD64",
+      "ARM32",
+      "ARM64",
+      "PPC64LE",
+      "S390X"
+    ],
+    "notes": [
+      "Alpine documents 128 MB as the x86_64 installation-memory minimum and at least 1 GB for a default installation; x86 and GUI values differ and are described in the official requirements matrix.",
+      "The profile represents the base installation and does not assert desktop-environment requirements. The current stable 3.24 branch supports the listed canonical architectures."
+    ],
+    "source": "https://wiki.alpinelinux.org/wiki/Requirements"
+  },
+  "Tiny Core Linux 17.1 TinyCore": {
+    "version": "17.1 TinyCore",
+    "cpu_cores": 0,
+    "cpu_ghz": 0,
+    "ram_gb": 0.046,
+    "storage_gb": 0,
+    "architecture": [
+      "X86",
+      "AMD64"
+    ],
+    "notes": [
+      "TinyCore is the GUI-capable variant selected for this profile; Core is CLI-only and CorePlus is the installer-oriented variant.",
+      "The official FAQ gives an absolute minimum of 46 MB RAM and an i486DX-class CPU, with 128 MB plus swap recommended. Storage depends on extensions and persistence, so no fixed threshold is asserted."
+    ],
+    "source": "https://www.tinycorelinux.net/faq.html"
   }
 }
