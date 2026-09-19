@@ -39,6 +39,13 @@ ICONS = {"pass": "✓", "fail": "✕", "unknown": "?"}
 UI = colors_for("Light")
 
 
+def filter_os_names(names, query):
+    normalized_query = " ".join(str(query).casefold().split())
+    if not normalized_query:
+        return list(names)
+    return [name for name in names if normalized_query in " ".join(str(name).casefold().split())]
+
+
 class ReadinessApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -56,6 +63,8 @@ class ReadinessApp(tk.Tk):
         self.ui_tokens = tokens_for(UI)
         self.requirements_info = load_requirements_info()
         self.requirements = self.requirements_info.profiles
+        saved_os = self.settings.get("last_os")
+        self._active_os_name = saved_os if saved_os in self.requirements else next(iter(self.requirements), "")
         self.machine = None
         self.machine_source = "This computer"
         self.profile_metadata = {}
@@ -133,13 +142,23 @@ class ReadinessApp(tk.Tk):
         body.pack(fill="both", expand=True)
         controls = FluentCard(body, tokens=self.ui_tokens, padding=CARD_PADDING)
         controls.pack(fill="x", pady=(0, 14))
-        self.os_label = tk.Label(controls, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
-        self.os_label.pack(side="left")
-        self.choice = ttk.Combobox(controls, state="readonly", width=31, values=list(self.requirements), style="Fluent.TCombobox")
-        last_os = self.settings.get("last_os")
-        self.choice.current(list(self.requirements).index(last_os) if last_os in self.requirements else 0)
-        self.choice.pack(side="left", padx=(CONTROL_GAP + 6, CONTROL_GAP + 4))
-        self.choice.bind("<<ComboboxSelected>>", lambda _event: self.show_detail())
+        selector_row = tk.Frame(controls, bg=UI["surface"])
+        selector_row.pack(side="left", fill="x", expand=True)
+        self.os_label = tk.Label(selector_row, text=t("label.operating_system", self.language), bg=UI["surface"], fg=UI["text"], font=(font, 10, "bold"))
+        self.os_label.pack(side="left", padx=(0, CONTROL_GAP + 4))
+        self.os_search_label = tk.Label(selector_row, text=t("label.search_os", self.language), bg=UI["surface"], fg=UI["muted"], font=(font, 9))
+        self.os_search_label.pack(side="left")
+        self.os_search_var = tk.StringVar()
+        self.os_search = ttk.Entry(selector_row, textvariable=self.os_search_var, width=16, style="Fluent.TEntry")
+        self.os_search.pack(side="left", padx=(6, CONTROL_GAP))
+        self.os_search.bind("<KeyRelease>", self._filter_os_choices)
+        self.os_search.bind("<Escape>", self._clear_os_search)
+        self.choice = ttk.Combobox(selector_row, state="readonly", width=26, values=list(self.requirements), style="Fluent.TCombobox")
+        self.choice.set(self._active_os_name if self._active_os_name in self.requirements else next(iter(self.requirements), ""))
+        self.choice.pack(side="left")
+        self.choice.bind("<<ComboboxSelected>>", self._on_os_selected)
+        self.os_no_matches = tk.Label(controls, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9))
+        self.os_no_matches.pack(side="left", padx=(CONTROL_GAP, 0))
         self.check_button = ttk.Button(controls, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton")
         self.check_button.pack(side="right")
         self.overview_button = ttk.Button(controls, text=t("action.overview", self.language), command=self.show_overview, style="Secondary.TButton")
@@ -432,10 +451,40 @@ class ReadinessApp(tk.Tk):
         card.pack(fill="both", expand=True, padx=PAGE_PADDING[0], pady=PAGE_PADDING[1])
         return card
 
+    def _sync_os_selector(self) -> None:
+        if not hasattr(self, "choice"):
+            return
+        matches = filter_os_names(self.requirements, self.os_search_var.get())
+        self.choice.configure(values=matches)
+        active = getattr(self, "_active_os_name", "")
+        if active in matches:
+            self.choice.set(active)
+        elif not self.os_search_var.get().strip() and matches:
+            self._active_os_name = matches[0]
+            self.choice.set(matches[0])
+        else:
+            self.choice.set("")
+        self.os_no_matches.config(text="" if matches else t("empty.no_os_matches", self.language))
+
+    def _filter_os_choices(self, _event=None) -> None:
+        self._sync_os_selector()
+
+    def _clear_os_search(self, _event=None):
+        self.os_search_var.set("")
+        self._sync_os_selector()
+        return "break"
+
+    def _on_os_selected(self, _event=None) -> None:
+        name = self.choice.get()
+        if name not in self.requirements:
+            return
+        self._active_os_name = name
+        self.show_detail()
+
     def _on_close(self) -> None:
         self.update_idletasks()
         settings = dict(self.settings)
-        settings.update({"theme": self.theme_mode, "last_os": self.choice.get(), "width": self.winfo_width(), "height": self.winfo_height(), "x": self.winfo_x(), "y": self.winfo_y()})
+        settings.update({"theme": self.theme_mode, "last_os": self._active_os_name if self._active_os_name in self.requirements else self.choice.get(), "width": self.winfo_width(), "height": self.winfo_height(), "x": self.winfo_x(), "y": self.winfo_y()})
         save_settings(settings)
         self.destroy()
 
@@ -486,6 +535,8 @@ class ReadinessApp(tk.Tk):
         self.theme_label.config(text=t("label.theme", self.language))
         self.language_label.config(text=t("label.language", self.language))
         self.os_label.config(text=t("label.operating_system", self.language))
+        self.os_search_label.config(text=t("label.search_os", self.language))
+        self._sync_os_selector()
         self.table_empty.config(text=t("empty.no_machine", self.language))
         self.welcome_title.config(text=t("welcome.title", self.language))
         self.welcome_text.config(text=t("welcome.text", self.language))
@@ -729,6 +780,7 @@ class ReadinessApp(tk.Tk):
             return
         name = self.table.item(self.table.selection()[0], "text")
         if name in self.requirements:
+            self._active_os_name = name
             self.choice.set(name)
             self.show_detail()
 
@@ -752,8 +804,9 @@ class ReadinessApp(tk.Tk):
         self._set_table_layout(overview=True)
         source_key = "profile.source_imported" if self.machine_source == "Imported profile" else "profile.source_local"
         self.source_status.config(text=f"{t('label.machine_source', self.language)}: {t(source_key, self.language)}")
-        if self.choice.get() not in all_results and all_results:
-            self.choice.current(0)
+        if not self.os_search_var.get().strip() and self._active_os_name not in all_results and all_results:
+            self._active_os_name = next(iter(all_results))
+        self._sync_os_selector()
         self.results = all_results.get(self.choice.get(), [])
         self._clear_table()
         self._set_table_empty(not bool(ranked))
@@ -794,6 +847,7 @@ class ReadinessApp(tk.Tk):
             self._unavailable("empty.no_analysis", t("action.scan", self.language))
             return
         name = self.choice.get()
+        self._active_os_name = name
         self._set_active_nav("analysis")
         self.analysis_logo.configure(image=self._logo_for(name, self.requirements[name]))
         self._set_table_layout(overview=False)
@@ -1161,7 +1215,7 @@ class ReadinessApp(tk.Tk):
             return
         self.requirements_info = info
         self.requirements = info.profiles
-        self.choice.config(values=list(self.requirements))
+        self._sync_os_selector()
         if self.machine:
             self.all_results = evaluate_all(self.machine, self.requirements)
             suitability = {name: suitability_dict(assess_suitability(self.machine, profile, self.all_results[name])) for name, profile in self.requirements.items()}
