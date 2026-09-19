@@ -33,6 +33,14 @@ LOGO_REGISTRY = {
     "nixos": {"asset": "nixos.png", "color": "#5277C3"},
     "endeavouros": {"asset": "endeavouros.png", "color": "#7F7FFF"},
     "cachyos": {"asset": "cachyos.png", "color": "#3B82F6"},
+    "void-linux": {"asset": "void-linux.png", "color": "#78C091"},
+    "antix": {"asset": "antix.png", "color": "#6B4FD3"},
+    "q4os": {"asset": "q4os.png", "color": "#8B6CDE"},
+    "bodhi-linux": {"asset": "bodhi-linux.png", "color": "#42B91E"},
+    "sparky-linux": {"asset": "sparky-linux.png", "color": "#FF9D18"},
+    "slax": {"asset": "slax.png", "color": "#28A35A"},
+    "alpine-linux": {"asset": "alpine-linux.png", "color": "#1671B9"},
+    "tiny-core-linux": {"asset": "tiny-core-linux.png", "color": "#FFB21A"},
     FALLBACK_KEY: {"asset": "generic-os.png", "color": "#6B7280"},
 }
 
@@ -47,6 +55,10 @@ def _key_for(value: str) -> str:
         "elementary os": "elementary-os", "manjaro": "manjaro", "kali linux": "kali-linux", "tails": "tails",
         "mx linux": "mx-linux", "rocky linux": "rocky-linux", "almalinux": "almalinux", "nixos": "nixos",
         "endeavouros": "endeavouros", "cachyos": "cachyos",
+        "void linux": "void-linux", "antix": "antix", "q4os": "q4os",
+        "bodhi linux": "bodhi-linux", "sparky linux": "sparky-linux",
+        "slax": "slax", "alpine linux": "alpine-linux",
+        "tiny core linux": "tiny-core-linux",
     }
     for name, key in aliases.items():
         if value == name or value.startswith(name + " "):
