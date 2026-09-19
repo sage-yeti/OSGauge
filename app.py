@@ -29,6 +29,7 @@ from machine_profile import export_profile, import_profile
 from upgrade_planner import build_upgrade_plan, localized_plan
 from machine_comparison import compare_machines, html_comparison_report, plain_text_comparison
 from localization import LANGUAGES, preference_label, readiness_explanation, recommendation_match_label, resolve_language, status_label, suitability_explanation, t
+from requirements_localization import localize_requirement_note
 from os_icons import load_logo
 from recommendation import PREFERENCES, PREFERENCE_LABELS, recommend, primary_recommendations
 from ui_foundation import CARD_PADDING, CONTROL_GAP, DIALOG_PADDING, FluentCard, NAV_DESTINATIONS, PAGE_PADDING, ScrollableWorkspace, configure_styles, tokens_for
@@ -1003,7 +1004,7 @@ class ReadinessApp(tk.Tk):
         score = next((item["score"] for item in self.ranked_results if item["name"] == name), 0)
         self.summary.config(text=f"{messages[status]} • Compatibility score {score}/100 • {suitability['category']}", fg=UI["text"])
         self.status_badge.config(text=f"  {status_label(status, self.language).upper()}  ", bg=COLORS[status], fg="white")
-        notes = self.requirements[name].get("notes", [])
+        notes = [localize_requirement_note(name, note, self.language) for note in self.requirements[name].get("notes", [])]
         lifecycle = profile_metadata(name, self.requirements[name])
         lifecycle["support_status"] = lifecycle_status(self.requirements[name])
         readiness = evaluate_installation_readiness(self.machine, self.requirements[name], results)
