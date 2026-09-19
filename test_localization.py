@@ -7,6 +7,7 @@ from unittest.mock import patch
 from checker import MachineInfo, html_report
 from localization import LANGUAGES, LANG_CODES, _BATCH5_TRANSLATIONS, _BATCH6_TRANSLATIONS, _RECOMMEND_TRANSLATIONS, _load, detect_system_language, language_label, preference_label, readiness_explanation, recommendation_match_label, resolve_language, suitability_explanation, t
 from recommendation import PREFERENCES
+from requirements_localization import SUPPORTED_NOTE_LANGUAGES, bundled_note_translation_map, localize_requirement_note, missing_bundled_note_translations
 
 
 class LocalizationTests(unittest.TestCase):
@@ -131,6 +132,31 @@ class LocalizationTests(unittest.TestCase):
             self.assertNotEqual(readiness_explanation("ready", code), readiness_explanation("ready", "en"))
             for key in preference_keys:
                 self.assertTrue(preference_label(key, code) and preference_label(key, code) != key)
+
+    def test_bundled_requirement_notes_have_complete_language_mapping(self):
+        requirements = json.loads(Path("requirements.json").read_text(encoding="utf-8"))
+        requirements = {name: profile for name, profile in requirements.items() if not name.startswith("_")}
+        self.assertEqual(missing_bundled_note_translations(requirements), [])
+        for profile_name, profile in requirements.items():
+            for note in profile.get("notes", []):
+                values = bundled_note_translation_map(profile_name, note)
+                self.assertEqual(set(values), set(SUPPORTED_NOTE_LANGUAGES))
+                self.assertTrue(all(value and not value.startswith("requirements.note.") for value in values.values()))
+
+    def test_analysis_summary_headings_use_localization_keys(self):
+        source = Path("app.py").read_text(encoding="utf-8")
+        for key in ("label.compatibility", "label.suitability", "label.lifecycle", "label.installation_readiness"):
+            self.assertIn(f't("{key}", self.language)', source)
+
+    def test_russian_alpine_analysis_regression_and_representative_languages(self):
+        requirements = json.loads(Path("requirements.json").read_text(encoding="utf-8"))
+        alpine = requirements["Alpine Linux 3.24"]["notes"]
+        self.assertNotEqual(localize_requirement_note("Alpine Linux 3.24", alpine[0], "ru"), alpine[0])
+        self.assertNotEqual(localize_requirement_note("Alpine Linux 3.24", alpine[1], "ru"), alpine[1])
+        self.assertEqual(t("analysis.details_notes", "ru"), "Примечания")
+        for code in ("zh-CN", "tr", "pt-BR", "el"):
+            self.assertNotEqual(localize_requirement_note("Alpine Linux 3.24", alpine[0], code), alpine[0])
+
 
 
 if __name__ == "__main__":
