@@ -1,10 +1,11 @@
 import json
+import string
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from checker import MachineInfo, html_report
-from localization import _BATCH5_TRANSLATIONS, detect_system_language, preference_label, readiness_explanation, resolve_language, suitability_explanation, t
+from localization import LANG_CODES, _BATCH5_TRANSLATIONS, _load, detect_system_language, preference_label, readiness_explanation, resolve_language, suitability_explanation, t
 from recommendation import PREFERENCES
 
 
@@ -21,9 +22,35 @@ class LocalizationTests(unittest.TestCase):
     def test_translation_files_have_complete_keys(self):
         root = Path(__file__).with_name("locales")
         english = json.loads((root / "en.json").read_text(encoding="utf-8"))
-        for code in ("it", "es", "de", "fr"):
+        for code in sorted({code for code in LANG_CODES.values() if code and code != "en"}):
             locale_data = json.loads((root / f"{code}.json").read_text(encoding="utf-8"))
             self.assertTrue(set(english).issubset(locale_data))
+
+    def test_locale_effective_keys_values_and_placeholders(self):
+        root = Path(__file__).with_name("locales")
+        codes = sorted({code for code in LANG_CODES.values() if code})
+        raw = {}
+        for code in codes:
+            with self.subTest(code=code):
+                data = json.loads((root / f"{code}.json").read_text(encoding="utf-8"))
+                self.assertIsInstance(data, dict)
+                self.assertTrue(all(isinstance(key, str) for key in data))
+                self.assertTrue(all(isinstance(value, str) for value in data.values()))
+                raw[code] = data
+        expected_raw_keys = set(raw["en"])
+        english = _load("en")
+
+        def placeholder_fields(value):
+            return sorted(field_name for _, field_name, _, _ in string.Formatter().parse(value) if field_name)
+
+        for code in codes:
+            with self.subTest(effective_language=code):
+                self.assertEqual(set(raw[code]), expected_raw_keys)
+                effective = _load(code)
+                self.assertEqual(set(effective), set(english))
+                self.assertTrue(all(isinstance(value, str) for value in effective.values()))
+                for key, english_value in english.items():
+                    self.assertEqual(placeholder_fields(effective[key]), placeholder_fields(english_value), key)
 
     def test_language_resolution(self):
         self.assertEqual(resolve_language("Italiano"), "it")
@@ -52,7 +79,7 @@ class LocalizationTests(unittest.TestCase):
             "label.external_source", "overview.requirements_note", "label.next_step",
         )
         english_keys = set(_BATCH5_TRANSLATIONS["en"])
-        for code in ("it", "es", "de", "fr"):
+        for code in sorted({code for code in LANG_CODES.values() if code and code != "en"}):
             self.assertEqual(set(_BATCH5_TRANSLATIONS[code]), english_keys)
             for key in keys:
                 value = t(key, code)
@@ -72,7 +99,7 @@ class LocalizationTests(unittest.TestCase):
             "stability", "long_term_support", "rolling", "windows_like",
         )
         self.assertEqual(PREFERENCES, preference_keys)
-        for code in ("it", "es", "de", "fr"):
+        for code in sorted({code for code in LANG_CODES.values() if code and code != "en"}):
             for key in ("action.scan", "action.import_profile", "label.suitability", "label.installation_readiness", "recommend.strengths", "recommend.tradeoffs"):
                 self.assertTrue(t(key, code) and t(key, code) != key, f"missing {code}:{key}")
             self.assertNotEqual(suitability_explanation("Excellent fit", "unused", code), suitability_explanation("Excellent fit", "unused", "en"))
