@@ -1,3 +1,4 @@
+import json
 import struct
 import unittest
 import zlib
@@ -6,15 +7,15 @@ from pathlib import Path
 from os_icons import FALLBACK_KEY, LOGO_REGISTRY, logo_asset_path, logo_metadata
 
 
-SUPPORTED_FAMILIES = (
-    "Windows 11", "Ubuntu Desktop", "Fedora Workstation", "Arch Linux", "Linux Mint", "openSUSE Leap",
-    "Pop!_OS", "Debian", "ChromeOS Flex", "Zorin OS", "elementary OS", "Manjaro", "Kali Linux", "Tails",
-    "MX Linux", "Rocky Linux", "AlmaLinux", "NixOS", "EndeavourOS", "CachyOS",
-)
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
-def _png_alpha(path: Path, x: int, y: int) -> int:
+def _supported_families() -> tuple[str, ...]:
+    requirements = json.loads(Path(__file__).with_name("requirements.json").read_text(encoding="utf-8"))
+    return tuple(entry["os_family"] for entry in requirements["_lifecycle"].values())
+
+
+def _png_rgba(path: Path) -> tuple[tuple[int, int, int, int, int], list[bytearray]]:
     data = path.read_bytes()
     if not data.startswith(PNG_SIGNATURE):
         raise AssertionError(f"not a PNG: {path}")
@@ -32,10 +33,10 @@ def _png_alpha(path: Path, x: int, y: int) -> int:
             compressed.extend(payload)
         elif kind == b"IEND":
             break
-    if (width, height, bit_depth, color_type, interlace) != (32, 32, 8, 6, 0):
+    header = (width, height, bit_depth, color_type, interlace)
+    if header != (32, 32, 8, 6, 0):
         raise AssertionError(f"unexpected RGBA PNG format: {path}")
-    if not (0 <= x < width and 0 <= y < height):
-        raise AssertionError("sample outside image")
+
     raw = zlib.decompress(bytes(compressed))
     stride = width * 4
     rows = []
@@ -67,26 +68,45 @@ def _png_alpha(path: Path, x: int, y: int) -> int:
                 raise AssertionError(f"unsupported PNG filter {filter_type}")
         rows.append(current)
         previous = current
+    return header, rows
+
+
+def _alpha(rows: list[bytearray], x: int, y: int) -> int:
     return rows[y][x * 4 + 3]
 
 
 class OsIconTests(unittest.TestCase):
-    def test_every_supported_family_has_a_transparent_png_asset(self):
-        for family in SUPPORTED_FAMILIES:
+    def test_every_supported_family_has_a_dedicated_transparent_png_asset(self):
+        families = _supported_families()
+        self.assertEqual(len(families), 28)
+        keys = set()
+        for family in families:
             metadata = logo_metadata(family)
             self.assertIn(metadata["key"], LOGO_REGISTRY)
+            self.assertNotEqual(metadata["key"], FALLBACK_KEY)
+            self.assertNotIn(metadata["key"], keys)
+            keys.add(metadata["key"])
             self.assertTrue(metadata["asset"].endswith(".png"))
             path = logo_asset_path(family)
             self.assertTrue(path.is_file(), path)
-            self.assertEqual(_png_alpha(path, 31, 0), 0)
-            self.assertEqual(_png_alpha(path, 14, 16), 255)
+            header, rows = _png_rgba(path)
+            self.assertEqual(header, (32, 32, 8, 6, 0))
+            self.assertEqual(_alpha(rows, 0, 0), 0)
+            self.assertEqual(_alpha(rows, 31, 0), 0)
+            self.assertEqual(_alpha(rows, 0, 31), 0)
+            self.assertEqual(_alpha(rows, 31, 31), 0)
+            self.assertTrue(any(row[index] > 0 for row in rows for index in range(3, len(row), 4)))
+        self.assertEqual(len(keys), 28)
 
     def test_unknown_family_uses_transparent_fallback(self):
         self.assertEqual(logo_metadata("A future operating system")["key"], FALLBACK_KEY)
         fallback = logo_asset_path("A future operating system")
         self.assertEqual(fallback.name, "generic-os.png")
         self.assertTrue(fallback.is_file())
-        self.assertEqual(_png_alpha(fallback, 31, 0), 0)
+        header, rows = _png_rgba(fallback)
+        self.assertEqual(header, (32, 32, 8, 6, 0))
+        self.assertEqual(_alpha(rows, 31, 0), 0)
+        self.assertTrue(any(row[index] > 0 for row in rows for index in range(3, len(row), 4)))
 
     def test_mapping_uses_family_not_translated_display_name(self):
         self.assertEqual(logo_metadata("Ubuntu Desktop 26.04 LTS", {"os_family": "Ubuntu Desktop"})["key"], "ubuntu-desktop")
