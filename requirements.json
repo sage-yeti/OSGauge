@@ -628,7 +628,7 @@
       "X86",
       "AMD64",
       "ARM64",
-      "ARM32"
+      "ARMV7L"
     ],
     "notes": [
       "Void's official base-system table lists 520 MB RAM and 700 MB storage for x86_64-glibc, 520 MB RAM and 600 MB storage for x86_64-musl, and Pentium 4 SSE2 with 520 MB RAM and 700 MB storage for i686-glibc.",
@@ -724,7 +724,7 @@
     "architecture": [
       "X86",
       "AMD64",
-      "ARM32",
+      "ARMV7L",
       "ARM64",
       "PPC64LE",
       "S390X"
