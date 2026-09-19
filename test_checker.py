@@ -93,7 +93,7 @@ class CheckerTests(unittest.TestCase):
     def test_all_profiles_evaluate_from_one_machine_snapshot(self):
         requirements = load_requirements(Path(__file__).with_name("requirements.json"))
         results = evaluate_all(self.machine(architecture="X86_64", ram_gb=16, storage_free_gb=200), requirements)
-        self.assertEqual(len(results), 20)
+        self.assertEqual(len(results), 28)
         self.assertEqual(set(results), set(requirements))
         ranked = rank_compatibility(results)
         self.assertEqual(len(ranked), 20)
