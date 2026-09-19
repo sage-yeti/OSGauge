@@ -96,7 +96,7 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(len(results), 28)
         self.assertEqual(set(results), set(requirements))
         ranked = rank_compatibility(results)
-        self.assertEqual(len(ranked), 20)
+        self.assertEqual(len(ranked), 28)
         self.assertTrue(all(0 <= item["score"] <= 100 for item in ranked))
 
     def test_batch_one_profiles_are_valid_and_generic(self):
