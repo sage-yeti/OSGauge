@@ -126,15 +126,27 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('table.column("left", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
         self.assertIn('table.column("right", width=205, minwidth=150, stretch=True, anchor="center")', self.app)
 
-    def test_machine_compare_assigns_profile_sources_independently(self):
-        self.assertIn('window.title(t("comparison.title", self.language))', self.app)
+    def test_machine_compare_has_localized_responsive_independent_sources(self):
+        self.assertIn('window.title(t("comparison.machine_title", self.language))', self.app)
         self.assertIn("sources = [self.machine, None]", self.app)
+        self.assertIn("source_card_widgets = []", self.app)
         self.assertIn("source_actions = []", self.app)
-        self.assertIn("source_actions.append(actions)", self.app)
-        self.assertIn('command=lambda i=index: choose_profile(i)', self.app)
-        self.assertIn('style="Accent.TButton"', self.app)
+        self.assertIn("source_card.grid(sticky=\"nsew\")", self.app)
+        self.assertIn("def layout_source_cards", self.app)
+        self.assertIn("columns = 2 if source_row.winfo_width() >= 760 else 1", self.app)
+        self.assertIn('source_row.bind("<Configure>", layout_source_cards)', self.app)
+        self.assertIn('text=t("comparison.import", self.language)', self.app)
+        self.assertNotIn("machine_names[index]}", self.app[self.app.index("def show_machine_compare"):])
+        self.assertGreaterEqual(self.app.count('style="Accent.TButton"'), 2)
+        self.assertIn("use_current_buttons = []", self.app)
+        self.assertIn('state="disabled" if index == 0 else "normal"', self.app)
+        self.assertIn('use_current_buttons[index].configure(state="normal")', self.app)
+        self.assertIn('use_current_buttons[index].configure(state="disabled")', self.app)
         self.assertIn("sources[index], metadata[index] = machine, meta", self.app)
         self.assertIn("sources[index], metadata[index] = self.machine, {}", self.app)
+        for code in ("en", "it", "es", "de", "fr"):
+            locale = (ROOT / "locales" / f"{code}.json").read_text(encoding="utf-8")
+            self.assertIn('"comparison.machine_title"', locale)
 
     def test_recommendation_results_have_separate_spaced_sections(self):
         self.assertIn('result = FluentCard(result_cards, tokens=self.ui_tokens, padding=(14, 12))', self.app)
@@ -144,6 +156,9 @@ class UiPolishRegressionTests(unittest.TestCase):
         self.assertIn('text=f"{t(\'recommend.strengths\', self.language)}: {strengths}"', self.app)
         self.assertIn('text=f"{t(\'recommend.tradeoffs\', self.language)}: {tradeoffs}"', self.app)
         self.assertIn('pady=(3, 0)', self.app)
+        self.assertIn('output.pack(fill="x", pady=(6, 4))', self.app)
+        self.assertNotIn('lines = [t("recommend.disclaimer", self.language), ""]', self.app)
+        self.assertNotIn('output.config(text="\\n".join(lines))', self.app)
 
     def test_analysis_details_use_localized_logical_sections(self):
         for key in (
