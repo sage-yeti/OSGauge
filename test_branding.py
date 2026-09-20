@@ -18,11 +18,12 @@ def test_osgauge_brand_is_exposed_in_runtime_surfaces():
 def test_osgauge_artifacts_preserve_technical_identifiers():
     workflow = read_file(".github/workflows/build.yml")
     flatpak = read_file("packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml")
-    readme = read_file("README.md")
+    requirements_update = read_file("requirements_update.py")
 
     assert "OSGauge-Windows-x64.exe" in workflow
     assert "OSGauge-Linux-x86_64.AppImage" in workflow
     assert "OSGauge-Linux-x86_64.flatpak" in workflow
     assert "io.github.sageyeti.OSReadinessChecker" in flatpak
-    assert "%LOCALAPPDATA%\\OS Readiness Checker" in readme
-    assert "~/.cache/OS Readiness Checker" in readme
+    assert 'os.environ.get("LOCALAPPDATA")' in requirements_update
+    assert 'Path.home() / ".cache"' in requirements_update
+    assert 'root / "OS Readiness Checker" / "requirements.json"' in requirements_update
