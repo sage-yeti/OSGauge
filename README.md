@@ -134,4 +134,4 @@ The packaged builds are produced by GitHub Actions with PyInstaller. AppImage an
 
 ## License
 
-OSGauge is released under the [MIT License](https://github.com/sage-yeti/OSGauge/blob/main/LICENSE).
+OSGauge is released under the [MIT License](LICENSE).
