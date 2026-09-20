@@ -27,3 +27,14 @@ def test_osgauge_artifacts_preserve_technical_identifiers():
     assert 'os.environ.get("LOCALAPPDATA")' in requirements_update
     assert 'Path.home() / ".cache"' in requirements_update
     assert 'root / "OS Readiness Checker" / "requirements.json"' in requirements_update
+
+def test_osgauge_brand_assets_are_packaged():
+    branding = ROOT / "assets" / "branding"
+    for name in ("OSGauge-original.png", "osgauge.png", "osgauge.ico", "osgauge-16.png", "osgauge-32.png", "osgauge-48.png", "osgauge-64.png", "osgauge-128.png", "osgauge-256.png"):
+        assert (branding / name).is_file()
+    assert "assets/branding/osgauge.png" in read_file("app.py")
+    assert "osgauge.ico" in read_file("os_readiness_checker.spec")
+    assert "osgauge.ico" in read_file("os_readiness_checker_cli.spec")
+    assert "<svg" in read_file("packaging/linux/OS-Readiness-Checker.svg")
+    assert "hicolor/${size}x${size}/apps" in read_file("packaging/linux/build_appimage.sh")
+    assert "hicolor/${size}x${size}/apps/io.github.sageyeti.OSReadinessChecker.png" in read_file("packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml")
