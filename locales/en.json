@@ -1,5 +1,5 @@
 {
-  "app.title": "OS Readiness Checker",
+  "app.title": "OSGauge",
   "app.subtitle": "Check this computer against published operating-system requirements.",
   "label.theme": "Theme",
   "label.language": "Language",
@@ -93,7 +93,7 @@
   "overview.meets": "This computer meets every requirement checked",
   "overview.fails": "This computer does not meet all checked requirements",
   "overview.review": "The basic requirements pass, but some items need review",
-  "report.title": "OS Readiness Report",
+  "report.title": "OSGauge Report",
   "report.release": "Release and lifecycle",
   "report.machine": "Detected machine",
   "report.checks": "Compatibility checks",
