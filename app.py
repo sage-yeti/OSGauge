@@ -50,7 +50,7 @@ def filter_os_names(names, query):
 class ReadinessApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title(f"OS Readiness Checker {APP_VERSION}")
+        self.title(f"OSGauge {APP_VERSION}")
         self.geometry("820x620")
         self.minsize(700, 500)
         self.configure(bg=UI["background"])
@@ -97,7 +97,7 @@ class ReadinessApp(tk.Tk):
         self.nav._ui_role = "nav"
         self.nav.pack(side="left", fill="y")
         self.nav.pack_propagate(False)
-        tk.Label(self.nav, text="OS Readiness", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold")).pack(anchor="w", padx=8, pady=(0, 16))
+        tk.Label(self.nav, text="OSGauge", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold")).pack(anchor="w", padx=8, pady=(0, 16))
         self.nav_buttons = {}
         nav_labels = {"overview": "nav.overview", "analysis": "nav.analysis", "compare_os": "nav.compare_os", "compare_machines": "nav.compare_machines", "upgrade": "nav.upgrade", "recommendations": "nav.recommendations", "reports": "nav.reports", "settings": "nav.settings", "about": "nav.about"}
         for page in NAV_DESTINATIONS:
@@ -1313,7 +1313,7 @@ class ReadinessApp(tk.Tk):
             name = self.choice.get()
             html = html_report(self.machine, name, self.requirements[name], self.language)
             if self.machine_source == "Imported profile":
-                html = html.replace("<h1>OS Readiness Report</h1>", f"<h1>OS Readiness Report</h1><p><strong>Machine source:</strong> Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')}).</p>")
+                html = html.replace("<h1>OSGauge Report</h1>", f"<h1>OSGauge Report</h1><p><strong>Machine source:</strong> Imported profile (captured {self.profile_metadata.get('created_at', 'unknown')}).</p>")
             Path(target).write_text(html, encoding="utf-8")
             self._set_feedback("feedback.saved")
 
