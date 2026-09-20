@@ -723,7 +723,7 @@ class ReadinessApp(tk.Tk):
         tk.Label(card, text=f"Version {APP_VERSION}\n{t('app.subtitle', self.language)}\n\nRequirements database: v{self.requirements_info.data_version} ({self.requirements_info.source})\nRuns on Windows and Linux. License: MIT\n\n{t('about.privacy', self.language)}", justify="left", anchor="w", wraplength=370, bg=UI["surface"], fg=UI["muted"], font=(self.font, 9)).pack(fill="x", pady=(10, 16))
         actions = tk.Frame(card, bg=UI["surface"])
         actions.pack(fill="x")
-        ttk.Button(actions, text=t("action.open_github", self.language), command=lambda: webbrowser.open("https://github.com/sage-yeti/os-readiness-checker"), style="Secondary.TButton").pack(side="left")
+        ttk.Button(actions, text=t("action.open_github", self.language), command=lambda: webbrowser.open("https://github.com/sage-yeti/OSGauge"), style="Secondary.TButton").pack(side="left")
         ttk.Button(actions, text=t("action.updates", self.language), command=self.check_requirements_updates, style="Secondary.TButton").pack(side="left", padx=(8, 0))
         ttk.Button(actions, text=t("action.close", self.language), command=window.destroy, style="Secondary.TButton").pack(side="right")
         window.bind("<Escape>", lambda _event: window.destroy())
