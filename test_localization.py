@@ -148,6 +148,25 @@ class LocalizationTests(unittest.TestCase):
         for key in ("label.compatibility", "label.suitability", "label.lifecycle", "label.installation_readiness"):
             self.assertIn(f't("{key}", self.language)', source)
 
+    def test_live_language_refresh_retains_persistent_analysis_widgets(self):
+        source = Path("app.py").read_text(encoding="utf-8")
+        for key in ("label.compatibility", "label.suitability", "label.lifecycle", "label.installation_readiness"):
+            self.assertIn(f't("{key}", self.language)', source)
+        self.assertIn('self.analysis_cards[key] = (card, title_label, status, explanation)', source)
+        self.assertIn('self.issue_filter.config(text=t("analysis.issues_only", self.language))', source)
+        self.assertIn('self.header_title_label.config(text=t("app.title", self.language))', source)
+        self.assertIn('self.welcome_scan_button.config(text=t("action.scan", self.language))', source)
+        self.assertIn('self.welcome_import_button.config(text=t("action.import_profile", self.language))', source)
+        self.assertIn('analysis_title_keys = {', source)
+        self.assertIn('if current_page == "analysis":', source)
+        self.assertIn('elif current_page == "overview":', source)
+
+    def test_representative_language_values_are_distinct_for_live_analysis_text(self):
+        keys = ("label.compatibility", "label.suitability", "label.lifecycle", "label.installation_readiness", "analysis.issues_only")
+        for key in keys:
+            with self.subTest(key=key):
+                self.assertNotEqual(t(key, "pt-BR"), t(key, "en"))
+
     def test_russian_alpine_analysis_regression_and_representative_languages(self):
         requirements = json.loads(Path("requirements.json").read_text(encoding="utf-8"))
         alpine = requirements["Alpine Linux 3.24"]["notes"]
