@@ -23,6 +23,6 @@ def test_osgauge_artifacts_preserve_technical_identifiers():
     assert "OSGauge-Linux-x86_64.AppImage" in workflow
     assert "OSGauge-Linux-x86_64.flatpak" in workflow
     assert "io.github.sageyeti.OSReadinessChecker" in flatpak
-    assert "%LOCALAPPDATA%\\OS Readiness Checker" in readme
+    assert "%LOCALAPPDATA%\\\\OS Readiness Checker" in readme
     assert "~/.cache/OS Readiness Checker" in readme
     assert "sage-yeti/os-readiness-checker" in readme
