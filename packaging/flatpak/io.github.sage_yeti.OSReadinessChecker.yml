@@ -18,6 +18,7 @@ modules:
       - mkdir -p /app/share/os-readiness-checker && install -Dm644 requirements.json recommendation.json /app/share/os-readiness-checker/
       - cp -a locales /app/share/os-readiness-checker/locales
       - cp -a assets /app/share/os-readiness-checker/assets
+      - for size in 16 24 32 48 64 128 256; do install -Dm644 assets/branding/osgauge-${size}.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.sageyeti.OSReadinessChecker.png; done
       - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.desktop /app/share/applications/io.github.sageyeti.OSReadinessChecker.desktop
       - install -Dm644 packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.metainfo.xml /app/share/metainfo/io.github.sageyeti.OSReadinessChecker.metainfo.xml
       - install -Dm644 packaging/linux/OS-Readiness-Checker.svg /app/share/icons/hicolor/scalable/apps/io.github.sageyeti.OSReadinessChecker.svg
