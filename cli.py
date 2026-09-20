@@ -93,7 +93,7 @@ def _payload(machine, requirements, names, verbose: bool, data_version: int, pro
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="os-readiness-checker", description="Check this computer against OS requirements.")
+    parser = argparse.ArgumentParser(prog="OSGauge CLI", description="Check this computer against operating-system requirements.")
     parser.add_argument("--version", action="version", version=APP_VERSION)
     parser.add_argument("--list", action="store_true", help="list available operating systems")
     parser.add_argument("--all", action="store_true", help="check every operating system")
