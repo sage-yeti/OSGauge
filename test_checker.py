@@ -143,7 +143,7 @@ class CheckerTests(unittest.TestCase):
         self.assertIn("Next step", html)
         self.assertIn("Suitability", html)
         self.assertIn("suitability", json.dumps(as_report(machine, REQ)))
-        self.assertIn("OS Readiness Checker - Test OS", text)
+        self.assertIn("OSGauge - Test OS", text)
         self.assertIn("Memory: FAIL", text)
 
     def test_reports_explain_unknown_values_without_failing(self):
