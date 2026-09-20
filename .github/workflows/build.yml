@@ -42,20 +42,20 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: OS-Readiness-Checker-Windows-x64.exe
-            executable: OS-Readiness-Checker.exe
+            artifact_name: OSGauge-Windows-x64.exe
+            executable: OSGauge.exe
             spec: os_readiness_checker.spec
           - os: windows-latest
-            artifact_name: OS-Readiness-Checker-CLI-Windows-x64.exe
-            executable: OS-Readiness-Checker-CLI.exe
+            artifact_name: OSGauge-CLI-Windows-x64.exe
+            executable: OSGauge-CLI.exe
             spec: os_readiness_checker_cli.spec
           - os: ubuntu-latest
-            artifact_name: OS-Readiness-Checker-Linux-x64
-            executable: OS-Readiness-Checker
+            artifact_name: OSGauge-Linux-x64
+            executable: OSGauge
             spec: os_readiness_checker.spec
           - os: ubuntu-latest
-            artifact_name: OS-Readiness-Checker-CLI-Linux-x64
-            executable: OS-Readiness-Checker-CLI
+            artifact_name: OSGauge-CLI-Linux-x64
+            executable: OSGauge-CLI
             spec: os_readiness_checker_cli.spec
     steps:
       - uses: actions/checkout@v4
@@ -109,22 +109,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: OS-Readiness-Checker-Linux-x64
+          name: OSGauge-Linux-x64
           path: dist
       - name: Build AppImage
         run: |
-          chmod +x dist/OS-Readiness-Checker-Linux-x64 packaging/linux/build_appimage.sh
+          chmod +x dist/OSGauge-Linux-x64 packaging/linux/build_appimage.sh
           packaging/linux/build_appimage.sh dist
       - name: Validate AppImage artifact
         run: |
-          test -x dist/OS-Readiness-Checker-Linux-x86_64.AppImage
-          ./dist/OS-Readiness-Checker-Linux-x86_64.AppImage --appimage-extract >/dev/null
+          test -x dist/OSGauge-Linux-x86_64.AppImage
+          ./dist/OSGauge-Linux-x86_64.AppImage --appimage-extract >/dev/null
           test -f squashfs-root/OS-Readiness-Checker.desktop
           test -f squashfs-root/OS-Readiness-Checker.svg
       - uses: actions/upload-artifact@v4
         with:
-          name: OS-Readiness-Checker-Linux-x86_64.AppImage
-          path: dist/OS-Readiness-Checker-Linux-x86_64.AppImage
+          name: OSGauge-Linux-x86_64.AppImage
+          path: dist/OSGauge-Linux-x86_64.AppImage
 
   flatpak:
     name: Validate Flatpak package
@@ -140,10 +140,10 @@ jobs:
       - name: Build and validate bundle
         run: |
           flatpak-builder --user --force-clean --repo=repo build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml
-          flatpak build-bundle repo OS-Readiness-Checker-Linux-x86_64.flatpak io.github.sageyeti.OSReadinessChecker
-          test -s OS-Readiness-Checker-Linux-x86_64.flatpak
+          flatpak build-bundle repo OSGauge-Linux-x86_64.flatpak io.github.sageyeti.OSReadinessChecker
+          test -s OSGauge-Linux-x86_64.flatpak
           python -m unittest -q
       - uses: actions/upload-artifact@v4
         with:
-          name: OS-Readiness-Checker-Linux-x86_64.flatpak
-          path: OS-Readiness-Checker-Linux-x86_64.flatpak
+          name: OSGauge-Linux-x86_64.flatpak
+          path: OSGauge-Linux-x86_64.flatpak
