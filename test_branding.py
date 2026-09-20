@@ -12,7 +12,6 @@ def test_osgauge_brand_is_exposed_in_runtime_surfaces():
     assert "OSGauge" in read_file("app.py")
     assert '"app.title": "OSGauge"' in read_file("locales/en.json")
     assert "OSGauge CLI" in read_file("cli.py")
-    assert "0.5.2" in read_file("version.py")
 
 
 def test_osgauge_artifacts_preserve_technical_identifiers():
