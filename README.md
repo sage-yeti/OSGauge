@@ -1,4 +1,4 @@
-# OS Readiness Checker
+# OSGauge
 
 A small desktop application that scans the current computer and compares it with the published requirements for Windows 11, Ubuntu Desktop, Fedora Workstation, Arch Linux, Linux Mint, openSUSE Leap, Pop!_OS, Debian, ChromeOS Flex, Zorin OS, elementary OS, Manjaro, Kali Linux, Tails, MX Linux, Rocky Linux, AlmaLinux, NixOS, EndeavourOS, CachyOS, Void Linux, antiX, Q4OS Trinity, Bodhi Linux, SparkyLinux MinimalGUI, Slax, Alpine Linux, and Tiny Core Linux.
 
@@ -26,19 +26,19 @@ A small desktop application that scans the current computer and compares it with
 
 Download the latest release for your platform:
 
-- Windows GUI: `OS-Readiness-Checker-Windows-x64.exe` (double-click to run; no console window opens)
-- Linux GUI: `OS-Readiness-Checker-Linux-x64` (make it executable with `chmod +x`, then run it)
-- Linux portable AppImage: `OS-Readiness-Checker-Linux-x86_64.AppImage` (x86-64; make it executable with `chmod +x`, then run it)
-- Windows CLI: `OS-Readiness-Checker-CLI-Windows-x64.exe`
-- Linux CLI: `OS-Readiness-Checker-CLI-Linux-x64`
+- Windows GUI: `OSGauge-Windows-x64.exe` (double-click to run; no console window opens)
+- Linux GUI: `OSGauge-Linux-x64` (make it executable with `chmod +x`, then run it)
+- Linux portable AppImage: `OSGauge-Linux-x86_64.AppImage` (x86-64; make it executable with `chmod +x`, then run it)
+- Windows CLI: `OSGauge-CLI-Windows-x64.exe`
+- Linux CLI: `OSGauge-CLI-Linux-x64`
 
 The packaged versions include the requirements database and do not require Python to be installed.
 
 To run the Linux AppImage, download it, make it executable, and launch it:
 
 ```text
-chmod +x OS-Readiness-Checker-Linux-x86_64.AppImage
-./OS-Readiness-Checker-Linux-x86_64.AppImage
+chmod +x OSGauge-Linux-x86_64.AppImage
+./OSGauge-Linux-x86_64.AppImage
 ```
 
 The existing standalone Linux GUI and CLI artifacts remain available separately. The AppImage is GUI-focused; use the separate Linux CLI artifact for command-line scans. Python is not required for either packaged Linux GUI format.
@@ -96,7 +96,7 @@ The optional **Recommend an OS** view ranks compatible systems against selected 
 
 ### Flatpak (Linux)
 
-The repository includes a Flatpak manifest (`packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml`) using application ID `io.github.sageyeti.OSReadinessChecker`. Developers with `flatpak-builder` can build it with `flatpak-builder --force-clean build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml`, then export a bundle with `flatpak build-bundle repo OS-Readiness-Checker-Linux.flatpak io.github.sageyeti.OSReadinessChecker`. The Flatpak requests only display/IPC and read-only graphics access; sandboxing can make host disk, GPU, firmware, and boot details unavailable, which are reported as Unknown/Review. Importing a complete machine profile captured outside the sandbox remains reliable. AppImage is still supported and generally provides more direct host hardware visibility. No native ARM64 Flatpak artifact is currently distributed.
+The repository includes a Flatpak manifest (`packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml`) using application ID `io.github.sageyeti.OSReadinessChecker`. Developers with `flatpak-builder` can build it with `flatpak-builder --force-clean build-dir packaging/flatpak/io.github.sage_yeti.OSReadinessChecker.yml`, then export a bundle with `flatpak build-bundle repo OSGauge-Linux-x86_64.flatpak io.github.sageyeti.OSReadinessChecker`. The Flatpak requests only display/IPC and read-only graphics access; sandboxing can make host disk, GPU, firmware, and boot details unavailable, which are reported as Unknown/Review. Importing a complete machine profile captured outside the sandbox remains reliable. AppImage is still supported and generally provides more direct host hardware visibility. No native ARM64 Flatpak artifact is currently distributed.
 
 Each release includes `SHA256SUMS.txt` for verifying downloaded binaries. Screenshots are omitted because the available validation environment does not include a working Tk/Tcl runtime for reliable current-theme capture.
 
