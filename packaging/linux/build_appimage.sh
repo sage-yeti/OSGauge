@@ -8,6 +8,10 @@ APPIMAGE_NAME="OSGauge-Linux-x86_64.AppImage"
 
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/scalable/apps"
+for size in 16 24 32 48 64 128 256; do
+  mkdir -p "$APPDIR/usr/share/icons/hicolor/${size}x${size}/apps"
+  cp "$ROOT/assets/branding/osgauge-${size}.png" "$APPDIR/usr/share/icons/hicolor/${size}x${size}/apps/OS-Readiness-Checker.png"
+done
 cp "$DIST/OSGauge-Linux-x64" "$APPDIR/usr/bin/"
 cp "$ROOT/packaging/linux/AppRun" "$APPDIR/AppRun"
 cp "$ROOT/packaging/linux/OS-Readiness-Checker.desktop" "$APPDIR/OS-Readiness-Checker.desktop"
