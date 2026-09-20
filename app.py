@@ -117,7 +117,8 @@ class ReadinessApp(tk.Tk):
         header = tk.Frame(workspace, bg=UI["background"], padx=28, pady=24)
         header._ui_role = "workspace"
         header.pack(fill="x")
-        tk.Label(header, text=t("app.title", self.language), bg=UI["background"], fg=UI["text"], font=(font, 23, "bold")).pack(anchor="w")
+        self.header_title_label = tk.Label(header, text=t("app.title", self.language), bg=UI["background"], fg=UI["text"], font=(font, 23, "bold"))
+        self.header_title_label.pack(anchor="w")
         self.subtitle_label = tk.Label(header, text=t("app.subtitle", self.language), bg=UI["background"], fg=UI["muted"], font=(font, 10))
         self.subtitle_label.pack(anchor="w", pady=(5, 0))
         theme_box = tk.Frame(header, bg=UI["background"])
@@ -222,8 +223,10 @@ class ReadinessApp(tk.Tk):
             self.welcome_hints.append(hint)
         welcome_actions = tk.Frame(welcome_body, bg=UI["surface"])
         welcome_actions.pack(fill="x", pady=(8, 0))
-        ttk.Button(welcome_actions, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton").pack(side="left")
-        ttk.Button(welcome_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton").pack(side="left", padx=(8, 0))
+        self.welcome_scan_button = ttk.Button(welcome_actions, text=t("action.scan", self.language), command=self.run_check, style="Accent.TButton")
+        self.welcome_scan_button.pack(side="left")
+        self.welcome_import_button = ttk.Button(welcome_actions, text=t("action.import_profile", self.language), command=self.import_machine_profile, style="Secondary.TButton")
+        self.welcome_import_button.pack(side="left", padx=(8, 0))
         if self.settings.get("onboarding_dismissed"):
             self.welcome_card.pack_forget()
         else:
@@ -261,12 +264,13 @@ class ReadinessApp(tk.Tk):
             card = FluentCard(analysis_cards, tokens=self.ui_tokens, padding=CARD_PADDING)
             card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=(0 if index % 2 == 0 else 6, 6 if index % 2 == 0 else 0), pady=(0, 8))
             analysis_cards.grid_columnconfigure(index % 2, weight=1, uniform="analysis-card")
-            tk.Label(card, text=title, bg=UI["surface"], fg=UI["muted"], font=(font, 9, "bold"), anchor="w").pack(fill="x")
+            title_label = tk.Label(card, text=title, bg=UI["surface"], fg=UI["muted"], font=(font, 9, "bold"), anchor="w")
+            title_label.pack(fill="x")
             status = tk.Label(card, text="—", bg=UI["surface"], fg=UI["text"], font=(font, 12, "bold"), anchor="w")
             status.pack(fill="x", pady=(4, 2))
             explanation = tk.Label(card, text="", bg=UI["surface"], fg=UI["muted"], font=(font, 9), anchor="w", justify="left", wraplength=300)
             explanation.pack(fill="x")
-            self.analysis_cards[key] = (card, status, explanation)
+            self.analysis_cards[key] = (card, title_label, status, explanation)
         analysis_cards.grid_rowconfigure(0, weight=1)
         analysis_cards.grid_rowconfigure(1, weight=1)
 
@@ -642,9 +646,13 @@ class ReadinessApp(tk.Tk):
         self.settings["language"] = self.language_selection
         save_settings(self.settings)
         self.title(f"{t('app.title', self.language)} {APP_VERSION}")
+        self.header_title_label.config(text=t("app.title", self.language))
         self.theme_choice.config(values=tuple(t(f"theme.{value.lower()}", self.language) for value in ("System", "Light", "Dark")))
         self.theme_choice.set(t(f"theme.{self.theme_mode.lower()}", self.language))
         self.help_button.config(text=t("action.help", self.language))
+        self.issue_filter.config(text=t("analysis.issues_only", self.language))
+        self.welcome_scan_button.config(text=t("action.scan", self.language))
+        self.welcome_import_button.config(text=t("action.import_profile", self.language))
         self.check_button.config(text=t("action.scan", self.language))
         self.overview_button.config(text=t("action.overview", self.language))
         self.recommend_button.config(text=t("recommend.action", self.language))
@@ -670,8 +678,23 @@ class ReadinessApp(tk.Tk):
             button.config(text=t(nav_labels[page], self.language))
         for column, key in (("#0", "label.check"), ("result", "label.result"), ("detected", "label.detected"), ("required", "label.required")):
             self.table.heading(column, text=t(key, self.language))
+        analysis_title_keys = {
+            "compatibility": "label.compatibility",
+            "suitability": "label.suitability",
+            "lifecycle": "label.lifecycle",
+            "readiness": "label.installation_readiness",
+        }
+        for key, translation_key in analysis_title_keys.items():
+            self.analysis_cards[key][1].config(text=t(translation_key, self.language))
+        current_page = getattr(self, "active_page", "overview")
         if self.machine and self.choice.get() in self.all_results:
-            self.show_detail()
+            if current_page == "analysis":
+                self.show_detail()
+            elif current_page == "overview":
+                self._show_overview(self.machine, self.all_results, self.ranked_results)
+        elif current_page == "overview":
+            self.summary.config(text=t("empty.no_machine", self.language), fg=UI["text"])
+            self._set_details_message(text=t("help.concepts_text", self.language))
         if hasattr(self, "workspace_scroll"):
             self.workspace_scroll.refresh()
 
@@ -896,7 +919,7 @@ class ReadinessApp(tk.Tk):
         }
         for key, (value, explanation) in cards.items():
             _icon, color = self._status_presentation(str(value))
-            _card, status_label_widget, explanation_widget = self.analysis_cards[key]
+            _card, _title_label_widget, status_label_widget, explanation_widget = self.analysis_cards[key]
             if key == "compatibility":
                 display = f"{_icon} {status_label(value, self.language).upper()}"
             elif key == "lifecycle":
