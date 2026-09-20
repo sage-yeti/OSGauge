@@ -14,8 +14,8 @@ class LocalizationTests(unittest.TestCase):
     def test_english_and_italian_lookup_and_fallback(self):
         self.assertEqual(t("label.compatibility", "en"), "Compatibility")
         self.assertEqual(t("label.compatibility", "it"), "Compatibilità")
-        self.assertEqual(t("app.title", "xx"), "OS Readiness Checker")
-        self.assertEqual(t("app.title", "it"), "OS Readiness Checker")
+        self.assertEqual(t("app.title", "xx"), "OSGauge")
+        self.assertEqual(t("app.title", "it"), "OSGauge")
         self.assertEqual(t("label.compatibility", "es"), "Compatibilidad")
         self.assertEqual(t("label.compatibility", "de"), "Kompatibilität")
         self.assertEqual(t("label.compatibility", "fr"), "Compatibilité")
