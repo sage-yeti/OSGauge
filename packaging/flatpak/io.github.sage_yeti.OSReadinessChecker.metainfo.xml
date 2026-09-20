@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>io.github.sageyeti.OSReadinessChecker</id>
-  <name>OS Readiness Checker</name>
+  <name>OSGauge</name>
   <summary>Check whether a computer meets operating-system requirements</summary>
   <description>
-    <p>OS Readiness Checker evaluates detected hardware against published requirements for supported operating systems.</p>
+    <p>OSGauge evaluates detected hardware against published requirements for supported operating systems.</p>
   </description>
   <launchable type="desktop-id">io.github.sageyeti.OSReadinessChecker.desktop</launchable>
   <metadata_license>CC0-1.0</metadata_license>
