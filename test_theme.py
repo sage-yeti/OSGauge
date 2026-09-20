@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from theme import THEMES, colors_for, load_settings, load_theme_mode, save_settings, save_theme_mode, system_prefers_dark
+from localization import LANGUAGES, resolve_language
 
 
 class _FakeRegistryKey:
@@ -66,6 +67,21 @@ class ThemeTests(unittest.TestCase):
                 self.assertEqual(load_theme_mode(), "Dark")
                 save_theme_mode("invalid")
                 self.assertEqual(load_theme_mode(), "Dark")
+                path.write_text("not json", encoding="utf-8")
+                self.assertEqual(load_settings(), {})
+
+    def test_language_setting_round_trip_and_invalid_fallback(self):
+        with __import__("tempfile").TemporaryDirectory() as directory:
+            path = __import__("pathlib").Path(directory) / "settings.json"
+            with patch("theme.settings_path", return_value=path):
+                save_settings({"language": "Português (Brasil)"})
+                loaded = load_settings()
+                self.assertEqual(loaded["language"], "Português (Brasil)")
+                self.assertEqual(resolve_language(loaded["language"]), "pt-BR")
+                save_settings({"language": "Unsupported"})
+                loaded = load_settings()
+                selection = loaded.get("language") if loaded.get("language") in LANGUAGES else "System"
+                self.assertEqual(selection, "System")
                 path.write_text("not json", encoding="utf-8")
                 self.assertEqual(load_settings(), {})
 
