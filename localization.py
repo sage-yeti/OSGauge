@@ -779,6 +779,7 @@ def _load(code: str) -> dict[str, str]:
         try:
             data = json.loads(Path(__file__).with_name("locales").joinpath(f"{code}.json").read_text(encoding="utf-8"))
             _CACHE[code] = {**(data if isinstance(data, dict) else {}), **_RECOMMEND_TRANSLATIONS.get(code, {}), **_BATCH5_TRANSLATIONS.get(code, {}), **_BATCH6_TRANSLATIONS.get(code, {})}
+            _CACHE[code]["app.title"] = "OSGauge"
         except (OSError, json.JSONDecodeError):
             _CACHE[code] = {}
     return _CACHE[code]
