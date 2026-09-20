@@ -12,7 +12,7 @@ from architecture import normalize_architecture
 
 
 SCHEMA_VERSION = 1
-REQUIREMENTS_URL = "https://raw.githubusercontent.com/sage-yeti/os-readiness-checker/main/requirements.json"
+REQUIREMENTS_URL = "https://raw.githubusercontent.com/sage-yeti/OSGauge/main/requirements.json"
 
 
 @dataclass(frozen=True)
