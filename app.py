@@ -40,6 +40,12 @@ ICONS = {"pass": "✓", "fail": "✕", "unknown": "?"}
 UI = colors_for("Light")
 
 
+def _resource_path(relative: str) -> Path:
+    """Resolve bundled resources in source and PyInstaller layouts."""
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return root / relative
+
+
 def filter_os_names(names, query):
     normalized_query = " ".join(str(query).casefold().split())
     if not normalized_query:
@@ -50,6 +56,14 @@ def filter_os_names(names, query):
 class ReadinessApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
+        self._app_icon = None
+        icon_path = _resource_path("assets/branding/osgauge.png")
+        if icon_path.exists():
+            try:
+                self._app_icon = tk.PhotoImage(file=str(icon_path))
+                self.iconphoto(True, self._app_icon)
+            except tk.TclError:
+                self._app_icon = None
         self.title(f"OSGauge {APP_VERSION}")
         self.geometry("820x620")
         self.minsize(700, 500)
