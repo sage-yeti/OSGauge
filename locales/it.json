@@ -1,5 +1,5 @@
 {
-  "app.title": "OS Readiness Checker",
+  "app.title": "OSGauge",
   "app.subtitle": "Verifica questo computer rispetto ai requisiti pubblicati dei sistemi operativi.",
   "label.theme": "Tema",
   "label.language": "Lingua",
@@ -93,7 +93,7 @@
   "overview.meets": "Questo computer soddisfa tutti i requisiti controllati",
   "overview.fails": "Questo computer non soddisfa tutti i requisiti controllati",
   "overview.review": "I requisiti di base sono soddisfatti, ma alcuni elementi richiedono verifica",
-  "report.title": "Rapporto OS Readiness",
+  "report.title": "OSGauge Report",
   "report.release": "Versione e ciclo di supporto",
   "report.machine": "Macchina rilevata",
   "report.checks": "Controlli di compatibilità",
