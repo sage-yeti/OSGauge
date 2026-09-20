@@ -29,6 +29,7 @@ exe = EXE(
     a.datas,
     [],
     name="OSGauge",
+    icon=str(project_root / "assets" / "branding" / "osgauge.ico"),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
